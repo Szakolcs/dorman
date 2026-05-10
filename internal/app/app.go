@@ -1,0 +1,59 @@
+package app
+
+import (
+	"fmt"
+	"net/http"
+
+	"dorm-man/internal/administration"
+	"dorm-man/internal/config"
+	models "dorm-man/internal/models/administration"
+	"dorm-man/internal/platform"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"gorm.io/gorm"
+)
+
+type App struct {
+	cfg    config.Config
+	echo   *echo.Echo
+	db     *gorm.DB
+	server *http.Server
+}
+
+func New() (*App, error) {
+	cfg := config.Load()
+
+	db, err := config.OpenDB(cfg.DatabaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("open database: %w", err)
+	}
+
+	if err := db.AutoMigrate(models.All()...); err != nil {
+		return nil, fmt.Errorf("auto migrate models: %w", err)
+	}
+
+	e := echo.New()
+	e.HideBanner = true
+	e.Use(middleware.Recover())
+	e.Use(middleware.RequestID())
+	e.Use(middleware.Logger())
+
+	administration.RegisterRoutes(e, db)
+	platform.RegisterRoutes(e, db)
+
+	e.GET("/healthz", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
+
+	return &App{
+		cfg:  cfg,
+		echo: e,
+		db:   db,
+	}, nil
+}
+
+func (a *App) Start() error {
+	addr := ":" + a.cfg.Port
+	return a.echo.Start(addr)
+}

@@ -1,0 +1,29 @@
+package administration
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ AuditPage() {
+	@components.Document("Administration - Audit", AuditContent())
+}
+
+templ AuditContent() {
+	@partials.MainNav()
+	@components.PageHeader(
+		"Audit Trail",
+		"Review sensitive actions with actor, action, target, outcome, and timestamp context.",
+	)
+
+	@components.DataTable([]string{"Occurred At", "Actor", "Action", "Target Type", "Target ID", "Outcome"}, AuditRows())
+}
+
+templ AuditRows() {
+	<tr>
+		<td>2026-05-10T16:00:00Z</td>
+		<td>staff-id</td>
+		<td>room.assignment</td>
+		<td>room_assignment</td>
+		<td>assignment-id</td>
+		<td>success</td>
+	</tr>
+}
