@@ -2,17 +2,12 @@ package main
 
 import (
 	"log"
-
-	"dorm-man/internal/app"
+	"os"
 )
 
 func main() {
-	server, err := app.New()
-	if err != nil {
-		log.Fatalf("failed to bootstrap app: %v", err)
-	}
-
-	if err := server.Start(); err != nil {
-		log.Fatalf("server stopped with error: %v", err)
+	if err := run(); err != nil {
+		log.Printf("server startup failed: %v", err)
+		os.Exit(1)
 	}
 }
