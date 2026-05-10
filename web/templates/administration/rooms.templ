@@ -1,5 +1,74 @@
 package administration
 
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
 templ RoomsPage() {
-	<p>Hello world!</p>
+	@components.Document("Administration - Rooms", RoomsContent())
+}
+
+templ RoomsContent() {
+	@partials.MainNav()
+	@components.PageHeader(
+		"Room and Capacity Management",
+		"View occupancy, assign tenants, and approve bulk pre-semester allocation plans.",
+	)
+	@components.Section("Room Filters", RoomsFilterForm())
+	@components.Section("Room Overview", RoomOverviewTable())
+	@components.Section("Assign or Reassign Tenant", RoomAssignmentForm())
+	@components.Section("Bulk Allocation Plan", RoomBulkAllocationForm())
+}
+
+templ RoomsFilterForm() {
+	<form method="get" action="/administration/rooms">
+		<label for="room-state">State</label>
+		<select id="room-state" name="state">
+			<option value="">All</option>
+			<option value="occupied">Occupied</option>
+			<option value="available">Available</option>
+			<option value="maintenance-needed">Maintenance Needed</option>
+		</select>
+
+		<label for="room-search">Room Number</label>
+		<input id="room-search" name="search" type="text"/>
+
+		<button type="submit">Apply</button>
+	</form>
+}
+
+templ RoomOverviewTable() {
+	@components.DataTable([]string{"Room", "Capacity", "Occupancy", "Inventory Status", "Actions"}, RoomOverviewRows())
+}
+
+templ RoomOverviewRows() {
+	<tr>
+		<td>101</td>
+		<td>2</td>
+		<td>1</td>
+		<td>ok</td>
+		<td><a href="/administration/rooms/room-id">Details</a></td>
+	</tr>
+}
+
+templ RoomAssignmentForm() {
+	<form method="post" action="/api/administration/assignments">
+		<label for="assignment-tenant-id">Tenant ID</label>
+		<input id="assignment-tenant-id" name="tenant_id" type="text"/>
+
+		<label for="assignment-room-id">Room ID</label>
+		<input id="assignment-room-id" name="room_id" type="text"/>
+
+		<button type="submit">Assign Tenant</button>
+	</form>
+}
+
+templ RoomBulkAllocationForm() {
+	<form method="post" action="/api/administration/room-allocation-plan/generate">
+		<button type="submit">Generate Plan</button>
+	</form>
+	<form method="post" action="/api/administration/room-allocation-plan/approve">
+		<label for="plan-json">Plan JSON</label>
+		<textarea id="plan-json" name="plan_json"></textarea>
+		<button type="submit">Approve Plan</button>
+	</form>
 }

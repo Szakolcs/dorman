@@ -1,0 +1,46 @@
+package components
+
+templ Document(title string, body templ.Component) {
+	<!doctype html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ title }</title>
+		</head>
+		<body>
+			<main>
+				@body
+			</main>
+		</body>
+	</html>
+}
+
+templ PageHeader(title string, description string) {
+	<header>
+		<h1>{ title }</h1>
+		<p>{ description }</p>
+	</header>
+}
+
+templ Section(title string, body templ.Component) {
+	<section>
+		<h2>{ title }</h2>
+		@body
+	</section>
+}
+
+templ DataTable(headers []string, body templ.Component) {
+	<table border="1">
+		<thead>
+			<tr>
+				for _, header := range headers {
+					<th>{ header }</th>
+				}
+			</tr>
+		</thead>
+		<tbody>
+			@body
+		</tbody>
+	</table>
+}
