@@ -1,0 +1,43 @@
+package platform
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ AboutPage() {
+	@components.Document("About the Dormitory", AboutContent())
+}
+
+templ AboutContent() {
+	@partials.MainNav()
+	@components.PageHeader(
+		"About the Dormitory",
+		"A short overview for current and incoming students.",
+	)
+
+	@components.Section("History", AboutHistory())
+	@components.Section("Student Life", AboutStudentLife())
+	@components.Section("Useful Information for Newcomers", AboutUsefulInformation())
+}
+
+templ AboutHistory() {
+	<p>
+		This dormitory has hosted university students for many years and has grown into
+		a strong learning and community environment.
+	</p>
+}
+
+templ AboutStudentLife() {
+	<p>
+		Students balance studying with social activities, sports, and community events
+		organized throughout the semester.
+	</p>
+}
+
+templ AboutUsefulInformation() {
+	<ul>
+		<li>Check administration announcements for move-in and semester schedules.</li>
+		<li>Use official maintenance flows to report room or shared-area issues.</li>
+		<li>Follow forum news and events to stay informed about dorm programs.</li>
+		<li>Contact office staff during official support hours for urgent help.</li>
+	</ul>
+}

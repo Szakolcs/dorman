@@ -1,0 +1,83 @@
+package administration
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ InventoryPage() {
+	@components.Document("Administration - Inventory", InventoryContent())
+}
+
+templ InventoryContent() {
+	@partials.MainNav()
+	@components.PageHeader(
+		"Inventory Management",
+		"Track room and shared-area inventory with lifecycle status for audit reconciliation.",
+	)
+	@components.Section("Inventory Report", InventoryTable())
+	@components.Section("Register Inventory Item", InventoryCreateForm())
+	@components.Section("Update Inventory Status", InventoryStatusForm())
+}
+
+templ InventoryTable() {
+	@components.DataTable([]string{"Item", "Location Type", "Location", "Condition", "Status"}, InventoryRows())
+}
+
+templ InventoryRows() {
+	<tr>
+		<td>Chair</td>
+		<td>room</td>
+		<td>Room 101</td>
+		<td>good</td>
+		<td>in_use</td>
+	</tr>
+}
+
+templ InventoryCreateForm() {
+	<form method="post" action="/api/administration/inventory">
+		<label for="inventory-name">Name</label>
+		<input id="inventory-name" name="name" type="text"/>
+
+		<label for="inventory-location-type">Location Type</label>
+		<select id="inventory-location-type" name="location_type">
+			<option value="room">Room</option>
+			<option value="shared_area">Shared Area</option>
+		</select>
+
+		<label for="inventory-room-id">Room ID</label>
+		<input id="inventory-room-id" name="room_id" type="text"/>
+
+		<label for="inventory-condition">Condition</label>
+		<select id="inventory-condition" name="condition">
+			<option value="new">new</option>
+			<option value="good">good</option>
+			<option value="used">used</option>
+			<option value="damaged">damaged</option>
+			<option value="broken">broken</option>
+		</select>
+
+		<button type="submit">Create Item</button>
+	</form>
+}
+
+templ InventoryStatusForm() {
+	<form method="post" action="/api/administration/inventory/item-id/status">
+		<label for="inventory-status">Status</label>
+		<select id="inventory-status" name="status">
+			<option value="in_stock">in_stock</option>
+			<option value="in_use">in_use</option>
+			<option value="withdrawn">withdrawn</option>
+			<option value="destroyed">destroyed</option>
+		</select>
+
+		<label for="inventory-status-condition">Condition</label>
+		<select id="inventory-status-condition" name="condition">
+			<option value="new">new</option>
+			<option value="good">good</option>
+			<option value="used">used</option>
+			<option value="damaged">damaged</option>
+			<option value="broken">broken</option>
+		</select>
+
+		<button type="submit">Update Status</button>
+	</form>
+}
