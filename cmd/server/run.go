@@ -1,18 +1,20 @@
 package main
 
 import (
-	"log"
+	"fmt"
 
 	"dorm-man/internal/app"
 )
 
-func main() {
+func run() error {
 	server, err := app.New()
 	if err != nil {
-		log.Fatalf("failed to bootstrap app: %v", err)
+		return fmt.Errorf("bootstrap app: %w", err)
 	}
 
 	if err := server.Start(); err != nil {
-		log.Fatalf("server stopped with error: %v", err)
+		return fmt.Errorf("start server: %w", err)
 	}
+
+	return nil
 }
