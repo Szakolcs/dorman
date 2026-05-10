@@ -26,7 +26,6 @@
   4. User can modify the results by swapping tenants.
   5. User approves the allocation report.
   6. System persists assignment and updates occupancy.
-
 - **Postconditions:** Tenant-room relationship is updated and auditable.
 
 ## UC-AO-03 Track Maintenance Ticket Lifecycle
@@ -41,7 +40,20 @@
   4. User closes ticket upon verification.
 - **Postconditions:** Ticket history contains timestamps and actors.
 
-## UC-AO-04 Publish Official Dorm News
+## UC-AO-04 Inventory Lifecycle
+
+- **Primary actor:** Director
+- **Goal:** Ensure inventory is managed and can be audited
+- **Preconditions:** Inventory item is purchased or registered
+- **Main flow:**
+  1. User lists the inventory items.
+  2. User registers any new items purchased.
+  3. User generates an inventory report on all the statuses of inventory items.
+  4. User matches the report, with the real life audit.
+  5. User updates missing, destroyed or withdrawned items.
+- **Postconditions:** Inventory history contains timestamps and actors.
+
+## UC-AO-05 Publish Official Dorm News
 
 - **Primary actor:** Office Worker
 - **Goal:** Inform tenants about important updates
@@ -52,7 +64,7 @@
   3. System publishes to tenant forum feed.
 - **Postconditions:** News is visible in forum and linked to author.
 
-## UC-AO-05 Creates Dorm Activities
+## UC-AO-06 Creates Dorm Activities
 
 - **Primary actor:** Office Worker
 - **Goal:** Inform tenants about available free time activities
@@ -64,7 +76,7 @@
   4. System publishes to tenant forum activities.
 - **Postconditions:** Activities is visible in forum.
 
-## UC-AO-06 Creates Dorm Event
+## UC-AO-07 Creates Dorm Event
 
 - **Primary actor:** Office Worker
 - **Goal:** Inform tenants about upcoming events
