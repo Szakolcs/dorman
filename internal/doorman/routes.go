@@ -10,6 +10,13 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 	svc := NewService(store)
 	h := NewHandler(svc)
 
+	pages := e.Group("/doorman")
+	pages.GET("", h.dashboardPage)
+	pages.GET("/packages", h.packagesPage)
+	pages.GET("/guests", h.guestsPage)
+	pages.GET("/access", h.accessPage)
+	pages.GET("/lending", h.lendingPage)
+
 	api := e.Group("/api/doorman")
 
 	api.POST("/packages", h.registerPackage)
