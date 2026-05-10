@@ -1,5 +1,23 @@
 # Administration and Office Use Cases
 
+## UC-AO-00 Manage Tenants
+
+- **Primary actor:** Office Worker
+- **Goal:** Administer tenants into the system
+- **Preconditions:** Semester is inactive;
+- **Main flow:**
+  1. User opens the tenants view.
+  2. User selects tenants that left the dormatory.
+  3. User sets these tenants to inactive.
+  4. User selects tenants that are alreadyt registered and stay in the dorm for the next semester.
+  5. User sets them to be active for the next semester.
+  6. System validates the students' status.
+  7. User opens registration view.
+  8. User registers the newly arrived tenants.
+  9. System validates the new students' status.
+  10. System persists assignment and updates occupancy.
+- **Postconditions:** Tenants are updated and auditable.
+
 ## UC-AO-01 Manage Room Allocation
 
 - **Primary actor:** Office Worker

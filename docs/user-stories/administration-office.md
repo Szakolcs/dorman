@@ -1,5 +1,17 @@
 # Administration and Office User Stories
 
+## AO-000 Tenant registration
+
+- **As a** dorm administrator
+- **I want** to register all tenants for the semester
+- **So that** I can plan tenant management for the given semester
+
+### Acceptance Criteria
+
+- A room list shows room number, capacity, occupancy, and inventory status.
+- Rooms can be filtered by occupied, available, and maintenance-needed status.
+- Clicking a room opens a details view with assigned tenants and items.
+
 ## AO-001 Room Inventory Overview
 
 - **As a** dorm administrator
