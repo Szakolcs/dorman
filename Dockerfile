@@ -10,6 +10,7 @@ COPY . .
 
 FROM base AS dev
 RUN go install github.com/air-verse/air@latest
+RUN go install github.com/a-h/templ/cmd/templ@latest
 EXPOSE 8080
 CMD ["air", "-c", ".air.toml"]
 
