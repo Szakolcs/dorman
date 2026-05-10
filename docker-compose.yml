@@ -3,9 +3,10 @@ services:
     image: postgres:18-alpine
     container_name: dorm-man-postgres
     environment:
-      POSTGRES_USER: developer
+      POSTGRES_USER: dev
       POSTGRES_PASSWORD: dev
       POSTGRES_DB: dormatory_manager
+      PGDATA: /var/lib/postgresql/18/docker
     ports:
       - "5432:5432"
     volumes:
@@ -27,7 +28,7 @@ services:
       - .:/app
     environment:
       PORT: "8080"
-      DATABASE_URL: postgres://dev:prod@postgres:5432/dormatory_manager?sslmode=disable
+      DATABASE_URL: postgres://dev:dev@postgres:5432/dormatory_manager?sslmode=disable
     depends_on:
       postgres:
         condition: service_healthy
