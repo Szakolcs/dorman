@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	platform "dorm-man/internal/models/platform"
+
 	"github.com/google/uuid"
 )
 
@@ -14,7 +16,7 @@ const (
 )
 
 type AuditEvent struct {
-	BaseModel
+	platform.BaseModel
 	ActorUserID *uuid.UUID   `gorm:"type:uuid;index"`
 	Action      string       `gorm:"not null;index"`
 	TargetType  string       `gorm:"not null;index"`
