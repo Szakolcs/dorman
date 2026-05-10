@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: dorm-man-postgres
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: dormatory_manager
+      PGDATA: /var/lib/postgresql/18/docker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev -d dormatory_manager"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      target: dev
+    container_name: dorm-man-app-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    environment:
+      PORT: "8080"
+      DATABASE_URL: postgres://dev:dev@postgres:5432/dormatory_manager?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: air -c .air.toml
+    profiles: ["dev"]
+
+  app-prod:
+    build:
+      context: .
+      target: prod
+    container_name: dorm-man-app
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      DATABASE_URL: postgres://dev:prod@postgres:5432/dormatory_manager?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["prod"]
+
+volumes:
+  postgres_data:
