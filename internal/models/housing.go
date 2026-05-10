@@ -60,19 +60,35 @@ const (
 	SexOther  SexType = "other"
 )
 
+type NationalityType string
+
+const (
+	NationalityHungarian     NationalityType = "hungarian"
+	NationalityInternational NationalityType = "international"
+)
+
+type FacultyType string
+
+const (
+	FacultyScience     FacultyType = "science"
+	FacultyHumanities  FacultyType = "humanities"
+	FacultyEngineering FacultyType = "engineering"
+	FacultyMedicine    FacultyType = "medicine"
+)
+
 type Tenant struct {
 	BaseModel
-	UserID       *uuid.UUID  `gorm:"type:uuid;index"`
-	StudentCode  string      `gorm:"uniqueIndex;not null"`
-	Name         string      `gorm:"not null;index"`
-	Email        string      `gorm:"index"`
-	Degree       *DegreeType `gorm:"type:varchar(10);index"`
-	Faculty      *string     `gorm:"index"`
-	Age          *int        `gorm:"index"`
-	Sex          *SexType    `gorm:"type:varchar(10);index"`
-	Nationality  string      `gorm:"not null;index"`
-	IsActive     bool        `gorm:"not null;default:true;index"`
-	RegisteredAt time.Time   `gorm:"not null;default:CURRENT_TIMESTAMP"`
+	UserID       *uuid.UUID       `gorm:"type:uuid;index"`
+	StudentCode  string           `gorm:"uniqueIndex;not null"`
+	Name         string           `gorm:"not null;index"`
+	Email        string           `gorm:"index"`
+	Degree       *DegreeType      `gorm:"type:varchar(10);index"`
+	Faculty      *FacultyType     `gorm:"index"`
+	Age          *int             `gorm:"index"`
+	Sex          *SexType         `gorm:"type:varchar(10);index"`
+	Nationality  *NationalityType `gorm:"not null;index"`
+	IsActive     bool             `gorm:"not null;default:true;index"`
+	RegisteredAt time.Time        `gorm:"not null;default:CURRENT_TIMESTAMP"`
 
 	User            *User            `gorm:"foreignKey:UserID;references:ID"`
 	RoomAssignments []RoomAssignment `gorm:"foreignKey:TenantID"`

@@ -26,7 +26,7 @@ const (
 type User struct {
 	BaseModel
 	UniCode       string        `gorm:"uniqueIndex;not null"`
-	Email         string        `gorm:"index"`
+	Email         string        `gorm:"not null"`
 	PasswordHash  string        `gorm:"not null"`
 	Name          string        `gorm:"not null"`
 	PrincipalType PrincipalType `gorm:"type:varchar(20);not null;index"`

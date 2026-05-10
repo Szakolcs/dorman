@@ -46,7 +46,6 @@ const (
 type MaintenanceTicket struct {
 	BaseModel
 	RoomID          *uuid.UUID          `gorm:"type:uuid;index"`
-	BuildingID      *uuid.UUID          `gorm:"type:uuid;index"`
 	Category        MaintenanceCategory `gorm:"type:varchar(20);not null;index"`
 	Severity        MaintenanceSeverity `gorm:"type:varchar(20);not null;index"`
 	Impact          MaintenanceImpact   `gorm:"type:varchar(30);not null;index"`
@@ -58,7 +57,6 @@ type MaintenanceTicket struct {
 	ClosedAt        *time.Time          `gorm:"index"`
 
 	Room              *Room                `gorm:"foreignKey:RoomID;references:ID"`
-	Building          *Building            `gorm:"foreignKey:BuildingID;references:ID"`
 	CreatedByUser     User                 `gorm:"foreignKey:CreatedByUserID;references:ID"`
 	AssigneeUser      *User                `gorm:"foreignKey:AssigneeUserID;references:ID"`
 	StatusTransitions []TicketStatusChange `gorm:"foreignKey:TicketID"`
@@ -71,7 +69,6 @@ type TicketStatusChange struct {
 	FromStatus  *MaintenanceStatus `gorm:"type:varchar(20);index"`
 	ToStatus    MaintenanceStatus  `gorm:"type:varchar(20);not null;index"`
 	Note        string             `gorm:"type:text"`
-	OccurredAt  time.Time          `gorm:"not null;default:CURRENT_TIMESTAMP;index"`
 
 	Ticket    MaintenanceTicket `gorm:"foreignKey:TicketID;references:ID"`
 	ActorUser User              `gorm:"foreignKey:ActorUserID;references:ID"`
