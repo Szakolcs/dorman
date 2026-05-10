@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	platform "dorm-man/internal/models/platform"
+
 	"github.com/google/uuid"
 )
 
@@ -33,7 +35,7 @@ const (
 )
 
 type InventoryItem struct {
-	BaseModel
+	platform.BaseModel
 	Name         string `gorm:"not null;index"`
 	Description  string
 	LocationType InventoryLocationType `gorm:"type:varchar(20);not null;index"`

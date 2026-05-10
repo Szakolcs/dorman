@@ -6,7 +6,9 @@ import (
 
 	"dorm-man/internal/administration"
 	"dorm-man/internal/config"
+	"dorm-man/internal/doorman"
 	models "dorm-man/internal/models/administration"
+	doormanModels "dorm-man/internal/models/doorman"
 	"dorm-man/internal/platform"
 
 	"github.com/labstack/echo/v4"
@@ -29,7 +31,9 @@ func New() (*App, error) {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	if err := db.AutoMigrate(models.All()...); err != nil {
+	toMigrate := append([]any(nil), models.All()...)
+	toMigrate = append(toMigrate, doormanModels.All()...)
+	if err := db.AutoMigrate(toMigrate...); err != nil {
 		return nil, fmt.Errorf("auto migrate models: %w", err)
 	}
 
@@ -40,6 +44,7 @@ func New() (*App, error) {
 	e.Use(middleware.Logger())
 
 	administration.RegisterRoutes(e, db)
+	doorman.RegisterRoutes(e, db)
 	platform.RegisterRoutes(e, db)
 
 	e.GET("/healthz", func(c echo.Context) error {

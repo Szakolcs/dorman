@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	platform "dorm-man/internal/models/platform"
+
 	"github.com/google/uuid"
 )
 
@@ -23,7 +25,7 @@ const (
 )
 
 type ForumPost struct {
-	BaseModel
+	platform.BaseModel
 	AuthorUserID uuid.UUID        `gorm:"type:uuid;not null;index"`
 	Kind         ForumPostKind    `gorm:"type:varchar(30);not null;index"`
 	State        PublicationState `gorm:"type:varchar(20);not null;default:'draft';index"`
@@ -36,19 +38,19 @@ type ForumPost struct {
 }
 
 type Activity struct {
-	BaseModel
-	Title           string           `gorm:"not null;index"`
-	Description     string           `gorm:"type:text"`
-	BuildingID      *uuid.UUID       `gorm:"type:uuid;index"`
-	Location        string           `gorm:"not null"`
-	Capacity        int              `gorm:"not null;default:1"`
-	State           PublicationState `gorm:"type:varchar(20);not null;default:'draft';index"`
+	platform.BaseModel
+	Title       string           `gorm:"not null;index"`
+	Description string           `gorm:"type:text"`
+	BuildingID  *uuid.UUID       `gorm:"type:uuid;index"`
+	Location    string           `gorm:"not null"`
+	Capacity    int              `gorm:"not null;default:1"`
+	State       PublicationState `gorm:"type:varchar(20);not null;default:'draft';index"`
 
-	Building  *Building  `gorm:"foreignKey:BuildingID;references:ID"`
+	Building *Building `gorm:"foreignKey:BuildingID;references:ID"`
 }
 
 type Event struct {
-	BaseModel
+	platform.BaseModel
 	Title           string           `gorm:"not null;index"`
 	Description     string           `gorm:"type:text"`
 	BuildingID      *uuid.UUID       `gorm:"type:uuid;index"`
@@ -59,6 +61,6 @@ type Event struct {
 	Capacity        int              `gorm:"not null;default:1"`
 	State           PublicationState `gorm:"type:varchar(20);not null;default:'draft';index"`
 
-	Building  *Building  `gorm:"foreignKey:BuildingID;references:ID"`
-	Organizer User       `gorm:"foreignKey:OrganizerUserID;references:ID"`
+	Building  *Building `gorm:"foreignKey:BuildingID;references:ID"`
+	Organizer User      `gorm:"foreignKey:OrganizerUserID;references:ID"`
 }

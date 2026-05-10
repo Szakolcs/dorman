@@ -3,11 +3,13 @@ package models
 import (
 	"time"
 
+	platform "dorm-man/internal/models/platform"
+
 	"github.com/google/uuid"
 )
 
 type Building struct {
-	BaseModel
+	platform.BaseModel
 	Name string `gorm:"not null;uniqueIndex"`
 	Code string `gorm:"uniqueIndex"`
 
@@ -18,7 +20,7 @@ type Building struct {
 }
 
 type Flat struct {
-	BaseModel
+	platform.BaseModel
 	BuildingID *uuid.UUID `gorm:"type:uuid;index"`
 	Name       string     `gorm:"not null;index"`
 	Floor      int        `gorm:"not null;default:0"`
@@ -29,7 +31,7 @@ type Flat struct {
 }
 
 type Room struct {
-	BaseModel
+	platform.BaseModel
 	FlatID     uuid.UUID `gorm:"type:uuid;not null;index"`
 	Number     string    `gorm:"not null;index"`
 	Capacity   int       `gorm:"not null;default:1"`
@@ -77,7 +79,7 @@ const (
 )
 
 type Tenant struct {
-	BaseModel
+	platform.BaseModel
 	UserID       *uuid.UUID       `gorm:"type:uuid;index"`
 	StudentCode  string           `gorm:"uniqueIndex;not null"`
 	Name         string           `gorm:"not null;index"`
