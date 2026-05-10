@@ -12,7 +12,8 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 
 	api := e.Group("/home")
 	api.POST("/login", handler.login)
-	api.GET("/about", handler.about)
+	api.GET("/about", handler.aboutAPI)
 
-	e.GET("/about", handler.about)
+	e.GET("/", handler.loginPage)
+	e.GET("/about", handler.aboutPage)
 }

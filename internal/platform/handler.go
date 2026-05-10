@@ -29,7 +29,7 @@ func (h *Handler) login(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]any{"data": res})
 }
 
-func (h *Handler) about(c echo.Context) error {
+func (h *Handler) aboutAPI(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]any{"data": h.service.About()})
 }
 
