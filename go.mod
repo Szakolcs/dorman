@@ -3,8 +3,8 @@ module dorm-man
 go 1.25.4
 
 require (
+	github.com/a-h/templ v0.3.1020
 	github.com/labstack/echo/v4 v4.15.2
-	github.com/stretchr/testify v1.11.1
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1

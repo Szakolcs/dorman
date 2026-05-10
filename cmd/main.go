@@ -1,25 +1,18 @@
 package main
 
 import (
-	"net/http"
-	"os"
+	"log"
 
-	"github.com/labstack/echo/v4"
+	"dorm-man/internal/app"
 )
 
 func main() {
-	e := echo.New()
-
-	e.GET("/health", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{
-			"status": "ok",
-		})
-	})
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	server, err := app.New()
+	if err != nil {
+		log.Fatalf("failed to bootstrap app: %v", err)
 	}
 
-	e.Logger.Fatal(e.Start(":" + port))
+	if err := server.Start(); err != nil {
+		log.Fatalf("server stopped with error: %v", err)
+	}
 }
