@@ -12,6 +12,9 @@ dist/
 *.out
 coverage.out
 
+# Templ generated files
+*_templ.go
+
 # Air / local temp runtime output
 tmp/
 
