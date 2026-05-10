@@ -4,14 +4,6 @@
 
 This specification translates Administration and Office module requirements into implementable system behavior, data constraints, workflow contracts, and integration boundaries.
 
-Primary sources:
-
-- `docs/requirements/administration-office.md`
-- `docs/user-stories/administration-office.md`
-- `docs/use-cases/administration-office.md`
-- `docs/features/administration-office-features.md`
-- `docs/database/administration.md`
-
 ---
 
 ## 1. Module Context
@@ -62,6 +54,7 @@ This section captures required behavior over entities defined in `docs/database/
 - `TicketStatusChange`
 - `OperationalJob`
 - `Activity`
+- `Event`
 - `ForumPost` linkage for official publications
 - platform-provided `User` / role mapping and `AuditEvent`
 
@@ -175,6 +168,7 @@ Each capability references requirement IDs from `docs/requirements/administratio
 Baseline states (aligned to current docs and implementation flexibility):
 
 - `reported`
+- `duplicate`
 - `in_progress`
 - `halted`
 - `resolved`
@@ -183,8 +177,10 @@ Baseline states (aligned to current docs and implementation flexibility):
 Allowed transitions (minimum contract):
 
 - `reported -> in_progress`
+- `reported -> duplicate`
 - `in_progress -> halted`
 - `halted -> in_progress`
+- `halted -> closed`
 - `in_progress -> resolved`
 - `resolved -> closed`
 
@@ -230,6 +226,7 @@ Minimum state model:
 
 - `draft`
 - `published`
+- `archived`
 - `canceled` (events where applicable)
 - `postponed` (events where applicable)
 
@@ -342,16 +339,18 @@ Mapped to `NFR-AO-001` through `NFR-AO-005`.
 
 ## 7. Compliance Mapping
 
-| Specification section | Requirement mapping |
-|---|---|
-| Tenant Lifecycle Administration | FR-AO-001, FR-AO-002 |
-| Room and Occupancy Management | FR-AO-003, FR-AO-004, FR-AO-005 |
-| Inventory Management | FR-AO-006, FR-AO-007 |
-| Maintenance Management | FR-AO-008, FR-AO-009 |
-| Operational Scheduling | FR-AO-010 |
-| Official Publishing | FR-AO-011, FR-AO-012, FR-AO-013 |
-| Security and Audit | FR-AO-014, FR-AO-015 |
-| Non-Functional Specification | NFR-AO-001 to NFR-AO-005 |
+
+| Specification section           | Requirement mapping             |
+| ------------------------------- | ------------------------------- |
+| Tenant Lifecycle Administration | FR-AO-001, FR-AO-002            |
+| Room and Occupancy Management   | FR-AO-003, FR-AO-004, FR-AO-005 |
+| Inventory Management            | FR-AO-006, FR-AO-007            |
+| Maintenance Management          | FR-AO-008, FR-AO-009            |
+| Operational Scheduling          | FR-AO-010                       |
+| Official Publishing             | FR-AO-011, FR-AO-012, FR-AO-013 |
+| Security and Audit              | FR-AO-014, FR-AO-015            |
+| Non-Functional Specification    | NFR-AO-001 to NFR-AO-005        |
+
 
 ---
 
@@ -361,3 +360,4 @@ Mapped to `NFR-AO-001` through `NFR-AO-005`.
 - Prefer append-only lifecycle records for maintenance transitions (`TicketStatusChange`) and sensitive domain events (`AuditEvent`).
 - Keep state machines explicit in service layer to avoid invalid transition drift.
 - Preserve flexible naming alignment between documentation and migration naming conventions (snake_case in SQL/GORM layer).
+
