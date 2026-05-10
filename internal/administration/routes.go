@@ -10,6 +10,16 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 	service := NewService(store)
 	handler := &Handler{service: service}
 
+	pages := e.Group("/administration")
+	pages.GET("", handler.dashboardPage)
+	pages.GET("/tenants", handler.tenantsPage)
+	pages.GET("/rooms", handler.roomsPage)
+	pages.GET("/inventory", handler.inventoryPage)
+	pages.GET("/maintenance", handler.maintenancePage)
+	pages.GET("/jobs", handler.jobsPage)
+	pages.GET("/publications", handler.publicationsPage)
+	pages.GET("/audit", handler.auditPage)
+
 	api := e.Group("/api/administration")
 
 	api.GET("/tenants", handler.listTenants)

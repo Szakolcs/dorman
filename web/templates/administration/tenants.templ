@@ -1,5 +1,75 @@
 package administration
 
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
 templ TenantsPage() {
-	<p>Hello world!</p>
+	@components.Document("Administration - Tenants", TenantsContent())
+}
+
+templ TenantsContent() {
+	@partials.MainNav()
+	@components.PageHeader(
+		"Tenant Management",
+		"Register, activate, deactivate, and review tenant details for the semester lifecycle.",
+	)
+	@components.Section("Directory Filters", TenantsFilters())
+	@components.Section("Tenant Directory", TenantsDirectory())
+	@components.Section("Register New Tenant", TenantRegistrationForm())
+}
+
+templ TenantsFilters() {
+	<form method="get" action="/administration/tenants">
+		<label for="tenant-search">Search</label>
+		<input id="tenant-search" name="search" type="text"/>
+
+		<label for="tenant-status">Status</label>
+		<select id="tenant-status" name="status">
+			<option value="">All</option>
+			<option value="active">Active</option>
+			<option value="inactive">Inactive</option>
+		</select>
+
+		<button type="submit">Apply</button>
+	</form>
+}
+
+templ TenantsDirectory() {
+	@components.DataTable([]string{"Name", "Student Code", "Email", "Status", "Actions"}, TenantRows())
+}
+
+templ TenantRows() {
+	<tr>
+		<td>Example Tenant</td>
+		<td>ABC123</td>
+		<td>tenant@example.com</td>
+		<td>active</td>
+		<td>
+			<a href="/administration/tenants/tenant-id">Details</a>
+			<form method="post" action="/api/administration/tenants/tenant-id/deactivate">
+				<button type="submit">Deactivate</button>
+			</form>
+		</td>
+	</tr>
+}
+
+templ TenantRegistrationForm() {
+	<form method="post" action="/api/administration/tenants">
+		<label for="tenant-name">Name</label>
+		<input id="tenant-name" name="name" type="text"/>
+
+		<label for="tenant-student-code">Student Code</label>
+		<input id="tenant-student-code" name="student_code" type="text"/>
+
+		<label for="tenant-email">Email</label>
+		<input id="tenant-email" name="email" type="email"/>
+
+		<label for="tenant-nationality">Nationality</label>
+		<select id="tenant-nationality" name="nationality">
+			<option value="hungarian">Hungarian</option>
+			<option value="international">International</option>
+		</select>
+
+		<button type="submit">Register Tenant</button>
+	</form>
 }

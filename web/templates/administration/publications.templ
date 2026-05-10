@@ -1,5 +1,131 @@
 package administration
 
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
 templ PublicationsPage() {
-	<p>Hello world!</p>
+	@components.Document("Administration - Publications", PublicationsContent())
+}
+
+templ PublicationsContent() {
+	@partials.MainNav()
+	@components.PageHeader(
+		"Official Publications",
+		"Draft and publish official news, activities, and events for tenant-facing visibility.",
+	)
+	@components.Section("News", NewsSection())
+	@components.Section("Activities", ActivitiesSection())
+	@components.Section("Events", EventsSection())
+}
+
+templ NewsSection() {
+	@components.DataTable([]string{"Title", "State", "Publish Date", "Author"}, NewsRows())
+	<form method="post" action="/api/administration/news">
+		<label for="news-title">Title</label>
+		<input id="news-title" name="title" type="text"/>
+
+		<label for="news-body">Body</label>
+		<textarea id="news-body" name="body"></textarea>
+
+		<label for="news-tags">Tags</label>
+		<input id="news-tags" name="tags" type="text"/>
+
+		<label for="news-state">State</label>
+		<select id="news-state" name="state">
+			<option value="draft">draft</option>
+			<option value="published">published</option>
+			<option value="archived">archived</option>
+		</select>
+
+		<button type="submit">Create News</button>
+	</form>
+}
+
+templ NewsRows() {
+	<tr>
+		<td>Semester Move-in Update</td>
+		<td>draft</td>
+		<td>2026-06-01</td>
+		<td>staff-id</td>
+	</tr>
+}
+
+templ ActivitiesSection() {
+	@components.DataTable([]string{"Title", "Location", "Capacity", "State"}, ActivityRows())
+	<form method="post" action="/api/administration/activities">
+		<label for="activity-title">Title</label>
+		<input id="activity-title" name="title" type="text"/>
+
+		<label for="activity-description">Description</label>
+		<textarea id="activity-description" name="description"></textarea>
+
+		<label for="activity-location">Location</label>
+		<input id="activity-location" name="location" type="text"/>
+
+		<label for="activity-capacity">Capacity</label>
+		<input id="activity-capacity" name="capacity" type="number"/>
+
+		<label for="activity-state">State</label>
+		<select id="activity-state" name="state">
+			<option value="draft">draft</option>
+			<option value="published">published</option>
+			<option value="archived">archived</option>
+		</select>
+
+		<button type="submit">Create Activity</button>
+	</form>
+}
+
+templ ActivityRows() {
+	<tr>
+		<td>Ping Pong Night</td>
+		<td>Main Hall</td>
+		<td>20</td>
+		<td>published</td>
+	</tr>
+}
+
+templ EventsSection() {
+	@components.DataTable([]string{"Title", "Location", "Starts", "Ends", "Capacity", "State"}, EventRows())
+	<form method="post" action="/api/administration/events">
+		<label for="event-title">Title</label>
+		<input id="event-title" name="title" type="text"/>
+
+		<label for="event-description">Description</label>
+		<textarea id="event-description" name="description"></textarea>
+
+		<label for="event-location">Location</label>
+		<input id="event-location" name="location" type="text"/>
+
+		<label for="event-starts-at">Starts At</label>
+		<input id="event-starts-at" name="starts_at" type="datetime-local"/>
+
+		<label for="event-ends-at">Ends At</label>
+		<input id="event-ends-at" name="ends_at" type="datetime-local"/>
+
+		<label for="event-capacity">Capacity</label>
+		<input id="event-capacity" name="capacity" type="number"/>
+
+		<label for="event-state">State</label>
+		<select id="event-state" name="state">
+			<option value="draft">draft</option>
+			<option value="published">published</option>
+			<option value="postponed">postponed</option>
+			<option value="canceled">canceled</option>
+			<option value="archived">archived</option>
+		</select>
+
+		<button type="submit">Create Event</button>
+	</form>
+}
+
+templ EventRows() {
+	<tr>
+		<td>Dorm Cup</td>
+		<td>Sports Court</td>
+		<td>2026-06-10T10:00</td>
+		<td>2026-06-10T18:00</td>
+		<td>200</td>
+		<td>draft</td>
+	</tr>
 }

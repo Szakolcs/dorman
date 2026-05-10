@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	platform "dorm-man/internal/models/platform"
+
 	"github.com/google/uuid"
 )
 
@@ -24,7 +26,7 @@ const (
 )
 
 type User struct {
-	BaseModel
+	platform.BaseModel
 	UniCode       string        `gorm:"uniqueIndex;not null"`
 	Email         string        `gorm:"not null"`
 	PasswordHash  string        `gorm:"not null"`
@@ -37,7 +39,7 @@ type User struct {
 }
 
 type Role struct {
-	BaseModel
+	platform.BaseModel
 	Name        RoleName `gorm:"type:varchar(40);uniqueIndex;not null"`
 	Description string
 
@@ -45,7 +47,7 @@ type Role struct {
 }
 
 type UserRole struct {
-	BaseModel
+	platform.BaseModel
 	UserID     uuid.UUID  `gorm:"type:uuid;not null;index;uniqueIndex:idx_user_role_unique"`
 	RoleID     uuid.UUID  `gorm:"type:uuid;not null;index;uniqueIndex:idx_user_role_unique"`
 	AssignedBy *uuid.UUID `gorm:"type:uuid;index"`
