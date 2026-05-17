@@ -11,9 +11,9 @@ This directory holds **module-scoped** database declarations: tables (or views) 
 | [doorman.md](doorman.md)               | Doorman operations        |
 | [forum.md](forum.md)                   | Forum module              |
 | [chat.md](chat.md)                     | Chat module               |
+| [platform.md](platform.md)             | Platform / cross-cutting  |
 
-
-Additional module documents (for example doorman, forum, chat) should be added here as those areas are specified in the same depth.
+Each module document includes a **Cross-Module Dependencies** (or boundaries) section describing how tables relate to other modules.
 
 ## Related specifications
 

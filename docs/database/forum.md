@@ -265,6 +265,18 @@ erDiagram
 
 ---
 
+## Cross-Module Dependencies
+
+| Source module | Forum consumes | Notes |
+|---------------|----------------|-------|
+| **Administration** | Official publications, `Activity` / `Event` linkage | `source = administration`; tenants cannot edit official posts in forum APIs |
+| **Platform** | `User`, `Tenant`, RBAC, `AuditEvent` | Moderation and organizer grants |
+| **Doorman** | Optional `system_notice` feed items | Package notifications are presentation-only in forum |
+
+See [forum specification §6](../specifications/forum.md#6-cross-module-interaction-specification).
+
+---
+
 ## Related documents
 
 - [Forum requirements](../requirements/forum.md)

@@ -8,27 +8,24 @@ This document declares relational tables **relevant to the Chat module**: purpos
 
 ### Tables this module owns or primarily writes
 
-Rooms (flat, direct, group), memberships, messages, per-tenant chat profiles, and optional message receipt rows.
+- `ChatRoom`, `ChatRoomMember`, `ChatMessage`, `ChatTenantProfile`
+- optional `ChatMembershipSyncLog` for assignment replay diagnostics
 
 ### Tables this module reads or shares (boundaries)
 
 | Area | Relationship |
 |------|----------------|
-| **Administration** | `Flat`, `Room`, `RoomAssignment`, `Tenant` drive flat-room provisioning and **derived** membership; administration does not own chat tables. |
-| **Platform** | `User` (session principal), file storage for avatars, optional `AuditEvent`. |
-| **Forum** | No shared tables; optional UX links only. |
+| **Administration** | `Flat`, `Room`, `RoomAssignment`, `Tenant` — authoritative for flat membership derivation and legal name default |
+| **Platform** | `User` for staff diagnostics; `AuditEvent` for optional moderation; blob storage for avatars |
+| **Forum** | No shared tables; UX may link to tenant profile routes only |
 
 ---
 
-## Identity (platform and administration)
+## Identity (platform + administration)
 
-Chat actions bind to authenticated **tenant** principals.
-
-- **`author_tenant_id`** → `Tenant.id` on messages and profile rows.
-- **`tenant_id`** on `ChatRoomMember` → `Tenant.id`.
-- Session may also resolve **`user_id`** → `User.id` for audit; message attribution uses tenant id for tenant-facing labels.
-
-Display name resolution: `COALESCE(ChatTenantProfile.nickname, Tenant.legal_full_name)` (exact tenant name column per administration schema).
+- Chat operations use authenticated **tenant** principals (`tenant_id`).
+- `ChatMessage.author_tenant_id` → `Tenant.id`.
+- Staff access (diagnostics/moderation) uses `User.id` when implemented.
 
 ---
 
@@ -38,21 +35,17 @@ Display name resolution: `COALESCE(ChatTenantProfile.nickname, Tenant.legal_full
 
 | | |
 |--|--|
-| **Purpose** | Conversation container: flat channel, direct thread, or group chat. |
+| **Purpose** | Conversation container: flat (system), direct (pair), or group (user-created). |
 | **Primary key** | `id` |
-| **Foreign keys** | **`flat_id`** → `Flat.id` (required when `kind = flat`, else null); optional **`created_by_tenant_id`** → `Tenant.id` (group/direct initiator). |
-| **Suggested fields** | **`kind`** enum (`flat`, `direct`, `group`), **`name`** (group; flat may default from flat label), **`avatar_url`** or **`avatar_storage_key`** (group; optional flat icon), **`tenant_low_id`** / **`tenant_high_id`** → `Tenant.id` (direct only; `tenant_low_id < tenant_high_id`), **`last_message_at`**, **`last_message_preview`** (denormalized), **`created_at`**, **`updated_at`**, **`archived_at`** (nullable). |
-| **Integrity** | **Flat:** unique on (`kind`, `flat_id`) where `kind = flat`. **Direct:** unique on (`tenant_low_id`, `tenant_high_id`) where `kind = direct`. **Group:** no flat/direct pair columns. |
+| **Foreign keys** | optional `flat_id` → `Flat.id` when `kind = flat` |
+| **Suggested fields** | `kind` enum (`flat`, `direct`, `group`), `title`, `avatar_url` or storage key, `tenant_low_id` / `tenant_high_id` for direct rooms, `last_message_at`, `last_message_preview`, timestamps |
+| **Integrity** | At most one row with `kind = flat` per `flat_id`; at most one direct room per canonical tenant pair |
 
-**Maps to:** FR-CM-001, FR-CM-003, FR-CM-004, UC-CM-01–03, CM-001–003.
+**Maps to:** FR-CM-001, FR-CM-003, FR-CM-004, UC-CM-01–03.
 
-#### Kind discriminator
+#### Direct room canonical pair
 
-| `kind` | Key fields | Created by |
-|--------|------------|------------|
-| `flat` | `flat_id` | system (lazy on first assignment) |
-| `direct` | `tenant_low_id`, `tenant_high_id` | system on first open |
-| `group` | `name`, avatar | tenant creator |
+Store `tenant_low_id` and `tenant_high_id` with CHECK `tenant_low_id < tenant_high_id` and unique index on the pair.
 
 ---
 
@@ -62,17 +55,13 @@ Display name resolution: `COALESCE(ChatTenantProfile.nickname, Tenant.legal_full
 
 | | |
 |--|--|
-| **Purpose** | Tenant participation in a room, read cursor, and group roles. |
+| **Purpose** | Tenant membership in a room, read cursor, and leave state. |
 | **Primary key** | `id` |
-| **Foreign keys** | **`room_id`** → `ChatRoom.id`, **`tenant_id`** → `Tenant.id`. |
-| **Suggested fields** | **`role`** enum (`member`, `owner`) — owner for group creator; flat uses `member`, **`source`** enum (`derived`, `invited`) — flat rows use `derived`, **`joined_at`**, **`left_at`** (nullable = active), **`last_read_message_id`** → `ChatMessage.id` (nullable), **`last_read_at`**, **`created_at`**. |
-| **Integrity** | At most one active row per (`room_id`, `tenant_id`) with `left_at IS NULL` (partial unique index). Flat membership must match assignment rule (application sync, not manual tenant edits). |
+| **Foreign keys** | `room_id` → `ChatRoom.id`, `tenant_id` → `Tenant.id` |
+| **Suggested fields** | `role` enum (`member`, `owner` for groups), `joined_at`, `left_at` (nullable), `last_read_message_id` (nullable FK → `ChatMessage.id`), `source` enum (`derived`, `invited`, `created`) |
+| **Integrity** | At most one active member per (`room_id`, `tenant_id`) where `left_at IS NULL`; flat members are derived-only in v1 |
 
-**Maps to:** FR-CM-002, FR-CM-004, FR-CM-008, CM-001, CM-003.
-
-#### Flat membership note
-
-Do not maintain a separate flatmate list in administration. Sync job or assignment hooks upsert/deactivate rows here from `RoomAssignment` + `Room.flat_id`.
+**Maps to:** FR-CM-002, FR-CM-008, I-CM-02.
 
 ---
 
@@ -82,15 +71,13 @@ Do not maintain a separate flatmate list in administration. Sync job or assignme
 
 | | |
 |--|--|
-| **Purpose** | Persisted chat line in a room timeline. |
+| **Purpose** | Persisted chat message in a room. |
 | **Primary key** | `id` |
-| **Foreign keys** | **`room_id`** → `ChatRoom.id`, **`author_tenant_id`** → `Tenant.id`. |
-| **Suggested fields** | **`body`** (text), **`client_message_id`** (UUID, idempotency), **`created_at`**, optional **`edited_at`**, **`deleted_at`** (soft delete). |
-| **Integrity** | Unique on (`room_id`, `author_tenant_id`, `client_message_id`) for idempotent retry. Author must have active `ChatRoomMember` at insert time (transaction check). |
+| **Foreign keys** | `room_id` → `ChatRoom.id`, `author_tenant_id` → `Tenant.id` |
+| **Suggested fields** | `body` text, `created_at`, optional `edited_at`, optional `deleted_at`, `client_message_id` for idempotency |
+| **Integrity** | Unique (`room_id`, `author_tenant_id`, `client_message_id`) when idempotency key supplied; ordering by (`created_at`, `id`) |
 
-**Maps to:** FR-CM-007, FR-CM-009, CM-005.
-
-> **Post-MVP:** `attachment_storage_key`, reply threading (`reply_to_message_id`).
+**Maps to:** FR-CM-007, FR-CM-009, NFR-CM-004.
 
 ---
 
@@ -100,101 +87,50 @@ Do not maintain a separate flatmate list in administration. Sync job or assignme
 
 | | |
 |--|--|
-| **Purpose** | Chat-specific presentation for a tenant (not replacing administration tenant legal record). |
-| **Primary key** | `id` or **`tenant_id`** as PK |
-| **Foreign keys** | **`tenant_id`** → `Tenant.id` (unique). |
-| **Suggested fields** | **`nickname`** (nullable), **`bio`**, **`avatar_url`** or **`avatar_storage_key`**, **`updated_at`**. |
-| **Integrity** | One profile row per tenant; create-on-first-edit acceptable. |
+| **Purpose** | Per-tenant chat display overrides. |
+| **Primary key** | `tenant_id` (or surrogate `id` with unique `tenant_id`) |
+| **Foreign keys** | `tenant_id` → `Tenant.id` |
+| **Suggested fields** | `nickname` (nullable), `bio`, `avatar_storage_key`, `updated_at` |
+| **Integrity** | One profile row per tenant; display nickname falls back to administration `Tenant` legal name |
 
 **Maps to:** FR-CM-006, CM-004.
 
 ---
 
-## Read receipts (optional, v1+)
+## Optional diagnostics
 
-### `ChatMessageReceipt`
-
-| | |
-|--|--|
-| **Purpose** | Per-message read tracking when product requires delivery ticks beyond cursor badges. |
-| **Primary key** | `id` |
-| **Foreign keys** | **`message_id`** → `ChatMessage.id`, **`tenant_id`** → `Tenant.id`. |
-| **Suggested fields** | **`read_at`**. |
-| **Integrity** | Unique on (`message_id`, `tenant_id`). |
-
-**Maps to:** FR-CM-009 (optional); MVP may use `ChatRoomMember.last_read_message_id` only.
-
----
-
-## Membership sync log (optional)
-
-### `ChatMembershipSyncEvent`
+### `ChatMembershipSyncLog`
 
 | | |
 |--|--|
-| **Purpose** | Append-only trace of assignment-driven flat membership changes for debugging/backfill. |
-| **Primary key** | `id` |
-| **Foreign keys** | **`room_id`**, **`tenant_id`**, optional **`room_assignment_id`** → `RoomAssignment.id`. |
-| **Suggested fields** | **`action`** (`joined`, `left`), **`occurred_at`**, **`trigger`** (assignment_created, assignment_ended, room_changed). |
-
-Not required for core MVP if assignment hooks are reliable.
+| **Purpose** | Record assignment-driven sync runs for support replay (optional). |
+| **Suggested fields** | `tenant_id`, `flat_id`, `event_type`, `applied_at`, `payload` jsonb |
 
 ---
 
-## Administration linkage (read-only)
+## Cross-Module Dependencies
 
-### `Flat`, `Room`, `RoomAssignment`, `Tenant`
+| Source module | Trigger | Chat effect |
+|---------------|---------|-------------|
+| Administration | `RoomAssignment` created with active row | Ensure flat `ChatRoom` exists; add `ChatRoomMember` if tenant now in flat |
+| Administration | Assignment ended or room changed | Remove or move flat membership (`left_at`) |
+| Platform | Tenant session | All reads/writes scoped to principal `tenant_id` |
+| Platform | `chat.message.created` event | Optional `InAppNotification` for offline peers |
 
-Chat reads these to provision flat rooms and sync membership:
-
-```
-RoomAssignment (active) → Room.flat_id → ChatRoom (kind=flat, flat_id)
-```
-
-| Administration table | Chat usage |
-|------------------------|------------|
-| `Flat` | 1:1 flat `ChatRoom` |
-| `Room` | resolves flat from assignment |
-| `RoomAssignment` | authoritative membership input |
-| `Tenant` | legal name default, DM participant validity |
-
-See [administration.md](administration.md).
+Administration must **not** insert into `ChatRoomMember` directly; chat module owns membership rows and sync handler.
 
 ---
 
-## Audit
-
-### `AuditEvent` (platform)
-
-Emit for profile updates, group owner removals, and staff moderation when implemented, in addition to any domain-specific chat audit tables.
-
----
-
-## Entity-relationship diagrams
-
-### Chat core
+## Entity-relationship diagram (conceptual)
 
 ```mermaid
 erDiagram
+    Flat ||--o| ChatRoom : flat_channel
     ChatRoom ||--o{ ChatRoomMember : has
-    ChatRoom ||--o{ ChatMessage : contains
     Tenant ||--o{ ChatRoomMember : participates
-    Tenant ||--o| ChatTenantProfile : presents
+    ChatRoom ||--o{ ChatMessage : contains
+    Tenant ||--o| ChatTenantProfile : customizes
     Tenant ||--o{ ChatMessage : authors
-    Flat ||--o| ChatRoom : flat_kind
-    ChatMessage ||--o{ ChatMessageReceipt : optional_reads
-    ChatRoomMember }o--o| ChatMessage : last_read
-```
-
-### Chat and administration
-
-```mermaid
-erDiagram
-    Flat ||--o{ Room : contains
-    Room ||--o{ RoomAssignment : hosts
-    Tenant ||--o{ RoomAssignment : assigned
-    Flat ||--o| ChatRoom : flat_chat
-    RoomAssignment }o..o| ChatRoomMember : derives_membership
 ```
 
 ---
@@ -203,43 +139,10 @@ erDiagram
 
 | Table | Index | Rationale |
 |-------|-------|-----------|
-| `ChatRoom` | unique partial on (`flat_id`) WHERE `kind = 'flat'` | one flat room |
-| `ChatRoom` | unique on (`tenant_low_id`, `tenant_high_id`) WHERE `kind = 'direct'` | one DM per pair |
-| `ChatRoom` | `(last_message_at DESC)` | conversation list |
-| `ChatRoomMember` | `(tenant_id)` partial `WHERE left_at IS NULL` | tenant’s active rooms |
-| `ChatRoomMember` | unique `(room_id, tenant_id)` partial `WHERE left_at IS NULL` | active membership |
-| `ChatMessage` | `(room_id, created_at DESC, id DESC)` | timeline pagination |
-| `ChatMessage` | unique `(room_id, author_tenant_id, client_message_id)` | idempotent send |
-| `ChatTenantProfile` | unique `(tenant_id)` | profile lookup |
-
----
-
-## Example queries
-
-### Unread count (cursor-based)
-
-For member `m` in room `r`:
-
-```sql
-SELECT COUNT(*)::int
-FROM chat_message msg
-WHERE msg.room_id = m.room_id
-  AND msg.author_tenant_id <> m.tenant_id
-  AND (m.last_read_message_id IS NULL OR msg.id > m.last_read_message_id)
-  AND msg.deleted_at IS NULL;
-```
-
-### Active flat members (derived check)
-
-Tenants with active assignment in flat `F`:
-
-```sql
-SELECT DISTINCT ra.tenant_id
-FROM room_assignment ra
-JOIN room rm ON rm.id = ra.room_id
-WHERE rm.flat_id = :flat_id
-  AND ra.ended_at IS NULL;
-```
+| `ChatMessage` | `(room_id, created_at DESC)` | timeline pagination |
+| `ChatRoomMember` | `(tenant_id)` partial `WHERE left_at IS NULL` | conversation list |
+| `ChatRoom` | unique `(flat_id)` where `kind = flat` | one flat room |
+| `ChatRoom` | unique `(tenant_low_id, tenant_high_id)` where `kind = direct` | one DM thread |
 
 ---
 
@@ -247,5 +150,6 @@ WHERE rm.flat_id = :flat_id
 
 - [Chat requirements](../requirements/chat.md)
 - [Chat specification](../specifications/chat.md)
-- [Administration database](administration.md) — `Flat`, `Room`, `RoomAssignment`
+- [Administration database](administration.md) — `Flat`, `Room`, `RoomAssignment`, `Tenant`
+- [Platform database](platform.md)
 - [Database documentation index](README.md)
