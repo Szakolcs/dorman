@@ -1,0 +1,27 @@
+package administration
+
+import (
+	"dorm-man/web/templates/common/components"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ DashboardPage() {
+	@components.AppDocument("Administration", DashboardContent())
+}
+
+templ DashboardContent() {
+	@partials.AdministrationNav()
+	@components.PageHeader(
+		"Administration Module",
+		"Central entry point for tenant lifecycle, occupancy, inventory, maintenance, scheduling, publications, and audit flows.",
+	)
+	<ul>
+		<li><a href="/administration/tenants" hx-boost="true">Tenant Management</a></li>
+		<li><a href="/administration/rooms" hx-boost="true">Room and Capacity</a></li>
+		<li><a href="/administration/inventory" hx-boost="true">Inventory</a></li>
+		<li><a href="/administration/maintenance" hx-boost="true">Maintenance</a></li>
+		<li><a href="/administration/jobs" hx-boost="true">Operational Scheduling</a></li>
+		<li><a href="/administration/publications" hx-boost="true">Publications</a></li>
+		<li><a href="/administration/audit" hx-boost="true">Audit</a></li>
+	</ul>
+}

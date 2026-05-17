@@ -15,7 +15,6 @@ func All() []any {
 		&MaintenanceTicket{},
 		&TicketStatusChange{},
 		&OperationalJob{},
-		&ForumPost{},
 		&Activity{},
 		&Event{},
 		&AuditEvent{},

@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	platform "dorm-man/internal/models/platform"
+
 	"github.com/google/uuid"
 )
 
@@ -44,7 +46,7 @@ const (
 )
 
 type MaintenanceTicket struct {
-	BaseModel
+	platform.BaseModel
 	RoomID          *uuid.UUID          `gorm:"type:uuid;index"`
 	Category        MaintenanceCategory `gorm:"type:varchar(20);not null;index"`
 	Severity        MaintenanceSeverity `gorm:"type:varchar(20);not null;index"`
@@ -63,7 +65,7 @@ type MaintenanceTicket struct {
 }
 
 type TicketStatusChange struct {
-	BaseModel
+	platform.BaseModel
 	TicketID    uuid.UUID          `gorm:"type:uuid;not null;index"`
 	ActorUserID uuid.UUID          `gorm:"type:uuid;not null;index"`
 	FromStatus  *MaintenanceStatus `gorm:"type:varchar(20);index"`

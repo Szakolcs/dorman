@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	platform "dorm-man/internal/models/platform"
+
 	"github.com/google/uuid"
 )
 
@@ -25,16 +27,18 @@ const (
 )
 
 type OperationalJob struct {
-	BaseModel
-	Title               string `gorm:"not null;index"`
-	Description         string
-	AssigneeUserID      uuid.UUID   `gorm:"type:uuid;not null;index"`
-	CreatedByUserID     *uuid.UUID  `gorm:"type:uuid;index"`
-	StartsAt            time.Time   `gorm:"not null;index"`
-	EndsAt              time.Time   `gorm:"not null;index"`
-	Priority            JobPriority `gorm:"type:varchar(20);not null;default:'medium';index"`
-	Status              JobStatus   `gorm:"type:varchar(20);not null;default:'planned';index"`
+	platform.BaseModel
+	Title           string `gorm:"not null;index"`
+	Description     string `gorm:"type:text"`
+	RoomID          *uuid.UUID  `gorm:"type:uuid;index"`
+	AssigneeUserID  uuid.UUID   `gorm:"type:uuid;not null;index"`
+	CreatedByUserID *uuid.UUID  `gorm:"type:uuid;index"`
+	StartsAt        time.Time   `gorm:"not null;index"`
+	EndsAt          time.Time   `gorm:"not null;index"`
+	Priority        JobPriority `gorm:"type:varchar(20);not null;default:'medium';index"`
+	Status          JobStatus   `gorm:"type:varchar(20);not null;default:'planned';index"`
 
-	AssigneeUser      User               `gorm:"foreignKey:AssigneeUserID;references:ID"`
-	CreatedByUser     *User              `gorm:"foreignKey:CreatedByUserID;references:ID"`
+	Room          *Room `gorm:"foreignKey:RoomID;references:ID"`
+	AssigneeUser  User  `gorm:"foreignKey:AssigneeUserID;references:ID"`
+	CreatedByUser *User `gorm:"foreignKey:CreatedByUserID;references:ID"`
 }

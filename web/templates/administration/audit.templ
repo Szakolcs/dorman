@@ -1,0 +1,37 @@
+package administration
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ AuditPage(data AuditPageData) {
+	@components.AppDocument("Administration - Audit", AuditContent(data))
+}
+
+templ AuditContent(data AuditPageData) {
+	@partials.AdministrationNav()
+	@components.PageHeader(
+		"Audit Trail",
+		"Review sensitive actions with actor, action, target, outcome, and timestamp context.",
+	)
+
+	@components.DataTable([]string{"Occurred At", "Actor", "Action", "Target Type", "Target ID", "Outcome"}, AuditRows(data))
+	@components.PaginationNav("/administration/audit", data.Pagination, map[string]string{})
+}
+
+templ AuditRows(data AuditPageData) {
+	if len(data.Events) == 0 {
+		<tr>
+			<td colspan="6">No audit events recorded yet.</td>
+		</tr>
+	}
+	for _, e := range data.Events {
+		<tr>
+			<td>{ e.OccurredAt.Format("2006-01-02 15:04:05") }</td>
+			<td>{ auditActor(e) }</td>
+			<td>{ e.Action }</td>
+			<td>{ e.TargetType }</td>
+			<td>{ e.TargetID.String() }</td>
+			<td>{ string(e.Outcome) }</td>
+		</tr>
+	}
+}

@@ -1,0 +1,24 @@
+package doorman
+
+import (
+	"dorm-man/web/templates/common/components"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ DashboardPage() {
+	@components.AppDocument("Doorman", DashboardContent())
+}
+
+templ DashboardContent() {
+	@partials.DoormanNav()
+	@components.PageHeader(
+		"Doorman Module",
+		"Front-desk workflows: parcel intake and pickup, guest visits, dorm entry verification, and lendable inventory.",
+	)
+	<ul>
+		<li><a href="/doorman/packages" hx-boost="true">Packages</a>: intake, lifecycle, pickup, tenant notifications.</li>
+		<li><a href="/doorman/guests" hx-boost="true">Guests</a>: visits, validity window, check-in and check-out.</li>
+		<li><a href="/doorman/access" hx-boost="true">Access</a>: QR and manual verification, tenant entry tokens, access log.</li>
+		<li><a href="/doorman/lending" hx-boost="true">Lending</a>: checkout, return, open and overdue loans.</li>
+	</ul>
+}

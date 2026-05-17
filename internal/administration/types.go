@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"dorm-man/internal/pagination"
 	models "dorm-man/internal/models/administration"
 
 	"github.com/google/uuid"
@@ -27,21 +28,37 @@ type Principal struct {
 type TenantListFilter struct {
 	Status string
 	Search string
+	pagination.Params
 }
 
 type RoomListFilter struct {
 	State  string
 	Search string
+	pagination.Params
 }
 
 type TicketListFilter struct {
 	ApprovalState string
 	Status        string
+	pagination.Params
 }
 
 type JobListFilter struct {
 	AssigneeUserID *uuid.UUID
 	Date           *time.Time
+	pagination.Params
+}
+
+type InventoryListFilter struct {
+	pagination.Params
+}
+
+type AuditListFilter struct {
+	pagination.Params
+}
+
+type PublicationListFilter struct {
+	pagination.Params
 }
 
 type NewsUpsertInput struct {

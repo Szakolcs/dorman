@@ -1,5 +1,96 @@
 package administration
 
-templ RoomsPage() {
-	<p>Hello world!</p>
+import "fmt"
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ RoomsPage(data RoomsPageData) {
+	@components.AppDocument("Administration - Rooms", RoomsContent(data))
+}
+
+templ RoomsContent(data RoomsPageData) {
+	@partials.AdministrationNav()
+	@components.PageHeader(
+		"Room and Capacity Management",
+		"View occupancy, assign tenants, and approve bulk pre-semester allocation plans.",
+	)
+	@components.Section("Room Filters", RoomsFilterForm(data))
+	@components.Section("Room Overview", RoomOverviewTable(data))
+	@components.Section("Assign or Reassign Tenant", RoomAssignmentForm(data))
+	@components.Section("Bulk Allocation Plan", RoomBulkAllocationForm(data))
+}
+
+templ RoomsFilterForm(data RoomsPageData) {
+	<form method="get" action="/administration/rooms">
+		<label for="room-state">State</label>
+		<select id="room-state" name="state">
+			<option value="" selected?={ data.State == "" }>All</option>
+			<option value="occupied" selected?={ data.State == "occupied" }>Occupied</option>
+			<option value="available" selected?={ data.State == "available" }>Available</option>
+			<option value="maintenance-needed" selected?={ data.State == "maintenance-needed" }>Maintenance Needed</option>
+		</select>
+
+		<label for="room-search">Room Number</label>
+		<input id="room-search" name="search" type="text" value={ data.Search }/>
+
+		<button type="submit">Apply</button>
+	</form>
+}
+
+templ RoomOverviewTable(data RoomsPageData) {
+	@components.DataTable([]string{"Room", "Capacity", "Occupancy", "Inventory Status", "Actions"}, RoomOverviewRows(data))
+	@components.PaginationNav("/administration/rooms", data.Pagination, roomsPreserve(data))
+}
+
+templ RoomOverviewRows(data RoomsPageData) {
+	if len(data.Rooms) == 0 {
+		<tr>
+			<td colspan="5">No rooms match the current filters.</td>
+		</tr>
+	}
+	for _, row := range data.Rooms {
+		<tr>
+			<td>{ row.Room.Number }</td>
+			<td>{ fmt.Sprintf("%d", row.Room.Capacity) }</td>
+			<td>{ fmt.Sprintf("%d", row.Occupancy) }</td>
+			<td>{ row.InventoryStatus }</td>
+			<td><a href={ templ.SafeURL("/administration/rooms/" + row.Room.ID.String()) }>Details</a></td>
+		</tr>
+	}
+}
+
+templ RoomAssignmentForm(data RoomsPageData) {
+	<form method="post" action="/administration/rooms/assign">
+		<label for="assignment-tenant-id">Tenant</label>
+		<select id="assignment-tenant-id" name="tenant_id" required>
+			<option value="">Select tenant…</option>
+			for _, t := range data.Unassigned {
+				<option value={ t.ID.String() }>{ t.Name } ({ t.StudentCode })</option>
+			}
+		</select>
+
+		<label for="assignment-room-id">Room</label>
+		<select id="assignment-room-id" name="room_id" required>
+			<option value="">Select room…</option>
+			for _, row := range data.Rooms {
+				<option value={ row.Room.ID.String() }>
+					{ row.Room.Number } ({ fmt.Sprintf("%d/%d", row.Occupancy, row.Room.Capacity) })
+				</option>
+			}
+		</select>
+
+		<button type="submit">Assign Tenant</button>
+	</form>
+}
+
+templ RoomBulkAllocationForm(data RoomsPageData) {
+	<form method="post" action="/administration/rooms/allocation/generate">
+		<button type="submit">Generate Plan</button>
+	</form>
+	<form method="post" action="/administration/rooms/allocation/approve">
+		<label for="plan-json">Plan JSON</label>
+		<textarea id="plan-json" name="plan_json">{ data.PlanJSON }</textarea>
+		<button type="submit">Approve Plan</button>
+	</form>
 }

@@ -1,5 +1,157 @@
 package administration
 
-templ PublicationsPage() {
-	<p>Hello world!</p>
+import "fmt"
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ PublicationsPage(data PublicationsPageData) {
+	@components.AppDocument("Administration - Publications", PublicationsContent(data))
+}
+
+templ PublicationsContent(data PublicationsPageData) {
+	@partials.AdministrationNav()
+	@components.PageHeader(
+		"Official Publications",
+		"Draft and publish official news, activities, and events for tenant-facing visibility.",
+	)
+	@components.Section("News", NewsSection(data))
+	@components.Section("Activities", ActivitiesSection(data))
+	@components.Section("Events", EventsSection(data))
+}
+
+templ NewsSection(data PublicationsPageData) {
+	@components.DataTable([]string{"Title", "State", "Publish Date", "Author"}, NewsRows(data))
+	@components.PaginationNavNamed("/administration/publications", data.NewsPagination, data.NewsPreserve, "news_page", "news_page_size")
+	<form method="post" action="/administration/publications/news">
+		<label for="news-title">Title</label>
+		<input id="news-title" name="title" type="text"/>
+
+		<label for="news-body">Body</label>
+		<textarea id="news-body" name="body"></textarea>
+
+		<label for="news-tags">Tags</label>
+		<input id="news-tags" name="tags" type="text"/>
+
+		<label for="news-state">State</label>
+		<select id="news-state" name="state">
+			<option value="draft">draft</option>
+			<option value="published">published</option>
+			<option value="archived">archived</option>
+		</select>
+
+		<button type="submit">Create News</button>
+	</form>
+}
+
+templ NewsRows(data PublicationsPageData) {
+	if len(data.News) == 0 {
+		<tr>
+			<td colspan="4">No official news posts yet.</td>
+		</tr>
+	}
+	for _, p := range data.News {
+		<tr>
+			<td>{ p.Title }</td>
+			<td>{ string(p.State) }</td>
+			<td>{ publishDate(p.PublishedAt) }</td>
+			<td>{ userName(p.AuthorUser) }</td>
+		</tr>
+	}
+}
+
+templ ActivitiesSection(data PublicationsPageData) {
+	@components.DataTable([]string{"Title", "Location", "Capacity", "State"}, ActivityRows(data))
+	@components.PaginationNavNamed("/administration/publications", data.ActivitiesPagination, data.ActivitiesPreserve, "activities_page", "activities_page_size")
+	<form method="post" action="/administration/publications/activities">
+		<label for="activity-title">Title</label>
+		<input id="activity-title" name="title" type="text"/>
+
+		<label for="activity-description">Description</label>
+		<textarea id="activity-description" name="description"></textarea>
+
+		<label for="activity-location">Location</label>
+		<input id="activity-location" name="location" type="text"/>
+
+		<label for="activity-capacity">Capacity</label>
+		<input id="activity-capacity" name="capacity" type="number"/>
+
+		<label for="activity-state">State</label>
+		<select id="activity-state" name="state">
+			<option value="draft">draft</option>
+			<option value="published">published</option>
+			<option value="archived">archived</option>
+		</select>
+
+		<button type="submit">Create Activity</button>
+	</form>
+}
+
+templ ActivityRows(data PublicationsPageData) {
+	if len(data.Activities) == 0 {
+		<tr>
+			<td colspan="4">No activities yet.</td>
+		</tr>
+	}
+	for _, a := range data.Activities {
+		<tr>
+			<td>{ a.Title }</td>
+			<td>{ a.Location }</td>
+			<td>{ fmt.Sprintf("%d", a.Capacity) }</td>
+			<td>{ string(a.State) }</td>
+		</tr>
+	}
+}
+
+templ EventsSection(data PublicationsPageData) {
+	@components.DataTable([]string{"Title", "Location", "Starts", "Ends", "Capacity", "State"}, EventRows(data))
+	@components.PaginationNavNamed("/administration/publications", data.EventsPagination, data.EventsPreserve, "events_page", "events_page_size")
+	<form method="post" action="/administration/publications/events">
+		<label for="event-title">Title</label>
+		<input id="event-title" name="title" type="text"/>
+
+		<label for="event-description">Description</label>
+		<textarea id="event-description" name="description"></textarea>
+
+		<label for="event-location">Location</label>
+		<input id="event-location" name="location" type="text"/>
+
+		<label for="event-starts-at">Starts At</label>
+		<input id="event-starts-at" name="starts_at" type="datetime-local"/>
+
+		<label for="event-ends-at">Ends At</label>
+		<input id="event-ends-at" name="ends_at" type="datetime-local"/>
+
+		<label for="event-capacity">Capacity</label>
+		<input id="event-capacity" name="capacity" type="number"/>
+
+		<label for="event-state">State</label>
+		<select id="event-state" name="state">
+			<option value="draft">draft</option>
+			<option value="published">published</option>
+			<option value="postponed">postponed</option>
+			<option value="canceled">canceled</option>
+			<option value="archived">archived</option>
+		</select>
+
+		<button type="submit">Create Event</button>
+	</form>
+}
+
+templ EventRows(data PublicationsPageData) {
+	if len(data.Events) == 0 {
+		<tr>
+			<td colspan="6">No events yet.</td>
+		</tr>
+	}
+	for _, e := range data.Events {
+		<tr>
+			<td>{ e.Title }</td>
+			<td>{ e.Location }</td>
+			<td>{ e.StartsAt.Format("2006-01-02 15:04") }</td>
+			<td>{ e.EndsAt.Format("2006-01-02 15:04") }</td>
+			<td>{ fmt.Sprintf("%d", e.Capacity) }</td>
+			<td>{ string(e.State) }</td>
+		</tr>
+	}
 }

@@ -1,5 +1,144 @@
 package administration
 
-templ MaintenancePage() {
-	<p>Hello world!</p>
+import "time"
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ MaintenancePage(data MaintenancePageData) {
+	@components.AppDocument("Administration - Maintenance", MaintenanceContent(data))
+}
+
+templ MaintenanceContent(data MaintenancePageData) {
+	@partials.AdministrationNav()
+	@components.PageHeader(
+		"Maintenance Management",
+		"Create, approve, assign, and transition maintenance tickets with full lifecycle tracking.",
+	)
+	@components.Section("Ticket Filters", MaintenanceFilterForm(data))
+	@components.Section("Ticket List", MaintenanceTable(data))
+	@components.Section("Create Ticket", MaintenanceCreateForm())
+	@components.Section("Approve Ticket", MaintenanceApproveForm(data))
+	@components.Section("Transition Ticket", MaintenanceTransitionForm(data))
+}
+
+templ MaintenanceFilterForm(data MaintenancePageData) {
+	<form method="get" action="/administration/maintenance">
+		<label for="ticket-approval-state">Approval State</label>
+		<select id="ticket-approval-state" name="approval_state">
+			<option value="" selected?={ data.ApprovalState == "" }>All</option>
+			<option value="pending" selected?={ data.ApprovalState == "pending" }>pending</option>
+		</select>
+
+		<label for="ticket-status">Status</label>
+		<select id="ticket-status" name="status">
+			<option value="" selected?={ data.Status == "" }>All</option>
+			<option value="reported" selected?={ data.Status == "reported" }>reported</option>
+			<option value="in_progress" selected?={ data.Status == "in_progress" }>in_progress</option>
+			<option value="halted" selected?={ data.Status == "halted" }>halted</option>
+			<option value="resolved" selected?={ data.Status == "resolved" }>resolved</option>
+			<option value="closed" selected?={ data.Status == "closed" }>closed</option>
+		</select>
+
+		<button type="submit">Apply</button>
+	</form>
+}
+
+templ MaintenanceTable(data MaintenancePageData) {
+	@components.DataTable([]string{"Ticket", "Category", "Severity", "Status", "Assignee", "Due"}, MaintenanceRows(data))
+	@components.PaginationNav("/administration/maintenance", data.Pagination, maintenancePreserve(data))
+}
+
+templ MaintenanceRows(data MaintenancePageData) {
+	if len(data.Tickets) == 0 {
+		<tr>
+			<td colspan="6">No maintenance tickets match the current filters.</td>
+		</tr>
+	}
+	for _, t := range data.Tickets {
+		<tr>
+			<td>{ t.ID.String()[:8] }</td>
+			<td>{ string(t.Category) }</td>
+			<td>{ string(t.Severity) }</td>
+			<td>{ string(t.Status) }</td>
+			<td>{ userNamePtr(t.AssigneeUser) }</td>
+			<td>{ maintenanceDue(t.DueAt) }</td>
+		</tr>
+	}
+}
+
+templ MaintenanceCreateForm() {
+	<form method="post" action="/administration/maintenance/tickets">
+		<label for="ticket-category">Category</label>
+		<select id="ticket-category" name="category">
+			<option value="yearly">yearly</option>
+			<option value="monthly">monthly</option>
+			<option value="weekly">weekly</option>
+			<option value="incident">incident</option>
+		</select>
+
+		<label for="ticket-severity">Severity</label>
+		<select id="ticket-severity" name="severity">
+			<option value="high">high</option>
+			<option value="medium">medium</option>
+			<option value="low">low</option>
+		</select>
+
+		<label for="ticket-impact">Impact</label>
+		<select id="ticket-impact" name="impact">
+			<option value="life_threatening">life_threatening</option>
+			<option value="affects_daily_life">affects_daily_life</option>
+			<option value="inconvenience">inconvenience</option>
+			<option value="beauty_flaw">beauty_flaw</option>
+		</select>
+
+		<label for="ticket-description">Description</label>
+		<textarea id="ticket-description" name="description"></textarea>
+
+		<button type="submit">Create Ticket</button>
+	</form>
+}
+
+templ MaintenanceApproveForm(data MaintenancePageData) {
+	for _, t := range data.Tickets {
+		<form method="post" action={ templ.SafeURL("/administration/maintenance/tickets/" + t.ID.String() + "/approve") } class="inline-form">
+			<p><strong>{ t.ID.String()[:8] }</strong> — { string(t.Category) } ({ string(t.Status) })</p>
+			<label>Assignee</label>
+			<select name="assignee_user_id">
+				<option value="">—</option>
+				for _, u := range data.StaffUsers {
+					<option value={ u.ID.String() }>{ u.Name }</option>
+				}
+			</select>
+			<label>Due at</label>
+			<input name="due_at" type="datetime-local"/>
+			<button type="submit">Approve</button>
+		</form>
+	}
+}
+
+templ MaintenanceTransitionForm(data MaintenancePageData) {
+	for _, t := range data.Tickets {
+		<form method="post" action={ templ.SafeURL("/administration/maintenance/tickets/" + t.ID.String() + "/transition") } class="inline-form">
+			<p><strong>{ t.ID.String()[:8] }</strong> — { string(t.Category) } ({ string(t.Status) })</p>
+			<label>To status</label>
+			<select name="to_status">
+				<option value="in_progress">in_progress</option>
+				<option value="duplicate">duplicate</option>
+				<option value="halted">halted</option>
+				<option value="resolved">resolved</option>
+				<option value="closed">closed</option>
+			</select>
+			<label>Note</label>
+			<textarea name="note"></textarea>
+			<button type="submit">Apply transition</button>
+		</form>
+	}
+}
+
+func maintenanceDue(due *time.Time) string {
+	if due == nil {
+		return "—"
+	}
+	return due.Format("2006-01-02")
 }

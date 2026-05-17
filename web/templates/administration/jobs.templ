@@ -1,5 +1,97 @@
 package administration
 
-templ JobsPage() {
-	<p>Hello world!</p>
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ JobsPage(data JobsPageData) {
+	@components.AppDocument("Administration - Jobs", JobsContent(data))
+}
+
+templ JobsContent(data JobsPageData) {
+	@partials.AdministrationNav()
+	@components.PageHeader(
+		"Operational Scheduling",
+		"Create and review operational jobs with overlap visibility by assignee and date.",
+	)
+	@components.Section("Job Filters", JobFilterForm(data))
+	@components.Section("Job Board", JobTable(data))
+	@components.Section("Create Job", JobCreateForm(data))
+}
+
+templ JobFilterForm(data JobsPageData) {
+	<form method="get" action="/administration/jobs">
+		<label for="job-assignee-id">Assignee</label>
+		<select id="job-assignee-id" name="assignee_user_id">
+			<option value="" selected?={ data.AssigneeUserID == "" }>All</option>
+			for _, u := range data.StaffUsers {
+				<option value={ u.ID.String() } selected?={ data.AssigneeUserID == u.ID.String() }>{ u.Name }</option>
+			}
+		</select>
+
+		<label for="job-date">Date</label>
+		<input id="job-date" name="date" type="date" value={ data.Date }/>
+
+		<button type="submit">Apply</button>
+	</form>
+}
+
+templ JobTable(data JobsPageData) {
+	@components.DataTable([]string{"Title", "Assignee", "Starts", "Ends", "Priority", "Status"}, JobRows(data))
+	@components.PaginationNav("/administration/jobs", data.Pagination, jobsPreserve(data))
+}
+
+templ JobRows(data JobsPageData) {
+	if len(data.Jobs) == 0 {
+		<tr>
+			<td colspan="6">No operational jobs match the current filters.</td>
+		</tr>
+	}
+	for _, j := range data.Jobs {
+		<tr>
+			<td>{ j.Title }</td>
+			<td>{ userName(j.AssigneeUser) }</td>
+			<td>{ j.StartsAt.Format("2006-01-02 15:04") }</td>
+			<td>{ j.EndsAt.Format("2006-01-02 15:04") }</td>
+			<td>{ string(j.Priority) }</td>
+			<td>{ string(j.Status) }</td>
+		</tr>
+	}
+}
+
+templ JobCreateForm(data JobsPageData) {
+	<form method="post" action="/administration/jobs">
+		<label for="job-title">Title</label>
+		<input id="job-title" name="title" type="text"/>
+
+		<label for="job-description">Description</label>
+		<textarea id="job-description" name="description"></textarea>
+
+		<label for="job-assignee">Assignee</label>
+		<select id="job-assignee" name="assignee_user_id" required>
+			for _, u := range data.StaffUsers {
+				<option value={ u.ID.String() }>{ u.Name }</option>
+			}
+		</select>
+
+		<label for="job-starts-at">Starts At</label>
+		<input id="job-starts-at" name="starts_at" type="datetime-local"/>
+
+		<label for="job-ends-at">Ends At</label>
+		<input id="job-ends-at" name="ends_at" type="datetime-local"/>
+
+		<label for="job-priority">Priority</label>
+		<select id="job-priority" name="priority">
+			<option value="low">low</option>
+			<option value="medium">medium</option>
+			<option value="high">high</option>
+		</select>
+
+		<label for="job-allow-conflict">Allow Overlap</label>
+		<select id="job-allow-conflict" name="allow_conflict">
+			<option value="false">false</option>
+			<option value="true">true</option>
+		</select>
+
+		<button type="submit">Create Job</button>
+	</form>
 }

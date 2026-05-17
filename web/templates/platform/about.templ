@@ -1,0 +1,33 @@
+package platform
+
+import "dorm-man/web/templates/common/components"
+
+templ AboutPage(data AboutPageData) {
+	@components.AppDocument(data.Title, AboutContent(data))
+}
+
+templ AboutContent(data AboutPageData) {
+	@components.PageHeader(
+		"About the Dormitory",
+		"A short overview for current and incoming students.",
+	)
+	@components.Section("History", AboutHistory(data))
+	@components.Section("Student Life", AboutStudentLife(data))
+	@components.Section("Useful Information for Newcomers", AboutUsefulInformation(data))
+}
+
+templ AboutHistory(data AboutPageData) {
+	<p>{ data.History }</p>
+}
+
+templ AboutStudentLife(data AboutPageData) {
+	<p>{ data.StudentLife }</p>
+}
+
+templ AboutUsefulInformation(data AboutPageData) {
+	<ul>
+		for _, item := range data.UsefulInformation {
+			<li>{ item }</li>
+		}
+	</ul>
+}

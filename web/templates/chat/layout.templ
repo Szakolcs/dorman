@@ -1,0 +1,61 @@
+package chat
+
+import (
+	"dorm-man/web/templates/common/components"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ ChatShell(title string, actorTenantID string, body templ.Component) {
+	@components.Document(title, ChatShellBody(actorTenantID, body))
+}
+
+templ ChatShellBody(actorTenantID string, body templ.Component) {
+	@partials.MainNav()
+	@ChatNav(actorTenantID)
+	if actorTenantID == "" {
+		@ActorStubForm()
+	} else {
+		@components.DevActorField(
+			"chat-actor-bar",
+			"Development stub: tenant principal for chat actions.",
+			"chat-actor-tenant-id",
+			"actor_tenant_id",
+			actorTenantID,
+		)
+	}
+	@body
+}
+
+templ ChatNav(actorTenantID string) {
+	<nav class="nav nav--module">
+		<a href={ templ.SafeURL(chatHref("/chat/view", actorTenantID)) } hx-boost="true">Workspace</a>
+		<a href={ templ.SafeURL(chatHref("/chat/view/profile", actorTenantID)) } hx-boost="true">Profile</a>
+		<a href={ templ.SafeURL(chatHref("/chat/view/groups/new", actorTenantID)) } hx-boost="true">New group</a>
+	</nav>
+}
+
+templ ActorStubForm() {
+	@components.PageHeader(
+		"Chat",
+		"Select a tenant to act as. Paste a tenant UUID or your login user UUID; session login also works for tenant accounts.",
+	)
+	<form method="get" action="/chat/view">
+		<label for="tenant_id">Tenant or user ID</label>
+		<input id="tenant_id" name="tenant_id" type="text" required placeholder="Tenant UUID, or user UUID linked to a tenant"/>
+		<button type="submit">Open chat</button>
+	</form>
+}
+
+func chatHref(path string, actorTenantID string) string {
+	if actorTenantID == "" {
+		return path
+	}
+	return path + "?tenant_id=" + actorTenantID
+}
+
+func chatRoomHref(roomID, actorTenantID string) string {
+	return chatHref("/chat/view/rooms/"+roomID, actorTenantID)
+}
+
+templ ChatEmptyBody() {
+}

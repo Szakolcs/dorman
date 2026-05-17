@@ -1,5 +1,97 @@
 package administration
 
-templ InventoryPage() {
-	<p>Hello world!</p>
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ InventoryPage(data InventoryPageData) {
+	@components.AppDocument("Administration - Inventory", InventoryContent(data))
+}
+
+templ InventoryContent(data InventoryPageData) {
+	@partials.AdministrationNav()
+	@components.PageHeader(
+		"Inventory Management",
+		"Track room and shared-area inventory with lifecycle status for audit reconciliation.",
+	)
+	@components.Section("Inventory Report", InventoryTable(data))
+	@components.Section("Register Inventory Item", InventoryCreateForm(data))
+	@components.Section("Update Inventory Status", InventoryStatusForm(data))
+}
+
+templ InventoryTable(data InventoryPageData) {
+	@components.DataTable([]string{"Item", "Location Type", "Location", "Condition", "Status"}, InventoryRows(data))
+	@components.PaginationNav("/administration/inventory", data.Pagination, map[string]string{})
+}
+
+templ InventoryRows(data InventoryPageData) {
+	if len(data.Items) == 0 {
+		<tr>
+			<td colspan="5">No inventory items yet.</td>
+		</tr>
+	}
+	for _, item := range data.Items {
+		<tr>
+			<td>{ item.Name }</td>
+			<td>{ string(item.LocationType) }</td>
+			<td>{ inventoryLocation(item) }</td>
+			<td>{ string(item.Condition) }</td>
+			<td>{ string(item.Status) }</td>
+		</tr>
+	}
+}
+
+templ InventoryCreateForm(data InventoryPageData) {
+	<form method="post" action="/administration/inventory">
+		<label for="inventory-name">Name</label>
+		<input id="inventory-name" name="name" type="text"/>
+
+		<label for="inventory-location-type">Location Type</label>
+		<select id="inventory-location-type" name="location_type">
+			<option value="room">Room</option>
+			<option value="shared_area">Shared Area</option>
+		</select>
+
+		<label for="inventory-room-id">Room</label>
+		<select id="inventory-room-id" name="room_id">
+			<option value="">—</option>
+			for _, room := range data.Rooms {
+				<option value={ room.ID.String() }>{ room.Number }</option>
+			}
+		</select>
+
+		<label for="inventory-condition">Condition</label>
+		<select id="inventory-condition" name="condition">
+			<option value="new">new</option>
+			<option value="good">good</option>
+			<option value="used">used</option>
+			<option value="damaged">damaged</option>
+			<option value="broken">broken</option>
+		</select>
+
+		<button type="submit">Create Item</button>
+	</form>
+}
+
+templ InventoryStatusForm(data InventoryPageData) {
+	for _, item := range data.Items {
+		<form method="post" action={ templ.SafeURL("/administration/inventory/" + item.ID.String() + "/status") } class="inline-form">
+			<p><strong>{ item.Name }</strong> ({ string(item.Status) })</p>
+			<label>Status</label>
+			<select name="status">
+				<option value="in_stock">in_stock</option>
+				<option value="in_use">in_use</option>
+				<option value="withdrawn">withdrawn</option>
+				<option value="destroyed">destroyed</option>
+			</select>
+			<label>Condition</label>
+			<select name="condition">
+				<option value="new">new</option>
+				<option value="good">good</option>
+				<option value="used">used</option>
+				<option value="damaged">damaged</option>
+				<option value="broken">broken</option>
+			</select>
+			<button type="submit">Update</button>
+		</form>
+	}
 }
