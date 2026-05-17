@@ -481,6 +481,13 @@ func (s *Service) CastPollVote(principal administration.Principal, pollID uuid.U
 	return nil
 }
 
+func (s *Service) GetPollByID(principal administration.Principal, pollID uuid.UUID) (fm.ForumPoll, error) {
+	if err := s.requireAuthenticated(principal); err != nil {
+		return fm.ForumPoll{}, err
+	}
+	return s.store.GetPollByID(pollID)
+}
+
 func (s *Service) GetPollResults(principal administration.Principal, pollID uuid.UUID) (PollResults, error) {
 	if err := s.requireAuthenticated(principal); err != nil {
 		return PollResults{}, err

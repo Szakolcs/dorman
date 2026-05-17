@@ -22,7 +22,17 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) actor(c echo.Context) (administration.Principal, error) {
+	return h.actorFromRequest(c)
+}
+
+func (h *Handler) actorFromRequest(c echo.Context) (administration.Principal, error) {
 	value := c.Request().Header.Get("X-Actor-User-ID")
+	if value == "" {
+		value = c.FormValue("actor_user_id")
+	}
+	if value == "" {
+		value = c.QueryParam("actor_user_id")
+	}
 	if value == "" {
 		return administration.Principal{}, ErrUnauthorized
 	}

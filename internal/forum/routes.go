@@ -35,4 +35,14 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 
 	api.POST("/reactions", h.toggleReaction)
 	api.POST("/moderation", h.moderate)
+
+	view := e.Group("/forum/view")
+	view.GET("", h.feedPage)
+	view.GET("/feed", h.feedListFragment)
+	view.POST("/posts", h.createCommunityPostView)
+	view.GET("/posts/:id", h.postPage)
+	view.POST("/posts/:id/comments", h.createCommentView)
+	view.POST("/posts/:id/reactions", h.togglePostReactionView)
+	view.POST("/posts/:id/attendance", h.setAttendanceView)
+	view.POST("/polls/:id/votes", h.castPollVoteView)
 }

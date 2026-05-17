@@ -1,0 +1,45 @@
+package forum
+
+import "dorm-man/web/templates/common/partials"
+
+templ ForumDocument(title string, actorUserID string, body templ.Component) {
+	<!doctype html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ title }</title>
+			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+		</head>
+		<body
+			hx-headers={ "js:{\"X-Actor-User-ID\": document.getElementById(\"actor_user_id\")?.value || \"\"}" }
+		>
+			<main>
+				@partials.MainNav()
+				@ActorBar(actorUserID)
+				@body
+			</main>
+		</body>
+	</html>
+}
+
+templ ActorBar(actorUserID string) {
+	<div id="forum-actor-bar">
+		<label for="actor_user_id">Actor user ID (dev stub)</label>
+		<input
+			type="text"
+			id="actor_user_id"
+			name="actor_user_id"
+			value={ actorUserID }
+			hx-trigger="change"
+			hx-get="/forum/view/feed"
+			hx-target="#feed-list"
+			hx-include="#forum-actor-bar, #feed-filters"
+		/>
+	</div>
+}
+
+
+templ ErrorAlert(message string) {
+	<p id="forum-error" role="alert">{ message }</p>
+}
