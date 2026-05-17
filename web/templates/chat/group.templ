@@ -1,18 +1,27 @@
-package chatviews
+package chat
+
+import "dorm-man/web/templates/common/components"
 
 templ GroupNewPage(actorTenantID string) {
 	@ChatShell("New group chat", actorTenantID, GroupNewBody(actorTenantID))
 }
 
 templ GroupNewBody(actorTenantID string) {
-	<h1>Create group chat</h1>
+	@components.PageHeader(
+		"Create group chat",
+		"Name the group and optionally invite other tenants by ID.",
+	)
+	@components.Section("Group details", GroupCreateForm(actorTenantID))
+	<div id="chat-group-result" aria-live="polite"></div>
+	@components.BackLink(chatHref("/chat/view", actorTenantID), "Back to chat")
+}
+
+templ GroupCreateForm(actorTenantID string) {
 	<form
-		method="post"
-		action={ chatHref("/chat/view/groups", actorTenantID) }
 		hx-post={ chatHref("/chat/view/groups", actorTenantID) }
-		hx-target="#chat-room-panel"
+		hx-target="#chat-group-result"
 		hx-swap="innerHTML"
-		hx-include="#chat-actor-tenant-id"
+		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
 	>
 		<label for="title">Group name</label>
 		<input id="title" name="title" type="text" required/>
@@ -22,6 +31,4 @@ templ GroupNewBody(actorTenantID string) {
 		<input id="member_tenant_ids" name="member_tenant_ids" type="text"/>
 		<button type="submit">Create group</button>
 	</form>
-	<div id="chat-room-panel"></div>
-	<p><a href={ templ.SafeURL(chatHref("/chat/view", actorTenantID)) } hx-boost="true">Back to chat</a></p>
 }

@@ -29,7 +29,65 @@ func MainNav() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav><a href=\"/\" hx-boost=\"true\">Home</a> <a href=\"/about\" hx-boost=\"true\">About</a> <a href=\"/forum/view\" hx-boost=\"true\">Forum</a> <a href=\"/doorman\" hx-boost=\"true\">Doorman</a> <a href=\"/doorman/packages\" hx-boost=\"true\">Doorman parcels</a> <a href=\"/doorman/guests\" hx-boost=\"true\">Guests</a> <a href=\"/doorman/access\" hx-boost=\"true\">Entry</a> <a href=\"/doorman/lending\" hx-boost=\"true\">Lending</a> <a href=\"/administration\" hx-boost=\"true\">Administration</a> <a href=\"/administration/tenants\" hx-boost=\"true\">Tenants</a> <a href=\"/administration/rooms\" hx-boost=\"true\">Rooms</a> <a href=\"/administration/inventory\" hx-boost=\"true\">Inventory</a> <a href=\"/administration/maintenance\" hx-boost=\"true\">Maintenance</a> <a href=\"/administration/jobs\" hx-boost=\"true\">Jobs</a> <a href=\"/administration/publications\" hx-boost=\"true\">Publications</a> <a href=\"/administration/audit\" hx-boost=\"true\">Audit</a> <a href=\"/chat/view\" hx-boost=\"true\">Chat</a></nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<nav><a href=\"/\" hx-boost=\"true\">Login</a> <a href=\"/about\" hx-boost=\"true\">About</a> <a href=\"/forum/view\" hx-boost=\"true\">Forum</a> <a href=\"/chat/view\" hx-boost=\"true\">Chat</a> <a href=\"/doorman\" hx-boost=\"true\">Doorman</a> <a href=\"/administration\" hx-boost=\"true\">Administration</a></nav>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func DoormanNav() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var2 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var2 == nil {
+			templ_7745c5c3_Var2 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<nav><a href=\"/doorman\" hx-boost=\"true\">Doorman home</a> <a href=\"/doorman/packages\" hx-boost=\"true\">Packages</a> <a href=\"/doorman/guests\" hx-boost=\"true\">Guests</a> <a href=\"/doorman/access\" hx-boost=\"true\">Entry</a> <a href=\"/doorman/lending\" hx-boost=\"true\">Lending</a></nav>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func AdministrationNav() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var3 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var3 == nil {
+			templ_7745c5c3_Var3 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<nav><a href=\"/administration\" hx-boost=\"true\">Administration home</a> <a href=\"/administration/tenants\" hx-boost=\"true\">Tenants</a> <a href=\"/administration/rooms\" hx-boost=\"true\">Rooms</a> <a href=\"/administration/inventory\" hx-boost=\"true\">Inventory</a> <a href=\"/administration/maintenance\" hx-boost=\"true\">Maintenance</a> <a href=\"/administration/jobs\" hx-boost=\"true\">Jobs</a> <a href=\"/administration/publications\" hx-boost=\"true\">Publications</a> <a href=\"/administration/audit\" hx-boost=\"true\">Audit</a></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

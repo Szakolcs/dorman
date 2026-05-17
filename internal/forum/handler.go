@@ -465,8 +465,12 @@ func (h *Handler) renderViewError(c echo.Context, err error) error {
 }
 
 func (h *Handler) feedPage(c echo.Context) error {
+	actorID := actorUserIDFromRequest(c)
 	principal, err := h.actorFromRequest(c)
 	if err != nil {
+		if errors.Is(err, ErrUnauthorized) {
+			return renderComponent(c, forumviews.FeedPage(forumviews.FeedPageData{ActorUserID: actorID}))
+		}
 		return h.renderViewError(c, err)
 	}
 	data, err := h.buildFeedPageData(c, principal)
@@ -521,8 +525,12 @@ func feedFilterFromRequest(c echo.Context) FeedListFilter {
 }
 
 func (h *Handler) postPage(c echo.Context) error {
+	actorID := actorUserIDFromRequest(c)
 	principal, err := h.actorFromRequest(c)
 	if err != nil {
+		if errors.Is(err, ErrUnauthorized) {
+			return renderComponent(c, forumviews.ForumDocument("Forum", actorID, forumviews.ForumEmptyBody()))
+		}
 		return h.renderViewError(c, err)
 	}
 	postID, err := uuid.Parse(c.Param("id"))

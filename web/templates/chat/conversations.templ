@@ -1,4 +1,4 @@
-package chatviews
+package chat
 
 import (
 	"fmt"
@@ -12,19 +12,18 @@ templ ConversationListPartial(actorTenantID string, conversations []chatvm.Conve
 		hx-get={ chatHref("/chat/view/conversations", actorTenantID) }
 		hx-trigger="every 5s"
 		hx-swap="outerHTML"
-		hx-include="#chat-actor-tenant-id"
+		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
 	>
 		@ConversationListBody(actorTenantID, conversations)
 	</div>
 }
 
 templ ConversationListBody(actorTenantID string, conversations []chatvm.ConversationSummary) {
-	<h2>Conversations</h2>
 	<form
 		hx-post={ chatHref("/chat/view/direct", actorTenantID) }
 		hx-target="#chat-room-panel"
 		hx-swap="innerHTML"
-		hx-include="#chat-actor-tenant-id"
+		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
 	>
 		<label for="other_tenant_id">Open direct message (other tenant ID)</label>
 		<input id="other_tenant_id" name="other_tenant_id" type="text" required/>
@@ -49,7 +48,7 @@ templ ConversationRow(actorTenantID string, conv chatvm.ConversationSummary) {
 			hx-target="#chat-room-panel"
 			hx-swap="innerHTML"
 			hx-push-url="true"
-			hx-include="#chat-actor-tenant-id"
+			hx-include="#chat-actor-bar, #chat-actor-tenant-id"
 		>
 			<strong>{ conv.DisplayTitle }</strong>
 			<span> [{ string(conv.Room.Kind) }] </span>

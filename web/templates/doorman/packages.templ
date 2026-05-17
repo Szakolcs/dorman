@@ -4,17 +4,16 @@ import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
 templ PackagesPage() {
-	@components.Document("Doorman - Packages", PackagesContent())
+	@components.AppDocument("Doorman - Packages", PackagesContent())
 }
 
 templ PackagesContent() {
-	@partials.MainNav()
 	@components.PageHeader(
 		"Packages",
 		"Inbound parcels: register with optional tenant mapping, lifecycle received → notified (optional) → picked up.",
 	)
-
-	<p><a href="/doorman">Back to Doorman</a></p>
+	@partials.DoormanNav()
+	@components.BackLink("/doorman", "Back to Doorman")
 
 	@components.Section(
 		"Parcel queue filters",

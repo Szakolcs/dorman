@@ -1,6 +1,8 @@
 package forum
 
 import (
+	"dorm-man/web/templates/common/components"
+
 	fm "dorm-man/internal/models/forum"
 
 	"github.com/google/uuid"
@@ -11,7 +13,7 @@ templ PostPage(data PostPageData) {
 }
 
 templ PostPageBody(data PostPageData) {
-	<p><a href="/forum/view" hx-boost="true">Back to feed</a></p>
+	@components.BackLink("/forum/view", "Back to feed")
 	@PostArticle(data)
 	<section id="post-engagement">
 		@PostReaction(ReactionViewData{

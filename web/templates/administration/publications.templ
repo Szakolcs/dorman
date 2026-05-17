@@ -4,11 +4,11 @@ import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
 templ PublicationsPage() {
-	@components.Document("Administration - Publications", PublicationsContent())
+	@components.AppDocument("Administration - Publications", PublicationsContent())
 }
 
 templ PublicationsContent() {
-	@partials.MainNav()
+	@partials.AdministrationNav()
 	@components.PageHeader(
 		"Official Publications",
 		"Draft and publish official news, activities, and events for tenant-facing visibility.",

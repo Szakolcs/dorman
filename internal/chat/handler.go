@@ -323,7 +323,7 @@ func queryPositiveInt(c echo.Context, name string, def int) int {
 func (h *Handler) workspacePage(c echo.Context) error {
 	_, actorID, err := h.viewActor(c)
 	if err != nil {
-		return renderComponent(c, htmlchat.ChatShell("Chat", "", htmlchat.ActorStubForm()))
+		return renderComponent(c, htmlchat.ChatShell("Chat", "", htmlchat.ChatEmptyBody()))
 	}
 	return renderComponent(c, htmlchat.WorkspacePage(actorID))
 }
@@ -343,7 +343,7 @@ func (h *Handler) conversationsPartial(c echo.Context) error {
 func (h *Handler) roomPage(c echo.Context) error {
 	p, actorID, err := h.viewActor(c)
 	if err != nil {
-		return renderComponent(c, htmlchat.ChatShell("Chat", "", htmlchat.ActorStubForm()))
+		return renderComponent(c, htmlchat.ChatShell("Chat", "", htmlchat.ChatEmptyBody()))
 	}
 	roomID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -466,7 +466,7 @@ func (h *Handler) openDirectView(c echo.Context) error {
 func (h *Handler) profilePage(c echo.Context) error {
 	p, actorID, err := h.viewActor(c)
 	if err != nil {
-		return renderComponent(c, htmlchat.ChatShell("Chat profile", "", htmlchat.ActorStubForm()))
+		return renderComponent(c, htmlchat.ChatShell("Chat profile", "", htmlchat.ChatEmptyBody()))
 	}
 	view, err := h.service.GetProfile(p)
 	if err != nil {
@@ -509,7 +509,7 @@ func (h *Handler) profileSaveView(c echo.Context) error {
 func (h *Handler) groupNewPage(c echo.Context) error {
 	_, actorID, err := h.viewActor(c)
 	if err != nil {
-		return renderComponent(c, htmlchat.ChatShell("New group", "", htmlchat.ActorStubForm()))
+		return renderComponent(c, htmlchat.ChatShell("New group", "", htmlchat.ChatEmptyBody()))
 	}
 	return renderComponent(c, htmlchat.GroupNewPage(actorID))
 }

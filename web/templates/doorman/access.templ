@@ -4,17 +4,16 @@ import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
 templ AccessPage() {
-	@components.Document("Doorman - Access", AccessContent())
+	@components.AppDocument("Doorman - Access", AccessContent())
 }
 
 templ AccessContent() {
-	@partials.MainNav()
 	@components.PageHeader(
 		"Dorm entry verification",
 		"QR or manual verification creates immutable access rows; denial reasons include invalid, expired, revoked.",
 	)
-
-	<p><a href="/doorman">Back to Doorman</a></p>
+	@partials.DoormanNav()
+	@components.BackLink("/doorman", "Back to Doorman")
 
 	@components.Section(
 		"Tenant entry token (mint)",

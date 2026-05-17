@@ -1,29 +1,37 @@
-package chatviews
+package chat
+
+import "dorm-man/web/templates/common/components"
 
 templ WorkspacePage(actorTenantID string) {
 	@ChatShell("Chat", actorTenantID, WorkspaceBody(actorTenantID))
 }
 
 templ WorkspaceBody(actorTenantID string) {
-	<h1>Chat</h1>
+	@components.PageHeader(
+		"Chat workspace",
+		"Flat, direct, and group conversations with near real-time message updates.",
+	)
 	<div id="chat-workspace">
-		<aside id="chat-sidebar">
-			<div
-				id="chat-conversation-list"
-				hx-get={ chatHref("/chat/view/conversations", actorTenantID) }
-				hx-trigger="load"
-				hx-swap="outerHTML"
-				hx-include="#chat-actor-tenant-id"
-			>
-				<p>Loading conversations…</p>
-			</div>
-		</aside>
+		@components.Section("Conversations", ConversationListLoader(actorTenantID))
 		<section id="chat-room-panel" aria-live="polite">
+			<h2>Room</h2>
 			<p>Select a conversation or open a direct message.</p>
 		</section>
 	</div>
 }
 
-templ RoomPage(actorTenantID string, detail templ.Component) {
-	@ChatShell("Chat room", actorTenantID, detail)
+templ RoomPage(actorTenantID string, body templ.Component) {
+	@ChatShell("Chat room", actorTenantID, body)
+}
+
+templ ConversationListLoader(actorTenantID string) {
+	<div
+		id="chat-conversation-list"
+		hx-get={ chatHref("/chat/view/conversations", actorTenantID) }
+		hx-trigger="load"
+		hx-swap="outerHTML"
+		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+	>
+		<p>Loading conversations…</p>
+	</div>
 }

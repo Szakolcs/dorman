@@ -14,20 +14,15 @@ templ FeedPageBody(data FeedPageData) {
 		"Forum feed",
 		"Official news, community activities, events, and polls.",
 	)
-	<section>
-		<h2>Filters</h2>
-		@FeedFilters(data)
-	</section>
-	<section>
-		<h2>New community activity</h2>
-		@CommunityPostForm()
-	</section>
-	<section>
-		<h2>Posts</h2>
-		<div id="feed-list">
-			@FeedList(data.Posts)
-		</div>
-	</section>
+	@components.Section("Filters", FeedFilters(data))
+	@components.Section("New community activity", CommunityPostForm())
+	@components.Section("Posts", FeedListContainer(data.Posts))
+}
+
+templ FeedListContainer(posts []fm.ForumPost) {
+	<div id="feed-list">
+		@FeedList(posts)
+	</div>
 }
 
 templ FeedFilters(data FeedPageData) {
@@ -80,7 +75,7 @@ templ FeedPostItem(post fm.ForumPost) {
 	<li>
 		<article>
 			<h3>
-				<a href={ "/forum/view/posts/" + post.ID.String() } hx-boost="true">
+				<a href={ templ.SafeURL("/forum/view/posts/" + post.ID.String()) } hx-boost="true">
 					{ post.Title }
 				</a>
 			</h3>

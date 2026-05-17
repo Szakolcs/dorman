@@ -4,11 +4,11 @@ import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
 templ AuditPage() {
-	@components.Document("Administration - Audit", AuditContent())
+	@components.AppDocument("Administration - Audit", AuditContent())
 }
 
 templ AuditContent() {
-	@partials.MainNav()
+	@partials.AdministrationNav()
 	@components.PageHeader(
 		"Audit Trail",
 		"Review sensitive actions with actor, action, target, outcome, and timestamp context.",

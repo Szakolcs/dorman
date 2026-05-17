@@ -4,11 +4,11 @@ import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
 templ JobsPage() {
-	@components.Document("Administration - Jobs", JobsContent())
+	@components.AppDocument("Administration - Jobs", JobsContent())
 }
 
 templ JobsContent() {
-	@partials.MainNav()
+	@partials.AdministrationNav()
 	@components.PageHeader(
 		"Operational Scheduling",
 		"Create and review operational jobs with overlap visibility by assignee and date.",
