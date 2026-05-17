@@ -282,6 +282,12 @@ ol {
 	border-color: var(--color-accent);
 }
 
+.conversation-row--unread a strong,
+.conversation-row--unread span:last-of-type {
+	color: var(--color-accent);
+	font-weight: 600;
+}
+
 #message-list li {
 	margin-bottom: var(--space-md);
 	padding: var(--space-sm) 0;
