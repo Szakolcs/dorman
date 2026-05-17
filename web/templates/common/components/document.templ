@@ -12,10 +12,14 @@ templ Document(title string, body templ.Component) {
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>{ title }</title>
+			<script src="/static/css/theme.js"></script>
+			<link rel="stylesheet" href="/static/css/nord-palette.css"/>
+			<link rel="stylesheet" href="/static/css/theme.css"/>
+			<link rel="stylesheet" href="/static/css/app.css"/>
 			<script src={ HtmxCDN }></script>
 		</head>
-		<body>
-			<main>
+		<body class="app">
+			<main class="app-main">
 				@body
 			</main>
 		</body>
@@ -34,29 +38,30 @@ templ AppPageBody(body templ.Component) {
 
 // DevActorField is a development stub control included in HTMX requests via hx-include.
 templ DevActorField(barID string, label string, inputID string, inputName string, value string) {
-	<div id={ barID }>
+	<div id={ barID } class="dev-actor">
 		<p>{ label }</p>
 		<label for={ inputID }>Actor ID</label>
 		<input type="text" id={ inputID } name={ inputName } value={ value }/>
 	</div>
 }
 
+
 templ PageHeader(title string, description string) {
-	<header>
+	<header class="page-header">
 		<h1>{ title }</h1>
 		<p>{ description }</p>
 	</header>
 }
 
 templ Section(title string, body templ.Component) {
-	<section>
+	<section class="section">
 		<h2>{ title }</h2>
 		@body
 	</section>
 }
 
 templ DataTable(headers []string, body templ.Component) {
-	<table border="1">
+	<table class="table">
 		<thead>
 			<tr>
 				for _, header := range headers {
@@ -71,9 +76,9 @@ templ DataTable(headers []string, body templ.Component) {
 }
 
 templ BackLink(href string, label string) {
-	<p><a href={ templ.SafeURL(href) } hx-boost="true">{ label }</a></p>
+	<p class="back-link"><a href={ templ.SafeURL(href) } hx-boost="true">{ label }</a></p>
 }
 
 templ ErrorAlert(message string) {
-	<p role="alert">{ message }</p>
+	<p class="alert alert--error" role="alert">{ message }</p>
 }

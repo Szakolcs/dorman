@@ -45,6 +45,7 @@ func New() (*App, error) {
 
 	e := echo.New()
 	e.HideBanner = true
+	e.Static("/static", "web/static")
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
 	e.Use(middleware.Logger())

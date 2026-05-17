@@ -1,18 +1,12 @@
 package templates
 
+import "dorm-man/web/templates/common/components"
+
+// BaseLayout is a legacy shell; prefer components.Document or AppDocument.
 templ BaseLayout(title string, content string) {
-	<!doctype html>
-	<html lang="en">
-		<head>
-			<meta charset="utf-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>{ title }</title>
-			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
-		</head>
-		<body>
-			<main>
-				{ content }
-			</main>
-		</body>
-	</html>
+	@components.Document(title, BaseLayoutBody(content))
+}
+
+templ BaseLayoutBody(content string) {
+	{ content }
 }

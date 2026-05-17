@@ -41,7 +41,7 @@ templ ConversationListBody(actorTenantID string, conversations []chatvm.Conversa
 }
 
 templ ConversationRow(actorTenantID string, conv chatvm.ConversationSummary) {
-	<li>
+	<li class={ templ.KV("conversation-row--unread", conv.UnreadCount > 0) }>
 		<a
 			href={ templ.SafeURL(chatRoomHref(conv.Room.ID.String(), actorTenantID)) }
 			hx-get={ chatRoomHref(conv.Room.ID.String(), actorTenantID) }

@@ -27,7 +27,7 @@ templ ChatShellBody(actorTenantID string, body templ.Component) {
 }
 
 templ ChatNav(actorTenantID string) {
-	<nav>
+	<nav class="nav nav--module">
 		<a href={ templ.SafeURL(chatHref("/chat/view", actorTenantID)) } hx-boost="true">Workspace</a>
 		<a href={ templ.SafeURL(chatHref("/chat/view/profile", actorTenantID)) } hx-boost="true">Profile</a>
 		<a href={ templ.SafeURL(chatHref("/chat/view/groups/new", actorTenantID)) } hx-boost="true">New group</a>

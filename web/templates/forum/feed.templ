@@ -20,7 +20,7 @@ templ FeedPageBody(data FeedPageData) {
 }
 
 templ FeedListContainer(posts []fm.ForumPost) {
-	<div id="feed-list">
+	<div id="feed-list" class="feed-list">
 		@FeedList(posts)
 	</div>
 }

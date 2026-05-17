@@ -12,7 +12,9 @@ templ WorkspaceBody(actorTenantID string) {
 		"Flat, direct, and group conversations with near real-time message updates.",
 	)
 	<div id="chat-workspace">
-		@components.Section("Conversations", ConversationListLoader(actorTenantID))
+		<div id="chat-sidebar">
+			@components.Section("Conversations", ConversationListLoader(actorTenantID))
+		</div>
 		<section id="chat-room-panel" aria-live="polite">
 			<h2>Room</h2>
 			<p>Select a conversation or open a direct message.</p>

@@ -29,7 +29,7 @@ templ RoomPanelBody(actorTenantID string, detail chatvm.RoomDetail, messages []c
 }
 
 templ RoomHeader(actorTenantID string, detail chatvm.RoomDetail) {
-	<header>
+	<header class="page-header">
 		<h2>{ detail.Room.Title }</h2>
 		<p>Kind: { string(detail.Room.Kind) }</p>
 		@components.BackLink(chatHref("/chat/view", actorTenantID), "Back to conversations")
