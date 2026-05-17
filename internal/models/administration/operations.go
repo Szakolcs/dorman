@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	platform "dorm-man/internal/models/platform"
+
 	"github.com/google/uuid"
 )
 
@@ -25,7 +27,7 @@ const (
 )
 
 type OperationalJob struct {
-	BaseModel
+	platform.BaseModel
 	Title           string `gorm:"not null;index"`
 	Description     string
 	RoomID          *uuid.UUID  `gorm:"type:uuid;index"`

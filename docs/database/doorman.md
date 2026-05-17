@@ -144,6 +144,18 @@ erDiagram
 
 ---
 
+## Cross-Module Dependencies
+
+| Source module | Doorman consumes | Notes |
+|---------------|------------------|-------|
+| **Administration** | `Tenant`, `Room`, `InventoryItem` | Package and loan linkage; no assignment CRUD |
+| **Platform** | `User`, roles, `AuditEvent` | Doorman staff principal; sensitive action audit |
+| **Forum / notifications** | Optional tenant feed surfacing | `PackageNotification` may fan in to in-app/forum notice |
+
+See [doorman specification §6](../specifications/doorman.md#6-cross-module-interaction-specification).
+
+---
+
 ## Related documents
 
 - [Doorman requirements](../requirements/doorman.md)
