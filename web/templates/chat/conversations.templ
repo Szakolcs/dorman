@@ -1,0 +1,64 @@
+package chat
+
+import (
+	"fmt"
+
+	chatvm "dorm-man/internal/chatviews"
+)
+
+templ ConversationListPartial(actorTenantID string, conversations []chatvm.ConversationSummary) {
+	<div
+		id="chat-conversation-list"
+		hx-get={ chatHref("/chat/view/conversations", actorTenantID) }
+		hx-trigger="every 5s"
+		hx-swap="outerHTML"
+		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+	>
+		@ConversationListBody(actorTenantID, conversations)
+	</div>
+}
+
+templ ConversationListBody(actorTenantID string, conversations []chatvm.ConversationSummary) {
+	<form
+		hx-post={ chatHref("/chat/view/direct", actorTenantID) }
+		hx-target="#chat-room-panel"
+		hx-swap="innerHTML"
+		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+	>
+		<label for="other_tenant_id">Open direct message (other tenant ID)</label>
+		<input id="other_tenant_id" name="other_tenant_id" type="text" required/>
+		<button type="submit">Open DM</button>
+	</form>
+	if len(conversations) == 0 {
+		<p>No conversations yet.</p>
+	} else {
+		<ul>
+			for _, conv := range conversations {
+				@ConversationRow(actorTenantID, conv)
+			}
+		</ul>
+	}
+}
+
+templ ConversationRow(actorTenantID string, conv chatvm.ConversationSummary) {
+	<li class={ templ.KV("conversation-row--unread", conv.UnreadCount > 0) }>
+		<a
+			href={ templ.SafeURL(chatRoomHref(conv.Room.ID.String(), actorTenantID)) }
+			hx-get={ chatRoomHref(conv.Room.ID.String(), actorTenantID) }
+			hx-target="#chat-room-panel"
+			hx-swap="innerHTML"
+			hx-push-url="true"
+			hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+		>
+			<strong>{ conv.DisplayTitle }</strong>
+			<span> [{ string(conv.Room.Kind) }] </span>
+			if conv.UnreadCount > 0 {
+				<span>{ fmt.Sprintf("(%d unread)", conv.UnreadCount) }</span>
+			}
+			if conv.Room.LastMessagePreview != "" {
+				<br/>
+				<em>{ conv.Room.LastMessagePreview }</em>
+			}
+		</a>
+	</li>
+}

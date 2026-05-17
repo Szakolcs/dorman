@@ -1,0 +1,56 @@
+package chat
+
+import cm "dorm-man/internal/models/chat"
+
+templ MessageListPartial(actorTenantID string, roomID string, messages []cm.ChatMessage) {
+	<div
+		id="chat-message-list"
+		hx-get={ chatHref("/chat/view/rooms/"+roomID+"/messages", actorTenantID) }
+		hx-trigger="every 3s"
+		hx-swap="outerHTML"
+		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+	>
+		@MessageListBody(messages)
+	</div>
+}
+
+templ MessageListBody(messages []cm.ChatMessage) {
+	<ul id="message-list">
+		for _, msg := range messages {
+			@MessageItem(msg)
+		}
+	</ul>
+	if len(messages) == 0 {
+		<p>No messages yet.</p>
+	}
+}
+
+templ MessageItem(msg cm.ChatMessage) {
+	<li id={ "msg-" + msg.ID.String() }>
+		<strong>{ msg.AuthorTenant.Name }</strong>
+		<time datetime={ msg.CreatedAt.Format("2006-01-02T15:04:05Z07:00") }>
+			{ msg.CreatedAt.Format("2006-01-02 15:04") }
+		</time>
+		<p>{ msg.Body }</p>
+	</li>
+}
+
+templ SendMessageForm(actorTenantID string, roomID string, clientMessageID string) {
+	<form
+		id="chat-send-form"
+		hx-post={ chatHref("/chat/view/rooms/"+roomID+"/messages", actorTenantID) }
+		hx-target="#message-list"
+		hx-swap="beforeend"
+		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+		hx-on::after-request="if(event.detail.successful) this.reset()"
+	>
+		<input type="hidden" name="client_message_id" value={ clientMessageID }/>
+		<label for="body">Message</label>
+		<textarea id="body" name="body" rows="3" required></textarea>
+		<button type="submit">Send</button>
+	</form>
+}
+
+templ RoomError(message string) {
+	<p class="alert alert--error" role="alert">{ message }</p>
+}

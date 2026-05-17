@@ -1,19 +1,16 @@
 package platform
 
 import "dorm-man/web/templates/common/components"
-import "dorm-man/web/templates/common/partials"
 
 templ AboutPage() {
-	@components.Document("About the Dormitory", AboutContent())
+	@components.AppDocument("About the Dormitory", AboutContent())
 }
 
 templ AboutContent() {
-	@partials.MainNav()
 	@components.PageHeader(
 		"About the Dormitory",
 		"A short overview for current and incoming students.",
 	)
-
 	@components.Section("History", AboutHistory())
 	@components.Section("Student Life", AboutStudentLife())
 	@components.Section("Useful Information for Newcomers", AboutUsefulInformation())

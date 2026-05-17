@@ -4,17 +4,16 @@ import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
 templ GuestsPage() {
-	@components.Document("Doorman - Guests", GuestsContent())
+	@components.AppDocument("Doorman - Guests", GuestsContent())
 }
 
 templ GuestsContent() {
-	@partials.MainNav()
 	@components.PageHeader(
 		"Guest access desk",
 		"Visitors linked to a host tenant and validity window; check-in only inside window; denial logged outside.",
 	)
-
-	<p><a href="/doorman">Back to Doorman</a></p>
+	@partials.DoormanNav()
+	@components.BackLink("/doorman", "Back to Doorman")
 
 	@components.Section(
 		"Today's visit list",

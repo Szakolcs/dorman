@@ -4,11 +4,11 @@ import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
 templ InventoryPage() {
-	@components.Document("Administration - Inventory", InventoryContent())
+	@components.AppDocument("Administration - Inventory", InventoryContent())
 }
 
 templ InventoryContent() {
-	@partials.MainNav()
+	@partials.AdministrationNav()
 	@components.PageHeader(
 		"Inventory Management",
 		"Track room and shared-area inventory with lifecycle status for audit reconciliation.",

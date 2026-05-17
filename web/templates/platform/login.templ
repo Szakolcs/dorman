@@ -1,25 +1,22 @@
 package platform
 
 import "dorm-man/web/templates/common/components"
-import "dorm-man/web/templates/common/partials"
 
 templ LoginPage() {
-	@components.Document("Login", LoginContent())
+	@components.AppDocument("Login", LoginContent())
 }
 
 templ LoginContent() {
-	@partials.MainNav()
 	@components.PageHeader(
 		"Platform Login",
 		"Sign in and get redirected to your module based on your role.",
 	)
-
-	<form method="post" action="/api/platform/login?redirect=true">
+	<form method="post" action="/home/login?redirect=true">
 		<label for="login-email">Email</label>
-		<input id="login-email" name="email" type="email"/>
+		<input id="login-email" name="email" type="email" required/>
 
 		<label for="login-password">Password</label>
-		<input id="login-password" name="password" type="password"/>
+		<input id="login-password" name="password" type="password" required/>
 
 		<button type="submit">Login</button>
 	</form>

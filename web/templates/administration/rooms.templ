@@ -4,11 +4,11 @@ import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
 templ RoomsPage() {
-	@components.Document("Administration - Rooms", RoomsContent())
+	@components.AppDocument("Administration - Rooms", RoomsContent())
 }
 
 templ RoomsContent() {
-	@partials.MainNav()
+	@partials.AdministrationNav()
 	@components.PageHeader(
 		"Room and Capacity Management",
 		"View occupancy, assign tenants, and approve bulk pre-semester allocation plans.",

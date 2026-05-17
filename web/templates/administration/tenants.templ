@@ -4,11 +4,11 @@ import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
 templ TenantsPage() {
-	@components.Document("Administration - Tenants", TenantsContent())
+	@components.AppDocument("Administration - Tenants", TenantsContent())
 }
 
 templ TenantsContent() {
-	@partials.MainNav()
+	@partials.AdministrationNav()
 	@components.PageHeader(
 		"Tenant Management",
 		"Register, activate, deactivate, and review tenant details for the semester lifecycle.",

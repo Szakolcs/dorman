@@ -1,0 +1,127 @@
+package forum
+
+import (
+	"dorm-man/web/templates/common/components"
+	fm "dorm-man/internal/models/forum"
+)
+
+templ FeedPage(data FeedPageData) {
+	@ForumDocument("Forum", data.ActorUserID, FeedPageBody(data))
+}
+
+templ FeedPageBody(data FeedPageData) {
+	@components.PageHeader(
+		"Forum feed",
+		"Official news, community activities, events, and polls.",
+	)
+	@components.Section("Filters", FeedFilters(data))
+	@components.Section("New community activity", CommunityPostForm())
+	@components.Section("Posts", FeedListContainer(data.Posts))
+}
+
+templ FeedListContainer(posts []fm.ForumPost) {
+	<div id="feed-list" class="feed-list">
+		@FeedList(posts)
+	</div>
+}
+
+templ FeedFilters(data FeedPageData) {
+	<form
+		id="feed-filters"
+		hx-get="/forum/view/feed"
+		hx-target="#feed-list"
+		hx-swap="innerHTML"
+		hx-trigger="change, submit"
+		hx-include="#forum-actor-bar"
+	>
+		<label for="sort">Sort</label>
+		<select id="sort" name="sort">
+			<option value="newest" selected?={ data.Sort == "newest" }>Newest</option>
+			<option value="pinned_first" selected?={ data.Sort == "pinned_first" }>Pinned first</option>
+		</select>
+		<label for="kind">Kind</label>
+		<select id="kind" name="kind">
+			<option value="" selected?={ data.Kind == "" }>All kinds</option>
+			<option value="official_news" selected?={ data.Kind == "official_news" }>Official news</option>
+			<option value="community_activity" selected?={ data.Kind == "community_activity" }>Community activity</option>
+			<option value="event" selected?={ data.Kind == "event" }>Event</option>
+			<option value="poll" selected?={ data.Kind == "poll" }>Poll</option>
+			<option value="announcement" selected?={ data.Kind == "announcement" }>Announcement</option>
+		</select>
+		<label>
+			<input type="checkbox" name="official_only" value="true" checked?={ data.OfficialOnly }/>
+			Official only
+		</label>
+		<label>
+			<input type="checkbox" name="community_only" value="true" checked?={ data.CommunityOnly }/>
+			Community only
+		</label>
+		<button type="submit">Apply</button>
+	</form>
+}
+
+templ FeedList(posts []fm.ForumPost) {
+	if len(posts) == 0 {
+		<p>No posts in the feed.</p>
+	}
+	<ul>
+		for _, post := range posts {
+			@FeedPostItem(post)
+		}
+	</ul>
+}
+
+templ FeedPostItem(post fm.ForumPost) {
+	<li>
+		<article>
+			<h3>
+				<a href={ templ.SafeURL("/forum/view/posts/" + post.ID.String()) } hx-boost="true">
+					{ post.Title }
+				</a>
+			</h3>
+			<p>
+				<span>{ string(post.Kind) }</span>
+				if post.PublishedAt != nil {
+					<time datetime={ post.PublishedAt.Format("2006-01-02T15:04:05Z07:00") }>
+						{ post.PublishedAt.Format("2006-01-02 15:04") }
+					</time>
+				}
+			</p>
+			<p>{ post.Body }</p>
+		</article>
+	</li>
+}
+
+templ CommunityPostForm() {
+	<form
+		hx-post="/forum/view/posts"
+		hx-target="#feed-list"
+		hx-swap="innerHTML"
+		hx-include="#forum-actor-bar"
+	>
+		<label for="cp-title">Title</label>
+		<input id="cp-title" type="text" name="title" required/>
+
+		<label for="cp-body">Description</label>
+		<textarea id="cp-body" name="body" required></textarea>
+
+		<label for="cp-location">Location</label>
+		<input id="cp-location" type="text" name="location"/>
+
+		<label for="cp-starts">Starts at</label>
+		<input id="cp-starts" type="datetime-local" name="starts_at"/>
+
+		<label for="cp-ends">Ends at</label>
+		<input id="cp-ends" type="datetime-local" name="ends_at"/>
+
+		<label for="cp-tags">Tags</label>
+		<input id="cp-tags" type="text" name="tags"/>
+
+		<label>
+			<input type="checkbox" name="publish" value="true"/>
+			Publish immediately
+		</label>
+
+		<button type="submit">Create community activity</button>
+	</form>
+}

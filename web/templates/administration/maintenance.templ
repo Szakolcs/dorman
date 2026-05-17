@@ -4,11 +4,11 @@ import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
 templ MaintenancePage() {
-	@components.Document("Administration - Maintenance", MaintenanceContent())
+	@components.AppDocument("Administration - Maintenance", MaintenanceContent())
 }
 
 templ MaintenanceContent() {
-	@partials.MainNav()
+	@partials.AdministrationNav()
 	@components.PageHeader(
 		"Maintenance Management",
 		"Create, approve, assign, and transition maintenance tickets with full lifecycle tracking.",

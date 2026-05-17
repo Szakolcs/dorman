@@ -4,17 +4,16 @@ import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
 templ LendingPage() {
-	@components.Document("Doorman - Lending", LendingContent())
+	@components.AppDocument("Doorman - Lending", LendingContent())
 }
 
 templ LendingContent() {
-	@partials.MainNav()
 	@components.PageHeader(
 		"Keys and accessories",
 		"Checkout to a tenant, return closes the loan; at most one open loan per lendable inventory row in this MVP.",
 	)
-
-	<p><a href="/doorman">Back to Doorman</a></p>
+	@partials.DoormanNav()
+	@components.BackLink("/doorman", "Back to Doorman")
 
 	@components.Section(
 		"Operational lists",

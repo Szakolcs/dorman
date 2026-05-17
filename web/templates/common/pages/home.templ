@@ -1,21 +1,21 @@
 package pages
 
+import "dorm-man/web/templates/common/components"
+
 templ HomePage() {
-	<!doctype html>
-	<html lang="en">
-		<head>
-			<meta charset="utf-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>Dormitory Manager</title>
-			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
-		</head>
-		<body>
-			<h1>Dormitory Manager</h1>
-			<p>HTMX + Templ multipage skeleton.</p>
-			<nav>
-				<a href="/" hx-boost="true">Home</a>
-				<a href="/about" hx-boost="true">About</a>
-			</nav>
-		</body>
-	</html>
+	@components.AppDocument("Dormitory Manager", HomeContent())
+}
+
+templ HomeContent() {
+	@components.PageHeader(
+		"Dormitory Manager",
+		"Multipage HTMX + Templ workspace for dormitory operations.",
+	)
+	<ul>
+		<li><a href="/forum/view" hx-boost="true">Forum</a></li>
+		<li><a href="/chat/view" hx-boost="true">Chat</a></li>
+		<li><a href="/doorman" hx-boost="true">Doorman</a></li>
+		<li><a href="/administration" hx-boost="true">Administration</a></li>
+		<li><a href="/about" hx-boost="true">About</a></li>
+	</ul>
 }
