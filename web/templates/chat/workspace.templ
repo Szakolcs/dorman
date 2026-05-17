@@ -1,0 +1,29 @@
+package chatviews
+
+templ WorkspacePage(actorTenantID string) {
+	@ChatShell("Chat", actorTenantID, WorkspaceBody(actorTenantID))
+}
+
+templ WorkspaceBody(actorTenantID string) {
+	<h1>Chat</h1>
+	<div id="chat-workspace">
+		<aside id="chat-sidebar">
+			<div
+				id="chat-conversation-list"
+				hx-get={ chatHref("/chat/view/conversations", actorTenantID) }
+				hx-trigger="load"
+				hx-swap="outerHTML"
+				hx-include="#chat-actor-tenant-id"
+			>
+				<p>Loading conversations…</p>
+			</div>
+		</aside>
+		<section id="chat-room-panel" aria-live="polite">
+			<p>Select a conversation or open a direct message.</p>
+		</section>
+	</div>
+}
+
+templ RoomPage(actorTenantID string, detail templ.Component) {
+	@ChatShell("Chat room", actorTenantID, detail)
+}

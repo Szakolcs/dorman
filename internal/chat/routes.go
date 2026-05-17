@@ -26,6 +26,21 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 	api.POST("/rooms/:id/members", h.addGroupMember)
 	api.DELETE("/rooms/:id/members/:tenantId", h.removeGroupMember)
 	api.POST("/rooms/:id/leave", h.leaveGroup)
+
+	pages := e.Group("/chat/view")
+	pages.GET("", h.workspacePage)
+	pages.GET("/conversations", h.conversationsPartial)
+	pages.GET("/profile", h.profilePage)
+	pages.POST("/profile", h.profileSaveView)
+	pages.GET("/groups/new", h.groupNewPage)
+	pages.POST("/groups", h.groupCreateView)
+	pages.POST("/direct", h.openDirectView)
+	pages.GET("/rooms/:id", h.roomPage)
+	pages.GET("/rooms/:id/messages", h.messagesPartial)
+	pages.POST("/rooms/:id/messages", h.sendMessageView)
+	pages.POST("/rooms/:id/read", h.markReadView)
+	pages.POST("/rooms/:id/members", h.roomMembersView)
+	pages.POST("/rooms/:id/leave", h.leaveGroupView)
 }
 
 // NewServiceFromDB exposes the chat service for cross-module hooks (e.g. assignment sync).

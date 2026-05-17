@@ -8,6 +8,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"dorm-man/internal/chatviews"
+
 	adm "dorm-man/internal/models/administration"
 	cm "dorm-man/internal/models/chat"
 
@@ -44,7 +46,7 @@ func (s *Service) ResolveTenantPrincipal(actorUserID uuid.UUID) (TenantPrincipal
 	return TenantPrincipal{TenantID: tenant.ID, UserID: &uid}, nil
 }
 
-func (s *Service) ListConversations(p TenantPrincipal) ([]ConversationSummary, error) {
+func (s *Service) ListConversations(p TenantPrincipal) ([]chatviews.ConversationSummary, error) {
 	memberships, err := s.store.ListActiveMembershipsForTenant(p.TenantID)
 	if err != nil {
 		return nil, err
@@ -55,14 +57,14 @@ func (s *Service) ListConversations(p TenantPrincipal) ([]ConversationSummary, e
 		return nil, err
 	}
 
-	out := make([]ConversationSummary, 0, len(memberships))
+	out := make([]chatviews.ConversationSummary, 0, len(memberships))
 	for _, m := range memberships {
 		unread, err := s.store.CountUnreadMessages(m.RoomID, p.TenantID, m.LastReadMessageID)
 		if err != nil {
 			return nil, err
 		}
 		title, avatar, otherID := conversationDisplay(m.Room, p.TenantID, profiles)
-		out = append(out, ConversationSummary{
+		out = append(out, chatviews.ConversationSummary{
 			Room:                    m.Room,
 			UnreadCount:             unread,
 			DisplayTitle:            title,
@@ -75,20 +77,20 @@ func (s *Service) ListConversations(p TenantPrincipal) ([]ConversationSummary, e
 	return out, nil
 }
 
-func (s *Service) GetRoom(p TenantPrincipal, roomID uuid.UUID) (RoomDetail, error) {
+func (s *Service) GetRoom(p TenantPrincipal, roomID uuid.UUID) (chatviews.RoomDetail, error) {
 	room, err := s.store.GetRoom(roomID)
 	if err != nil {
-		return RoomDetail{}, err
+		return chatviews.RoomDetail{}, err
 	}
 	if _, err := s.store.GetActiveMember(roomID, p.TenantID); err != nil {
 		if errors.Is(err, ErrNotAMember) {
-			return RoomDetail{}, ErrNotFound
+			return chatviews.RoomDetail{}, ErrNotFound
 		}
-		return RoomDetail{}, err
+		return chatviews.RoomDetail{}, err
 	}
 	members, err := s.store.ListActiveMembers(roomID)
 	if err != nil {
-		return RoomDetail{}, err
+		return chatviews.RoomDetail{}, err
 	}
 
 	tenantIDs := make([]uuid.UUID, 0, len(members))
@@ -97,11 +99,11 @@ func (s *Service) GetRoom(p TenantPrincipal, roomID uuid.UUID) (RoomDetail, erro
 	}
 	profiles, err := s.store.GetProfiles(tenantIDs)
 	if err != nil {
-		return RoomDetail{}, err
+		return chatviews.RoomDetail{}, err
 	}
 
-	views := make([]MemberView, 0, len(members))
-	var selfView MemberView
+	views := make([]chatviews.MemberView, 0, len(members))
+	var selfView chatviews.MemberView
 	for _, m := range members {
 		view := memberView(m, profiles[m.TenantID])
 		views = append(views, view)
@@ -110,7 +112,7 @@ func (s *Service) GetRoom(p TenantPrincipal, roomID uuid.UUID) (RoomDetail, erro
 		}
 	}
 
-	return RoomDetail{Room: room, Members: views, Self: selfView}, nil
+	return chatviews.RoomDetail{Room: room, Members: views, Self: selfView}, nil
 }
 
 func (s *Service) ListMessages(p TenantPrincipal, roomID uuid.UUID, filter MessageListFilter) ([]cm.ChatMessage, error) {
@@ -376,37 +378,37 @@ func (s *Service) LeaveGroup(p TenantPrincipal, roomID uuid.UUID) (cm.ChatRoomMe
 	return s.store.UpdateMember(member)
 }
 
-func (s *Service) GetProfile(p TenantPrincipal) (TenantProfileView, error) {
+func (s *Service) GetProfile(p TenantPrincipal) (chatviews.TenantProfileView, error) {
 	tenant, err := s.store.GetTenant(p.TenantID)
 	if err != nil {
-		return TenantProfileView{}, err
+		return chatviews.TenantProfileView{}, err
 	}
 	profile, err := s.store.GetProfile(p.TenantID)
 	if errors.Is(err, ErrNotFound) {
-		return TenantProfileView{
+		return chatviews.TenantProfileView{
 			Tenant:      tenant,
 			DisplayName: displayName(tenant, cm.ChatTenantProfile{}),
 		}, nil
 	}
 	if err != nil {
-		return TenantProfileView{}, err
+		return chatviews.TenantProfileView{}, err
 	}
-	return TenantProfileView{
+	return chatviews.TenantProfileView{
 		Profile:     &profile,
 		Tenant:      tenant,
 		DisplayName: displayName(tenant, profile),
 	}, nil
 }
 
-func (s *Service) UpdateProfile(p TenantPrincipal, in UpdateProfileInput) (TenantProfileView, error) {
+func (s *Service) UpdateProfile(p TenantPrincipal, in UpdateProfileInput) (chatviews.TenantProfileView, error) {
 	tenant, err := s.store.GetTenant(p.TenantID)
 	if err != nil {
-		return TenantProfileView{}, err
+		return chatviews.TenantProfileView{}, err
 	}
 
 	existing, profileErr := s.store.GetProfile(p.TenantID)
 	if profileErr != nil && !errors.Is(profileErr, ErrNotFound) {
-		return TenantProfileView{}, profileErr
+		return chatviews.TenantProfileView{}, profileErr
 	}
 	if errors.Is(profileErr, ErrNotFound) {
 		existing = cm.ChatTenantProfile{TenantID: p.TenantID}
@@ -423,7 +425,7 @@ func (s *Service) UpdateProfile(p TenantPrincipal, in UpdateProfileInput) (Tenan
 	if in.Bio != nil {
 		bio := strings.TrimSpace(*in.Bio)
 		if utf8.RuneCountInString(bio) > maxBioLen {
-			return TenantProfileView{}, ErrValidation
+			return chatviews.TenantProfileView{}, ErrValidation
 		}
 		existing.Bio = bio
 	}
@@ -434,12 +436,12 @@ func (s *Service) UpdateProfile(p TenantPrincipal, in UpdateProfileInput) (Tenan
 
 	saved, err := s.store.UpsertProfile(existing)
 	if err != nil {
-		return TenantProfileView{}, err
+		return chatviews.TenantProfileView{}, err
 	}
 	if p.UserID != nil {
 		_ = s.store.CreateAudit(newAudit(*p.UserID, "chat.profile.update", "chat_tenant_profile", saved.TenantID.String(), adm.AuditOutcomeSuccess))
 	}
-	return TenantProfileView{
+	return chatviews.TenantProfileView{
 		Profile:     &saved,
 		Tenant:      tenant,
 		DisplayName: displayName(tenant, saved),
@@ -593,8 +595,8 @@ func displayName(tenant adm.Tenant, profile cm.ChatTenantProfile) string {
 	return strings.TrimSpace(tenant.Name)
 }
 
-func memberView(m cm.ChatRoomMember, profile cm.ChatTenantProfile) MemberView {
-	return MemberView{
+func memberView(m cm.ChatRoomMember, profile cm.ChatTenantProfile) chatviews.MemberView {
+	return chatviews.MemberView{
 		Member:      m,
 		Tenant:      m.Tenant,
 		DisplayName: displayName(m.Tenant, profile),
@@ -635,7 +637,7 @@ func conversationDisplay(room cm.ChatRoom, selfID uuid.UUID, profiles map[uuid.U
 	}
 }
 
-func sortConversations(list []ConversationSummary) {
+func sortConversations(list []chatviews.ConversationSummary) {
 	for i := 0; i < len(list); i++ {
 		for j := i + 1; j < len(list); j++ {
 			if conversationLess(list[j], list[i]) {
@@ -645,7 +647,7 @@ func sortConversations(list []ConversationSummary) {
 	}
 }
 
-func conversationLess(a, b ConversationSummary) bool {
+func conversationLess(a, b chatviews.ConversationSummary) bool {
 	at := a.Room.LastMessageAt
 	bt := b.Room.LastMessageAt
 	if at == nil && bt == nil {

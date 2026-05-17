@@ -1,0 +1,49 @@
+package chatviews
+
+import chatvm "dorm-man/internal/chatviews"
+
+templ ProfilePage(actorTenantID string, view chatvm.TenantProfileView, bio string) {
+	@ChatShell("Chat profile", actorTenantID, ProfileBody(actorTenantID, view, bio))
+}
+
+templ ProfileBody(actorTenantID string, view chatvm.TenantProfileView, bio string) {
+	<h1>Chat profile</h1>
+	<p>Legal name: { view.Tenant.Name }</p>
+	<p>Display name: { view.DisplayName }</p>
+	<form
+		method="post"
+		action={ chatHref("/chat/view/profile", actorTenantID) }
+		hx-post={ chatHref("/chat/view/profile", actorTenantID) }
+		hx-target="#chat-profile-result"
+		hx-swap="innerHTML"
+		hx-include="#chat-actor-tenant-id"
+	>
+		<label for="nickname">Nickname (leave empty to use legal name)</label>
+		<input
+			id="nickname"
+			name="nickname"
+			type="text"
+			if view.Profile != nil && view.Profile.Nickname != nil {
+				value={ *view.Profile.Nickname }
+			}
+		/>
+		<label for="bio">Bio</label>
+		<textarea id="bio" name="bio" rows="4">{ bio }</textarea>
+		<label for="avatar_storage_key">Avatar storage key</label>
+		<input
+			id="avatar_storage_key"
+			name="avatar_storage_key"
+			type="text"
+			if view.Profile != nil {
+				value={ view.Profile.AvatarStorageKey }
+			}
+		/>
+		<button type="submit">Save profile</button>
+	</form>
+	<div id="chat-profile-result"></div>
+	<p><a href={ templ.SafeURL(chatHref("/chat/view", actorTenantID)) } hx-boost="true">Back to chat</a></p>
+}
+
+templ ProfileSaved(view chatvm.TenantProfileView) {
+	<p role="status">Profile saved. Display name: { view.DisplayName }</p>
+}

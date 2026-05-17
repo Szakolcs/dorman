@@ -1,0 +1,27 @@
+package chatviews
+
+templ GroupNewPage(actorTenantID string) {
+	@ChatShell("New group chat", actorTenantID, GroupNewBody(actorTenantID))
+}
+
+templ GroupNewBody(actorTenantID string) {
+	<h1>Create group chat</h1>
+	<form
+		method="post"
+		action={ chatHref("/chat/view/groups", actorTenantID) }
+		hx-post={ chatHref("/chat/view/groups", actorTenantID) }
+		hx-target="#chat-room-panel"
+		hx-swap="innerHTML"
+		hx-include="#chat-actor-tenant-id"
+	>
+		<label for="title">Group name</label>
+		<input id="title" name="title" type="text" required/>
+		<label for="avatar_storage_key">Avatar storage key (optional)</label>
+		<input id="avatar_storage_key" name="avatar_storage_key" type="text"/>
+		<label for="member_tenant_ids">Member tenant IDs (comma-separated, optional)</label>
+		<input id="member_tenant_ids" name="member_tenant_ids" type="text"/>
+		<button type="submit">Create group</button>
+	</form>
+	<div id="chat-room-panel"></div>
+	<p><a href={ templ.SafeURL(chatHref("/chat/view", actorTenantID)) } hx-boost="true">Back to chat</a></p>
+}

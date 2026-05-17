@@ -1,0 +1,88 @@
+package chatviews
+
+import (
+	chatvm "dorm-man/internal/chatviews"
+	cm "dorm-man/internal/models/chat"
+)
+
+templ RoomPanelPartial(actorTenantID string, detail chatvm.RoomDetail, messages []cm.ChatMessage, clientMessageID string) {
+	<div id="chat-room-panel">
+		@RoomPanelBody(actorTenantID, detail, messages, clientMessageID)
+	</div>
+}
+
+templ RoomPanelBody(actorTenantID string, detail chatvm.RoomDetail, messages []cm.ChatMessage, clientMessageID string) {
+	@RoomHeader(actorTenantID, detail)
+	<div
+		hx-post={ chatHref("/chat/view/rooms/"+detail.Room.ID.String()+"/read", actorTenantID) }
+		hx-trigger="load"
+		hx-swap="none"
+		hx-include="#chat-actor-tenant-id"
+	></div>
+	@MessageListPartial(actorTenantID, detail.Room.ID.String(), messages)
+	@SendMessageForm(actorTenantID, detail.Room.ID.String(), clientMessageID)
+	if detail.Room.Kind == cm.ChatRoomKindGroup {
+		@GroupMemberSection(actorTenantID, detail)
+	}
+}
+
+templ RoomHeader(actorTenantID string, detail chatvm.RoomDetail) {
+	<header>
+		<h2>{ detail.Room.Title }</h2>
+		<p>Kind: { string(detail.Room.Kind) }</p>
+		<p>
+			<a href={ templ.SafeURL(chatHref("/chat/view", actorTenantID)) } hx-boost="true">Back to conversations</a>
+		</p>
+	</header>
+}
+
+templ GroupMemberSection(actorTenantID string, detail chatvm.RoomDetail) {
+	<section>
+		<h3>Members</h3>
+		<ul>
+			for _, m := range detail.Members {
+				<li>
+					{ m.DisplayName }
+					if m.Member.Role == cm.ChatRoomMemberRoleOwner {
+						<span> (owner)</span>
+					}
+					if m.Member.TenantID != detail.Self.Member.TenantID && detail.Self.Member.Role == cm.ChatRoomMemberRoleOwner {
+						<form
+							hx-post={ chatHref("/chat/view/rooms/"+detail.Room.ID.String()+"/members", actorTenantID) }
+							hx-target="#chat-room-panel"
+							hx-swap="innerHTML"
+							hx-include="#chat-actor-tenant-id"
+							style="display:inline"
+						>
+							<input type="hidden" name="action" value="remove"/>
+							<input type="hidden" name="member_tenant_id" value={ m.Member.TenantID.String() }/>
+							<button type="submit">Remove</button>
+						</form>
+					}
+				</li>
+			}
+		</ul>
+		if detail.Self.Member.Role == cm.ChatRoomMemberRoleOwner {
+			<form
+				hx-post={ chatHref("/chat/view/rooms/"+detail.Room.ID.String()+"/members", actorTenantID) }
+				hx-target="#chat-room-panel"
+				hx-swap="innerHTML"
+				hx-include="#chat-actor-tenant-id"
+			>
+				<input type="hidden" name="action" value="add"/>
+				<label for="member_tenant_id">Add member (tenant ID)</label>
+				<input id="member_tenant_id" name="member_tenant_id" type="text" required/>
+				<button type="submit">Add member</button>
+			</form>
+		}
+		<form
+			hx-post={ chatHref("/chat/view/rooms/"+detail.Room.ID.String()+"/leave", actorTenantID) }
+			hx-target="#chat-room-panel"
+			hx-swap="innerHTML"
+			hx-include="#chat-actor-tenant-id"
+			hx-confirm="Leave this group?"
+		>
+			<button type="submit">Leave group</button>
+		</form>
+	</section>
+}

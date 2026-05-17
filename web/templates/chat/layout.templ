@@ -1,0 +1,59 @@
+package chatviews
+
+import "dorm-man/web/templates/common/partials"
+
+// ChatShell is the HTMX-enabled document wrapper for chat pages.
+templ ChatShell(title string, actorTenantID string, body templ.Component) {
+	<!doctype html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ title }</title>
+			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+		</head>
+		<body>
+			<input type="hidden" id="chat-actor-tenant-id" name="actor_tenant_id" value={ actorTenantID }/>
+			@partials.MainNav()
+			@ChatNav(actorTenantID)
+			<main id="chat-main">
+				@body
+			</main>
+		</body>
+	</html>
+}
+
+templ ChatNav(actorTenantID string) {
+	<nav>
+		<a href={ templ.SafeURL(chatHref("/chat/view", actorTenantID)) } hx-boost="true">Chat</a>
+		<a href={ templ.SafeURL(chatHref("/chat/view/profile", actorTenantID)) } hx-boost="true">Profile</a>
+		<a href={ templ.SafeURL(chatHref("/chat/view/groups/new", actorTenantID)) } hx-boost="true">New group</a>
+	</nav>
+}
+
+templ ActorStubForm() {
+	<section>
+		<h1>Chat workspace</h1>
+		<p>Select a tenant actor (development stub). Set header <code>X-Actor-Tenant-ID</code> or pass <code>tenant_id</code> query parameter.</p>
+		<form method="get" action="/chat/view">
+			<label for="tenant_id">Tenant ID</label>
+			<input id="tenant_id" name="tenant_id" type="text" required/>
+			<button type="submit">Open chat</button>
+		</form>
+	</section>
+}
+
+func chatHref(path string, actorTenantID string) string {
+	if actorTenantID == "" {
+		return path
+	}
+	return path + "?tenant_id=" + actorTenantID
+}
+
+func chatRoomHref(roomID, actorTenantID string) string {
+	return chatHref("/chat/view/rooms/"+roomID, actorTenantID)
+}
+
+func roomKindLabel(kind string) string {
+	return kind
+}
