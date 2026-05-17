@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"dorm-man/internal/administration"
+	"dorm-man/internal/chat"
 	"dorm-man/internal/config"
 	"dorm-man/internal/doorman"
+	"dorm-man/internal/forum"
 	models "dorm-man/internal/models/administration"
 	doormanModels "dorm-man/internal/models/doorman"
 	chatModels "dorm-man/internal/models/chat"
@@ -48,7 +50,9 @@ func New() (*App, error) {
 	e.Use(middleware.Logger())
 
 	administration.RegisterRoutes(e, db)
+	chat.RegisterRoutes(e, db)
 	doorman.RegisterRoutes(e, db)
+	forum.RegisterRoutes(e, db)
 	platform.RegisterRoutes(e, db)
 
 	e.GET("/healthz", func(c echo.Context) error {
