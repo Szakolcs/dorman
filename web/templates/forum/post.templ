@@ -1,0 +1,243 @@
+package forum
+
+import (
+	"dorm-man/web/templates/common/components"
+
+	fm "dorm-man/internal/models/forum"
+
+	"github.com/google/uuid"
+)
+
+templ PostPage(data PostPageData) {
+	@ForumDocument(data.Post.Title, data.ActorUserID, PostPageBody(data))
+}
+
+templ PostPageBody(data PostPageData) {
+	@components.BackLink("/forum/view", "Back to feed")
+	@PostArticle(data)
+	<section id="post-engagement">
+		@PostReaction(ReactionViewData{
+			PostID:      data.Post.ID,
+			Count:       data.Aggregates.ReactionCount,
+			ViewerLiked: data.Aggregates.ViewerLiked,
+		})
+		if data.Post.Kind == fm.ForumPostKindCommunityActivity || data.Post.Kind == fm.ForumPostKindEvent {
+			@PostAttendance(AttendanceViewData{
+				PostID:     data.Post.ID,
+				Aggregates: data.Aggregates,
+				Intent:     data.Aggregates.ViewerAttendanceIntent,
+			})
+		}
+		if data.Poll != nil {
+			<div id="poll-section">
+				@PollSection(data)
+			</div>
+		}
+	</section>
+	if len(data.Updates) > 0 {
+		<section class="section">
+			<h2>Organizer updates</h2>
+			@OrganizerUpdatesList(data.Updates)
+		</section>
+	}
+	<section class="section">
+		<h2>Comments</h2>
+		<div id="comments-list">
+			@CommentsList(data.Comments)
+			@components.PaginationNavNamed("/forum/view/posts/"+data.Post.ID.String(), data.CommentsPagination, data.CommentsPreserve, "comments_page", "comments_page_size")
+		</div>
+		@CommentForm(data.Post.ID)
+	</section>
+}
+
+templ PostArticle(data PostPageData) {
+	<article>
+		<header>
+			<h1>{ data.Post.Title }</h1>
+			<p>
+				<span>{ string(data.Post.Kind) }</span>
+				<span>{ string(data.Post.Source) }</span>
+				if data.Post.PublishedAt != nil {
+					<time datetime={ data.Post.PublishedAt.Format("2006-01-02T15:04:05Z07:00") }>
+						{ data.Post.PublishedAt.Format("2006-01-02 15:04") }
+					</time>
+				}
+			</p>
+		</header>
+		<div>
+			{ data.Post.Body }
+		</div>
+		if data.Schedule != nil {
+			<dl>
+				if data.Schedule.StartsAt != nil {
+					<dt>Starts</dt>
+					<dd>{ data.Schedule.StartsAt.Format("2006-01-02 15:04") }</dd>
+				}
+				if data.Schedule.EndsAt != nil {
+					<dt>Ends</dt>
+					<dd>{ data.Schedule.EndsAt.Format("2006-01-02 15:04") }</dd>
+				}
+				if data.Schedule.Location != "" {
+					<dt>Location</dt>
+					<dd>{ data.Schedule.Location }</dd>
+				}
+			</dl>
+		}
+		<p>
+			<span>{ data.Aggregates.CommentCount } comments</span>
+			<span>{ data.Aggregates.GoingCount } going</span>
+			<span>{ data.Aggregates.NotGoingCount } not going</span>
+		</p>
+	</article>
+}
+
+templ PostReaction(data ReactionViewData) {
+	<div id="post-reaction">
+		<form
+			hx-post={ "/forum/view/posts/" + data.PostID.String() + "/reactions" }
+			hx-target="#post-reaction"
+			hx-swap="outerHTML"
+			hx-include="#forum-actor-bar"
+		>
+			<button type="submit">
+				if data.ViewerLiked {
+					Unlike
+				} else {
+					Like
+				}
+				({ data.Count })
+			</button>
+		</form>
+	</div>
+}
+
+templ PostAttendance(data AttendanceViewData) {
+	<div id="post-attendance">
+		<h3>Attendance intent</h3>
+		<p>Going: { data.Aggregates.GoingCount } — Not going: { data.Aggregates.NotGoingCount }</p>
+		<form
+			hx-post={ "/forum/view/posts/" + data.PostID.String() + "/attendance" }
+			hx-target="#post-attendance"
+			hx-swap="outerHTML"
+			hx-include="#forum-actor-bar"
+		>
+			<label>
+				<input
+					type="radio"
+					name="intent"
+					value="going"
+					checked?={ data.Intent != nil && *data.Intent == fm.AttendanceIntentGoing }
+				/>
+				Going
+			</label>
+			<label>
+				<input
+					type="radio"
+					name="intent"
+					value="not_going"
+					checked?={ data.Intent != nil && *data.Intent == fm.AttendanceIntentNotGoing }
+				/>
+				Not going
+			</label>
+			<button type="submit">Save intent</button>
+		</form>
+	</div>
+}
+
+templ PollSectionFragment(data PostPageData) {
+	<div id="poll-section">
+		@PollSection(data)
+	</div>
+}
+
+templ PollSection(data PostPageData) {
+	<section>
+		<h3>Poll</h3>
+		<p>Closes: { data.Poll.ClosesAt.Format("2006-01-02 15:04") }</p>
+		<p>Mode: { string(data.Poll.ChoiceMode) } — Results: { string(data.Poll.ResultsVisibility) }</p>
+		if data.PollResultsOK && data.PollResults != nil {
+			@PollResultsList(*data.PollResults)
+		} else if !data.PollResultsOK {
+			<p>Results are hidden until the poll closes.</p>
+		}
+		<form
+			hx-post={ "/forum/view/polls/" + data.Poll.ID.String() + "/votes" }
+			hx-target="#poll-section"
+			hx-swap="outerHTML"
+			hx-include="#forum-actor-bar"
+		>
+			<fieldset>
+				<legend>Your vote</legend>
+				for _, opt := range data.Poll.Options {
+					if data.Poll.ChoiceMode == fm.ForumPollChoiceModeSingle {
+						<label>
+							<input type="radio" name="option_id" value={ opt.ID.String() } required/>
+							{ opt.Label }
+						</label>
+					} else {
+						<label>
+							<input type="checkbox" name="option_ids" value={ opt.ID.String() }/>
+							{ opt.Label }
+						</label>
+					}
+				}
+			</fieldset>
+			<button type="submit">Submit vote</button>
+		</form>
+	</section>
+}
+
+templ PollResultsList(results PollResultsView) {
+	<h4>Results</h4>
+	<ul>
+		for _, row := range results.Options {
+			<li>{ row.Label }: { row.Votes } votes</li>
+		}
+	</ul>
+}
+
+templ OrganizerUpdatesList(updates []fm.ForumPostUpdate) {
+	<ol>
+		for _, u := range updates {
+			<li>
+				<p>{ u.Body }</p>
+				<time datetime={ u.CreatedAt.Format("2006-01-02T15:04:05Z07:00") }>
+					{ u.CreatedAt.Format("2006-01-02 15:04") }
+				</time>
+			</li>
+		}
+	</ol>
+}
+
+templ CommentsList(comments []fm.ForumComment) {
+	if len(comments) == 0 {
+		<p>No comments yet.</p>
+	}
+	<ul>
+		for _, c := range comments {
+			@CommentItem(c)
+		}
+	</ul>
+}
+
+templ CommentItem(c fm.ForumComment) {
+	<li id={ "comment-" + c.ID.String() }>
+		<p>{ c.Body }</p>
+		if c.EditedAt != nil {
+			<p><em>edited</em></p>
+		}
+	</li>
+}
+
+templ CommentForm(postID uuid.UUID) {
+	<form
+		hx-post={ "/forum/view/posts/" + postID.String() + "/comments" }
+		hx-target="#comments-list"
+		hx-swap="innerHTML"
+		hx-include="#forum-actor-bar"
+	>
+		<label for="comment-body">Add comment</label>
+		<textarea id="comment-body" name="body" required></textarea>
+		<button type="submit">Post comment</button>
+	</form>
+}

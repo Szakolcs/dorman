@@ -1,0 +1,52 @@
+package forum
+
+import (
+	"dorm-man/web/templates/common/components"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ ForumDocument(title string, actorUserID string, body templ.Component) {
+	@components.Document(title, ForumDocumentBody(actorUserID, body))
+}
+
+templ ForumDocumentBody(actorUserID string, body templ.Component) {
+	@partials.MainNav()
+	@ForumNav()
+	if actorUserID == "" {
+		@ActorStubForm()
+	} else {
+		@components.DevActorField(
+			"forum-actor-bar",
+			"Development stub: staff/tenant user principal for forum actions.",
+			"actor_user_id",
+			"actor_user_id",
+			actorUserID,
+		)
+		@body
+	}
+}
+
+templ ForumNav() {
+	<nav class="nav nav--module">
+		<a href="/forum/view" hx-boost="true">Feed</a>
+	</nav>
+}
+
+templ ActorStubForm() {
+	@components.PageHeader(
+		"Forum",
+		"Select an actor user (development stub). Use header X-Actor-User-ID or the field below.",
+	)
+	<form method="get" action="/forum/view">
+		<label for="actor_user_id">User ID</label>
+		<input id="actor_user_id" name="actor_user_id" type="text" required/>
+		<button type="submit">Open forum</button>
+	</form>
+}
+
+templ ErrorAlert(message string) {
+	@components.ErrorAlert(message)
+}
+
+templ ForumEmptyBody() {
+}

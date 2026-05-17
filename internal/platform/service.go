@@ -80,7 +80,7 @@ func resolveModuleRedirect(userRoles []models.UserRole) (string, models.RoleName
 		case models.RoleDoorman:
 			return "/doorman", ur.Role.Name, nil
 		case models.RoleTenant:
-			return "/forum", ur.Role.Name, nil
+			return "/forum/view", ur.Role.Name, nil
 		}
 	}
 	return "", "", ErrNoModuleRoute

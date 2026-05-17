@@ -1,21 +1,7 @@
 package pages
 
+// AboutPage redirects readers to the platform about route in handlers if wired;
+// kept for template parity with HomePage.
 templ AboutPage() {
-	<!doctype html>
-	<html lang="en">
-		<head>
-			<meta charset="utf-8"/>
-			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>About</title>
-			<script src="https://unpkg.com/htmx.org@2.0.4"></script>
-		</head>
-		<body>
-			<h1>About</h1>
-			<p>Boilerplate page for the MVC multipage setup.</p>
-			<nav>
-				<a href="/" hx-boost="true">Home</a>
-				<a href="/about" hx-boost="true">About</a>
-			</nav>
-		</body>
-	</html>
+	@HomePage()
 }

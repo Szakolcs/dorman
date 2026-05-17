@@ -1,0 +1,82 @@
+package doorman
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ AccessPage(data AccessPageData) {
+	@components.AppDocument("Doorman - Access", AccessContent(data))
+}
+
+templ AccessContent(data AccessPageData) {
+	@components.PageHeader(
+		"Dorm entry verification",
+		"QR or manual verification creates immutable access rows; denial reasons include invalid, expired, revoked.",
+	)
+	@partials.DoormanNav()
+	@components.BackLink("/doorman", "Back to Doorman")
+
+	@components.Section("Entry tokens", EntryTokensTable(data))
+	@components.Section("Recent access events", AccessEventsTable(data))
+	@components.Section("Issue tenant entry token", IssueEntryTokenForm(data))
+}
+
+templ EntryTokensTable(data AccessPageData) {
+	@components.DataTable([]string{"Public ref", "Tenant", "Expires", "Revoked"}, EntryTokenRows(data))
+	@components.PaginationNavNamed("/doorman/access", data.TokensPagination, data.TokensPreserve, "tokens_page", "tokens_page_size")
+}
+
+templ EntryTokenRows(data AccessPageData) {
+	if len(data.Tokens) == 0 {
+		<tr>
+			<td colspan="4">No entry tokens issued yet.</td>
+		</tr>
+	}
+	for _, t := range data.Tokens {
+		<tr>
+			<td><code>{ t.PublicRef }</code></td>
+			<td>{ entryTokenTenant(t) }</td>
+			<td>{ optionalTime(t.ExpiresAt) }</td>
+			<td>{ optionalTime(t.RevokedAt) }</td>
+		</tr>
+	}
+}
+
+templ AccessEventsTable(data AccessPageData) {
+	@components.DataTable([]string{"When", "Outcome", "Source", "Tenant"}, AccessEventRows(data))
+	@components.PaginationNavNamed("/doorman/access", data.EventsPagination, data.EventsPreserve, "events_page", "events_page_size")
+}
+
+templ AccessEventRows(data AccessPageData) {
+	if len(data.Events) == 0 {
+		<tr>
+			<td colspan="4">No access events yet.</td>
+		</tr>
+	}
+	for _, e := range data.Events {
+		<tr>
+			<td>{ e.OccurredAt.Format("2006-01-02 15:04") }</td>
+			<td>{ string(e.Outcome) }</td>
+			<td>{ string(e.Source) }</td>
+			<td>{ accessEventTenant(e) }</td>
+		</tr>
+	}
+}
+
+templ IssueEntryTokenForm(data AccessPageData) {
+	<form method="post" action="/doorman/access/tokens">
+		<label for="tok-tenant">Tenant</label>
+		<select id="tok-tenant" name="tenant_id" required>
+			for _, t := range data.Tenants {
+				<option value={ t.ID.String() }>{ t.Name }</option>
+			}
+		</select>
+
+		<label for="tok-ref">Public ref (optional)</label>
+		<input id="tok-ref" type="text" name="public_ref" placeholder="empty = server-generated"/>
+
+		<label for="tok-exp">Expires at (RFC3339, optional)</label>
+		<input id="tok-exp" type="text" name="expires_at"/>
+
+		<button type="submit">Issue token</button>
+	</form>
+}

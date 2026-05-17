@@ -1,0 +1,34 @@
+package chat
+
+import "dorm-man/web/templates/common/components"
+
+templ GroupNewPage(actorTenantID string) {
+	@ChatShell("New group chat", actorTenantID, GroupNewBody(actorTenantID))
+}
+
+templ GroupNewBody(actorTenantID string) {
+	@components.PageHeader(
+		"Create group chat",
+		"Name the group and optionally invite other tenants by ID.",
+	)
+	@components.Section("Group details", GroupCreateForm(actorTenantID))
+	<div id="chat-group-result" aria-live="polite"></div>
+	@components.BackLink(chatHref("/chat/view", actorTenantID), "Back to chat")
+}
+
+templ GroupCreateForm(actorTenantID string) {
+	<form
+		hx-post={ chatHref("/chat/view/groups", actorTenantID) }
+		hx-target="#chat-group-result"
+		hx-swap="innerHTML"
+		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+	>
+		<label for="title">Group name</label>
+		<input id="title" name="title" type="text" required/>
+		<label for="avatar_storage_key">Avatar storage key (optional)</label>
+		<input id="avatar_storage_key" name="avatar_storage_key" type="text"/>
+		<label for="member_tenant_ids">Member tenant IDs (comma-separated, optional)</label>
+		<input id="member_tenant_ids" name="member_tenant_ids" type="text"/>
+		<button type="submit">Create group</button>
+	</form>
+}

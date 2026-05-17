@@ -3,13 +3,15 @@ package models
 import (
 	"time"
 
+	platform "dorm-man/internal/models/platform"
+
 	"github.com/google/uuid"
 )
 
 type Building struct {
-	BaseModel
+	platform.BaseModel
 	Name string `gorm:"not null;uniqueIndex"`
-	Code string `gorm:"uniqueIndex"`
+	Code string `gorm:"not null;uniqueIndex"`
 
 	Flats      []Flat          `gorm:"foreignKey:BuildingID"`
 	Activities []Activity      `gorm:"foreignKey:BuildingID"`
@@ -18,7 +20,7 @@ type Building struct {
 }
 
 type Flat struct {
-	BaseModel
+	platform.BaseModel
 	BuildingID *uuid.UUID `gorm:"type:uuid;index"`
 	Name       string     `gorm:"not null;index"`
 	Floor      int        `gorm:"not null;default:0"`
@@ -29,7 +31,7 @@ type Flat struct {
 }
 
 type Room struct {
-	BaseModel
+	platform.BaseModel
 	FlatID     uuid.UUID `gorm:"type:uuid;not null;index"`
 	Number     string    `gorm:"not null;index"`
 	Capacity   int       `gorm:"not null;default:1"`
@@ -77,7 +79,7 @@ const (
 )
 
 type Tenant struct {
-	BaseModel
+	platform.BaseModel
 	UserID       *uuid.UUID       `gorm:"type:uuid;index"`
 	StudentCode  string           `gorm:"uniqueIndex;not null"`
 	Name         string           `gorm:"not null;index"`
@@ -86,7 +88,7 @@ type Tenant struct {
 	Faculty      *FacultyType     `gorm:"index"`
 	Age          *int             `gorm:"index"`
 	Sex          *SexType         `gorm:"type:varchar(10);index"`
-	Nationality  *NationalityType `gorm:"not null;index"`
+	Nationality  *NationalityType `gorm:"index"` // required when IsActive (enforced in service)
 	IsActive     bool             `gorm:"not null;default:true;index"`
 	RegisteredAt time.Time        `gorm:"not null;default:CURRENT_TIMESTAMP"`
 

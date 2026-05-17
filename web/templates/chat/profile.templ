@@ -1,0 +1,58 @@
+package chat
+
+import (
+	"dorm-man/web/templates/common/components"
+
+	chatvm "dorm-man/internal/chatviews"
+)
+
+templ ProfilePage(actorTenantID string, view chatvm.TenantProfileView, bio string) {
+	@ChatShell("Chat profile", actorTenantID, ProfileBody(actorTenantID, view, bio))
+}
+
+templ ProfileBody(actorTenantID string, view chatvm.TenantProfileView, bio string) {
+	@components.PageHeader(
+		"Chat profile",
+		"Customize nickname, bio, and avatar shown in conversations.",
+	)
+	<p>Legal name: { view.Tenant.Name }</p>
+	<p>Display name: { view.DisplayName }</p>
+	@components.Section("Edit profile", ProfileForm(actorTenantID, view, bio))
+	@components.BackLink(chatHref("/chat/view", actorTenantID), "Back to chat")
+}
+
+templ ProfileForm(actorTenantID string, view chatvm.TenantProfileView, bio string) {
+	<form
+		hx-post={ chatHref("/chat/view/profile", actorTenantID) }
+		hx-target="#chat-profile-result"
+		hx-swap="innerHTML"
+		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+	>
+		<label for="nickname">Nickname (leave empty to use legal name)</label>
+		<input
+			id="nickname"
+			name="nickname"
+			type="text"
+			if view.Profile != nil && view.Profile.Nickname != nil {
+				value={ *view.Profile.Nickname }
+			}
+		/>
+		<label for="bio">Bio</label>
+		<textarea id="bio" name="bio" rows="4">{ bio }</textarea>
+		<label for="avatar_storage_key">Avatar storage key</label>
+		<input
+			id="avatar_storage_key"
+			name="avatar_storage_key"
+			type="text"
+			if view.Profile != nil {
+				value={ view.Profile.AvatarStorageKey }
+			}
+		/>
+		<button type="submit">Save profile</button>
+	</form>
+	<div id="chat-profile-result"></div>
+}
+
+templ ProfileSaved(view chatvm.TenantProfileView) {
+	<p role="status">Profile saved. Display name: { view.DisplayName }</p>
+}

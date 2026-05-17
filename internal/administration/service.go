@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"dorm-man/internal/pagination"
 	models "dorm-man/internal/models/administration"
+	forummodels "dorm-man/internal/models/forum"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -23,7 +25,15 @@ func (s *Service) ResolvePrincipal(actorID uuid.UUID) (Principal, error) {
 	return s.store.LoadPrincipal(actorID)
 }
 
-func (s *Service) ListTenants(filter TenantListFilter) ([]models.Tenant, error) {
+func (s *Service) ListStaffUsers() ([]models.User, error) {
+	return s.store.ListStaffUsers()
+}
+
+func (s *Service) ListUnassignedActiveTenants() ([]models.Tenant, error) {
+	return s.store.ListUnassignedActiveTenants()
+}
+
+func (s *Service) ListTenants(filter TenantListFilter) ([]models.Tenant, int64, error) {
 	return s.store.ListTenants(filter)
 }
 
@@ -42,7 +52,7 @@ func (s *Service) RegisterTenant(principal Principal, tenant models.Tenant) (mod
 	if err != nil {
 		return models.Tenant{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "tenant.register", "tenant", created.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "tenant.register", "tenant", created.ID, models.AuditOutcomeSuccess))
 	return created, nil
 }
 
@@ -58,7 +68,7 @@ func (s *Service) SetTenantActive(principal Principal, tenantID uuid.UUID, activ
 	if active {
 		action = "tenant.activate"
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, action, "tenant", tenant.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, action, "tenant", tenant.ID, models.AuditOutcomeSuccess))
 	return tenant, nil
 }
 
@@ -66,20 +76,24 @@ func (s *Service) GetTenant(tenantID uuid.UUID) (models.Tenant, error) {
 	return s.store.GetTenant(tenantID)
 }
 
-func (s *Service) ListRooms(filter RoomListFilter) ([]models.Room, error) {
-	rooms, err := s.store.ListRooms(filter)
+func (s *Service) ListRooms(filter RoomListFilter) ([]models.Room, int64, error) {
+	storeFilter := filter
+	if filter.State != "" {
+		storeFilter.Params = pagination.Params{Page: 1, PageSize: 0}
+	}
+	rooms, total, err := s.store.ListRooms(storeFilter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if filter.State == "" {
-		return rooms, nil
+		return rooms, total, nil
 	}
 
 	filtered := make([]models.Room, 0, len(rooms))
 	for _, room := range rooms {
 		occupancy, err := s.store.GetActiveAssignmentCount(room.ID)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		switch filter.State {
 		case "occupied":
@@ -91,7 +105,6 @@ func (s *Service) ListRooms(filter RoomListFilter) ([]models.Room, error) {
 				filtered = append(filtered, room)
 			}
 		case "maintenance-needed":
-			// Placeholder for future rule integration, currently inferred by low-quality inventory.
 			hasDamagedInventory := false
 			for _, item := range room.InventoryItems {
 				if item.Condition == models.InventoryConditionDamaged || item.Condition == models.InventoryConditionBroken {
@@ -106,11 +119,15 @@ func (s *Service) ListRooms(filter RoomListFilter) ([]models.Room, error) {
 			filtered = append(filtered, room)
 		}
 	}
-	return filtered, nil
+	return filtered, int64(len(filtered)), nil
 }
 
 func (s *Service) GetRoom(roomID uuid.UUID) (models.Room, error) {
 	return s.store.GetRoom(roomID)
+}
+
+func (s *Service) RoomOccupancy(roomID uuid.UUID) (int64, error) {
+	return s.store.GetActiveAssignmentCount(roomID)
 }
 
 func (s *Service) AssignTenant(principal Principal, tenantID, roomID uuid.UUID) (models.RoomAssignment, error) {
@@ -159,7 +176,7 @@ func (s *Service) AssignTenant(principal Principal, tenantID, roomID uuid.UUID) 
 		return models.RoomAssignment{}, err
 	}
 
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "room.assignment", "room_assignment", created.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "room.assignment", "room_assignment", created.ID, models.AuditOutcomeSuccess))
 	return created, nil
 }
 
@@ -251,7 +268,7 @@ func (s *Service) CreateInventoryItem(principal Principal, item models.Inventory
 	if err != nil {
 		return models.InventoryItem{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "inventory.create", "inventory_item", created.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "inventory.create", "inventory_item", created.ID, models.AuditOutcomeSuccess))
 	return created, nil
 }
 
@@ -263,12 +280,12 @@ func (s *Service) UpdateInventoryStatus(principal Principal, id uuid.UUID, statu
 	if err != nil {
 		return models.InventoryItem{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "inventory.status_change", "inventory_item", item.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "inventory.status_change", "inventory_item", item.ID, models.AuditOutcomeSuccess))
 	return item, nil
 }
 
-func (s *Service) ListInventory() ([]models.InventoryItem, error) {
-	return s.store.ListInventory()
+func (s *Service) ListInventory(filter InventoryListFilter) ([]models.InventoryItem, int64, error) {
+	return s.store.ListInventory(filter)
 }
 
 func (s *Service) CreateMaintenanceTicket(principal Principal, ticket models.MaintenanceTicket) (models.MaintenanceTicket, error) {
@@ -350,7 +367,7 @@ func (s *Service) TransitionMaintenanceTicket(principal Principal, ticketID uuid
 	return updated, nil
 }
 
-func (s *Service) ListMaintenanceTickets(filter TicketListFilter) ([]models.MaintenanceTicket, error) {
+func (s *Service) ListMaintenanceTickets(filter TicketListFilter) ([]models.MaintenanceTicket, int64, error) {
 	return s.store.ListMaintenanceTickets(filter)
 }
 
@@ -384,17 +401,18 @@ func (s *Service) CreateOperationalJob(principal Principal, job models.Operation
 	return CreateJobResult{Job: created, Conflicts: mapped}, nil
 }
 
-func (s *Service) ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, error) {
+func (s *Service) ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, int64, error) {
 	return s.store.ListOperationalJobs(filter)
 }
 
-func (s *Service) CreateNews(principal Principal, input NewsUpsertInput) (models.ForumPost, error) {
+func (s *Service) CreateNews(principal Principal, input NewsUpsertInput) (forummodels.ForumPost, error) {
 	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return models.ForumPost{}, ErrUnauthorized
+		return forummodels.ForumPost{}, ErrUnauthorized
 	}
-	post := models.ForumPost{
+	post := forummodels.ForumPost{
 		AuthorUserID: principal.UserID,
-		Kind:         models.ForumPostKindOfficialNews,
+		Kind:         forummodels.ForumPostKindOfficialNews,
+		Source:       forummodels.ForumPostSourceAdministration,
 		State:        input.State,
 		Title:        input.Title,
 		Body:         input.Body,
@@ -402,39 +420,43 @@ func (s *Service) CreateNews(principal Principal, input NewsUpsertInput) (models
 		PublishedAt:  input.PublishDate,
 	}
 	if post.State == "" {
-		post.State = models.PublicationStateDraft
+		post.State = forummodels.ForumPostStateDraft
 	}
 	created, err := s.store.CreateForumPost(post)
 	if err != nil {
-		return models.ForumPost{}, err
+		return forummodels.ForumPost{}, err
 	}
-	if created.State == models.PublicationStatePublished {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", created.ID.String(), models.AuditOutcomeSuccess))
+	if created.State == forummodels.ForumPostStatePublished {
+		_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", created.ID, models.AuditOutcomeSuccess))
 	}
 	return created, nil
 }
 
-func (s *Service) PublishNews(principal Principal, id uuid.UUID) (models.ForumPost, error) {
+func (s *Service) PublishNews(principal Principal, id uuid.UUID) (forummodels.ForumPost, error) {
 	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return models.ForumPost{}, ErrUnauthorized
+		return forummodels.ForumPost{}, ErrUnauthorized
 	}
 	post, err := s.store.GetForumPost(id)
 	if err != nil {
-		return models.ForumPost{}, err
+		return forummodels.ForumPost{}, err
 	}
 	now := time.Now().UTC()
-	post.State = models.PublicationStatePublished
+	post.State = forummodels.ForumPostStatePublished
 	post.PublishedAt = &now
 	updated, err := s.store.UpdateForumPost(post)
 	if err != nil {
-		return models.ForumPost{}, err
+		return forummodels.ForumPost{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", updated.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", updated.ID, models.AuditOutcomeSuccess))
 	return updated, nil
 }
 
-func (s *Service) ListNews() ([]models.ForumPost, error) {
-	return s.store.ListForumPosts()
+func (s *Service) ListNews(filter PublicationListFilter) ([]forummodels.ForumPost, int64, error) {
+	return s.store.ListForumPosts(filter)
+}
+
+func (s *Service) ListAuditEvents(filter AuditListFilter) ([]models.AuditEvent, int64, error) {
+	return s.store.ListAuditEvents(filter)
 }
 
 func (s *Service) CreateActivity(principal Principal, input ActivityUpsertInput) (models.Activity, error) {
@@ -457,7 +479,7 @@ func (s *Service) CreateActivity(principal Principal, input ActivityUpsertInput)
 		return models.Activity{}, err
 	}
 	if created.State == models.PublicationStatePublished {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "activity.publish", "activity", created.ID.String(), models.AuditOutcomeSuccess))
+		_ = s.store.CreateAudit(newAudit(principal.UserID, "activity.publish", "activity", created.ID, models.AuditOutcomeSuccess))
 	}
 	return created, nil
 }
@@ -475,12 +497,12 @@ func (s *Service) PublishActivity(principal Principal, id uuid.UUID) (models.Act
 	if err != nil {
 		return models.Activity{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "activity.publish", "activity", updated.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "activity.publish", "activity", updated.ID, models.AuditOutcomeSuccess))
 	return updated, nil
 }
 
-func (s *Service) ListActivities() ([]models.Activity, error) {
-	return s.store.ListActivities()
+func (s *Service) ListActivities(filter PublicationListFilter) ([]models.Activity, int64, error) {
+	return s.store.ListActivities(filter)
 }
 
 func (s *Service) CreateEvent(principal Principal, input EventUpsertInput) (models.Event, error) {
@@ -509,7 +531,7 @@ func (s *Service) CreateEvent(principal Principal, input EventUpsertInput) (mode
 		return models.Event{}, err
 	}
 	if created.State == models.PublicationStatePublished {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "event.publish", "event", created.ID.String(), models.AuditOutcomeSuccess))
+		_ = s.store.CreateAudit(newAudit(principal.UserID, "event.publish", "event", created.ID, models.AuditOutcomeSuccess))
 	}
 	return created, nil
 }
@@ -534,13 +556,13 @@ func (s *Service) UpdateEventState(principal Principal, eventID uuid.UUID, state
 		return models.Event{}, err
 	}
 	if state == models.PublicationStatePublished || state == models.PublicationStatePostponed || state == models.PublicationStateCanceled {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "event.state_change", "event", updated.ID.String(), models.AuditOutcomeSuccess))
+		_ = s.store.CreateAudit(newAudit(principal.UserID, "event.state_change", "event", updated.ID, models.AuditOutcomeSuccess))
 	}
 	return updated, nil
 }
 
-func (s *Service) ListEvents() ([]models.Event, error) {
-	return s.store.ListEvents()
+func (s *Service) ListEvents(filter PublicationListFilter) ([]models.Event, int64, error) {
+	return s.store.ListEvents(filter)
 }
 
 func hasAnyRole(principal Principal, required ...models.RoleName) bool {
@@ -554,7 +576,7 @@ func hasAnyRole(principal Principal, required ...models.RoleName) bool {
 	return false
 }
 
-func newAudit(actorID uuid.UUID, action, targetType, targetID string, outcome models.AuditOutcome) models.AuditEvent {
+func newAudit(actorID uuid.UUID, action, targetType string, targetID uuid.UUID, outcome models.AuditOutcome) models.AuditEvent {
 	return models.AuditEvent{
 		ActorUserID: &actorID,
 		Action:      action,

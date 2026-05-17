@@ -223,3 +223,25 @@ erDiagram
     User ||--o{ ForumPost : author_TBD
     User ||--o{ Activity : creator_TBD
 ```
+
+---
+
+## Cross-Module Dependencies
+
+| Target module | Administration provides | Integration contract |
+|---------------|-------------------------|----------------------|
+| **Forum** | Published `ForumPost` / linked `Activity`, `Event` | Administration owns draft/publish lifecycle; forum owns comments, votes, reactions |
+| **Chat** | `RoomAssignment` lifecycle events | Chat derives flat `ChatRoomMember` rows; administration never writes chat tables |
+| **Doorman** | `Tenant`, `Room`, `InventoryItem` context | Doorman reads for packages, guests, loans; does not own assignments |
+| **Platform** | Emits `AuditEvent`; uses `User` / roles | Shared auth for all staff mutations |
+
+See [administration-office specification §6](../specifications/administration-office.md#6-cross-module-interaction-specification).
+
+---
+
+## Related documents
+
+- [Administration requirements](../requirements/administration-office.md)
+- [Administration specification](../specifications/administration-office.md)
+- [Platform database](platform.md)
+- [Database documentation index](README.md)

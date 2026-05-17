@@ -3,14 +3,16 @@ package config
 import "os"
 
 type Config struct {
-	Port        string
-	DatabaseURL string
+	Port          string
+	DatabaseURL   string
+	SessionSecret string
 }
 
 func Load() Config {
 	return Config{
-		Port:        envOrDefault("PORT", "8080"),
-		DatabaseURL: envOrDefault("DATABASE_URL", "postgres://dev:prod@localhost:5432/dormatory_manager?sslmode=disable"),
+		Port:          envOrDefault("PORT", "8080"),
+		DatabaseURL:   envOrDefault("DATABASE_URL", "postgres://dev:dev@localhost:5432/dormatory_manager?sslmode=disable"),
+		SessionSecret: envOrDefault("SESSION_SECRET", "dev-session-secret-change-in-production"),
 	}
 }
 

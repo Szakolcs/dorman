@@ -8,6 +8,8 @@ package pages
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+// AboutPage redirects readers to the platform about route in handlers if wired;
+// kept for template parity with HomePage.
 func AboutPage() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -29,7 +31,7 @@ func AboutPage() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>About</title><script src=\"https://unpkg.com/htmx.org@2.0.4\"></script></head><body><h1>About</h1><p>Boilerplate page for the MVC multipage setup.</p><nav><a href=\"/\" hx-boost=\"true\">Home</a> <a href=\"/about\" hx-boost=\"true\">About</a></nav></body></html>")
+		templ_7745c5c3_Err = HomePage().Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
