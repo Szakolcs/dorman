@@ -26,9 +26,9 @@ func (s *Service) ResolvePrincipal(actorID uuid.UUID) (administration.Principal,
 	return s.store.LoadPrincipal(actorID)
 }
 
-func (s *Service) ListFeed(principal administration.Principal, filter FeedListFilter) ([]fm.ForumPost, error) {
+func (s *Service) ListFeed(principal administration.Principal, filter FeedListFilter) ([]fm.ForumPost, int64, error) {
 	if err := s.requireAuthenticated(principal); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if isStaffModerator(principal) && filter.IncludeHidden {
 		// staff may request hidden items via filter flag
@@ -253,16 +253,16 @@ func (s *Service) DeleteComment(principal administration.Principal, commentID uu
 	return err
 }
 
-func (s *Service) ListComments(principal administration.Principal, filter CommentListFilter) ([]fm.ForumComment, error) {
+func (s *Service) ListComments(principal administration.Principal, filter CommentListFilter) ([]fm.ForumComment, int64, error) {
 	if err := s.requireAuthenticated(principal); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	post, err := s.store.GetPost(filter.PostID)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if err := s.ensurePostReadable(principal, post); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	return s.store.ListComments(filter)
 }

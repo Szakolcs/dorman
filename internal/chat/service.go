@@ -46,6 +46,33 @@ func (s *Service) ResolveTenantPrincipal(actorUserID uuid.UUID) (TenantPrincipal
 	return TenantPrincipal{TenantID: tenant.ID, UserID: &uid}, nil
 }
 
+// ResolveTenantActor accepts either a tenant UUID or a user UUID linked to a tenant.
+func (s *Service) ResolveTenantActor(rawID uuid.UUID) (TenantPrincipal, error) {
+	tenant, err := s.store.GetTenant(rawID)
+	if err == nil {
+		if !tenant.IsActive {
+			return TenantPrincipal{}, ErrUnauthorized
+		}
+		return TenantPrincipal{TenantID: tenant.ID}, nil
+	}
+	if !errors.Is(err, ErrTenantNotFound) {
+		return TenantPrincipal{}, err
+	}
+
+	tenant, err = s.store.GetTenantByUserID(rawID)
+	if err != nil {
+		if errors.Is(err, ErrTenantNotFound) {
+			return TenantPrincipal{}, ErrTenantNotFound
+		}
+		return TenantPrincipal{}, err
+	}
+	if !tenant.IsActive {
+		return TenantPrincipal{}, ErrUnauthorized
+	}
+	uid := rawID
+	return TenantPrincipal{TenantID: tenant.ID, UserID: &uid}, nil
+}
+
 func (s *Service) ListConversations(p TenantPrincipal) ([]chatviews.ConversationSummary, error) {
 	memberships, err := s.store.ListActiveMembershipsForTenant(p.TenantID)
 	if err != nil {
@@ -115,14 +142,14 @@ func (s *Service) GetRoom(p TenantPrincipal, roomID uuid.UUID) (chatviews.RoomDe
 	return chatviews.RoomDetail{Room: room, Members: views, Self: selfView}, nil
 }
 
-func (s *Service) ListMessages(p TenantPrincipal, roomID uuid.UUID, filter MessageListFilter) ([]cm.ChatMessage, error) {
+func (s *Service) ListMessages(p TenantPrincipal, roomID uuid.UUID, filter MessageListFilter) ([]cm.ChatMessage, int64, error) {
 	if _, err := s.store.GetActiveMember(roomID, p.TenantID); err != nil {
 		if errors.Is(err, ErrNotAMember) {
-			return nil, ErrNotFound
+			return nil, 0, ErrNotFound
 		}
-		return nil, err
+		return nil, 0, err
 	}
-	return s.store.ListMessages(roomID, filter.BeforeMessageID, filter.Limit)
+	return s.store.ListMessages(roomID, filter)
 }
 
 func (s *Service) SendMessage(p TenantPrincipal, roomID uuid.UUID, in SendMessageInput) (cm.ChatMessage, error) {

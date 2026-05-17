@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"dorm-man/internal/pagination"
+	"dorm-man/internal/platform"
 	htmlchat "dorm-man/web/templates/chat"
 
 	"github.com/a-h/templ"
@@ -26,6 +28,10 @@ func renderComponent(c echo.Context, component templ.Component) error {
 	return component.Render(c.Request().Context(), c.Response().Writer)
 }
 
+func isHtmx(c echo.Context) bool {
+	return c.Request().Header.Get("HX-Request") == "true"
+}
+
 func (h *Handler) tenantActor(c echo.Context) (TenantPrincipal, error) {
 	for _, raw := range []string{
 		c.FormValue("actor_tenant_id"),
@@ -39,18 +45,17 @@ func (h *Handler) tenantActor(c echo.Context) (TenantPrincipal, error) {
 		if err != nil {
 			continue
 		}
-		return TenantPrincipal{TenantID: id}, nil
+		return h.service.ResolveTenantActor(id)
 	}
 
-	value := c.Request().Header.Get("X-Actor-User-ID")
-	if value == "" {
-		return TenantPrincipal{}, ErrUnauthorized
+	if userID, ok := platform.ActorUserID(c); ok {
+		return h.service.ResolveTenantPrincipal(userID)
 	}
-	userID, err := uuid.Parse(value)
-	if err != nil {
-		return TenantPrincipal{}, ErrUnauthorized
-	}
-	return h.service.ResolveTenantPrincipal(userID)
+	return TenantPrincipal{}, ErrUnauthorized
+}
+
+func (h *Handler) renderChatPageError(c echo.Context, title, actorTenantID, message string) error {
+	return renderComponent(c, htmlchat.ChatShell(title, actorTenantID, htmlchat.RoomError(message)))
 }
 
 func (h *Handler) viewActor(c echo.Context) (TenantPrincipal, string, error) {
@@ -103,7 +108,9 @@ func (h *Handler) listConversations(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": list})
+	params := pageParams(c)
+	page, meta := pagination.Slice(list, params)
+	return writeListJSON(c, page, meta)
 }
 
 func (h *Handler) getRoom(c echo.Context) error {
@@ -141,15 +148,13 @@ func (h *Handler) listMessages(c echo.Context) error {
 		beforeID = &id
 	}
 
-	limit := queryPositiveInt(c, "limit", 50)
-	msgs, err := h.service.ListMessages(p, roomID, MessageListFilter{
-		BeforeMessageID: beforeID,
-		Limit:           limit,
-	})
+	params := pageParams(c)
+	filter := MessageListFilter{BeforeMessageID: beforeID, Params: params}
+	msgs, total, err := h.service.ListMessages(p, roomID, filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": msgs})
+	return writeListJSON(c, msgs, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) sendMessage(c echo.Context) error {
@@ -337,7 +342,9 @@ func (h *Handler) conversationsPartial(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
-	return renderComponent(c, htmlchat.ConversationListPartial(actorID, list))
+	params := pageParams(c)
+	page, _ := pagination.Slice(list, params)
+	return renderComponent(c, htmlchat.ConversationListPartial(actorID, page))
 }
 
 func (h *Handler) roomPage(c echo.Context) error {
@@ -372,7 +379,8 @@ func (h *Handler) renderRoom(c echo.Context, p TenantPrincipal, actorID string, 
 		}
 		return renderComponent(c, htmlchat.RoomError(err.Error()))
 	}
-	msgs, err := h.service.ListMessages(p, roomID, MessageListFilter{Limit: 50})
+	params := pagination.Params{Page: 1, PageSize: 50}
+	msgs, _, err := h.service.ListMessages(p, roomID, MessageListFilter{Params: params})
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -393,7 +401,11 @@ func (h *Handler) messagesPartial(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusBadRequest, "invalid room id")
 	}
-	msgs, err := h.service.ListMessages(p, roomID, MessageListFilter{Limit: 50})
+	params := pageParams(c)
+	if params.PageSize <= 0 {
+		params.PageSize = 50
+	}
+	msgs, _, err := h.service.ListMessages(p, roomID, MessageListFilter{Params: params})
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -466,11 +478,19 @@ func (h *Handler) openDirectView(c echo.Context) error {
 func (h *Handler) profilePage(c echo.Context) error {
 	p, actorID, err := h.viewActor(c)
 	if err != nil {
-		return renderComponent(c, htmlchat.ChatShell("Chat profile", "", htmlchat.ChatEmptyBody()))
+		msg := "Sign in as a tenant or enter a tenant ID (or linked user ID) to manage your chat profile."
+		if errors.Is(err, ErrUnauthorized) {
+			return h.renderChatPageError(c, "Chat profile", "", msg)
+		}
+		return h.renderChatPageError(c, "Chat profile", "", err.Error())
 	}
 	view, err := h.service.GetProfile(p)
 	if err != nil {
-		return c.String(http.StatusInternalServerError, err.Error())
+		msg := err.Error()
+		if errors.Is(err, ErrTenantNotFound) {
+			msg = "No tenant found for that ID. Use your tenant UUID or the user account linked to your tenancy."
+		}
+		return h.renderChatPageError(c, "Chat profile", actorID, msg)
 	}
 	bio := ""
 	if view.Profile != nil {
@@ -498,7 +518,10 @@ func (h *Handler) profileSaveView(c echo.Context) error {
 		AvatarStorageKey: &avatar,
 	})
 	if err != nil {
-		return c.String(http.StatusBadRequest, err.Error())
+		if isHtmx(c) {
+			return renderComponent(c, htmlchat.RoomError(err.Error()))
+		}
+		return h.renderChatPageError(c, "Chat profile", p.TenantID.String(), err.Error())
 	}
 	if c.Request().Header.Get("HX-Request") == "true" {
 		return renderComponent(c, htmlchat.ProfileSaved(view))

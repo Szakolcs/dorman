@@ -1,6 +1,7 @@
 package forum
 
 import (
+	"dorm-man/internal/pagination"
 	fm "dorm-man/internal/models/forum"
 
 	"github.com/google/uuid"
@@ -13,6 +14,8 @@ type FeedPageData struct {
 	OfficialOnly  bool
 	CommunityOnly bool
 	ActorUserID   string
+	Pagination    pagination.Meta
+	Preserve      map[string]string
 }
 
 type PostAggregatesView struct {
@@ -38,6 +41,8 @@ type PostPageData struct {
 	Aggregates      PostAggregatesView
 	Schedule        *fm.ForumPostSchedule
 	Comments        []fm.ForumComment
+	CommentsPagination pagination.Meta
+	CommentsPreserve   map[string]string
 	Poll            *fm.ForumPoll
 	PollResults     *PollResultsView
 	PollResultsOK   bool

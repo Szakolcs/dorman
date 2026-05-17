@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"dorm-man/internal/pagination"
 	adm "dorm-man/internal/models/administration"
 	dm "dorm-man/internal/models/doorman"
 
@@ -68,15 +69,13 @@ type CheckoutLoanBody struct {
 
 type PackageListFilter struct {
 	Status   string // received|notified|picked_up|pending (queued = not picked up)
-	Limit    int
-	Offset   int
 	TenantID *uuid.UUID
+	pagination.Params
 }
 
 type GuestVisitListFilter struct {
 	OnDate *time.Time // local date compare in UTC midnight window
-	Limit  int
-	Offset int
+	pagination.Params
 }
 
 type AccessEventListFilter struct {
@@ -84,16 +83,18 @@ type AccessEventListFilter struct {
 	From     *time.Time
 	To       *time.Time
 	Outcome  dm.AccessEventOutcome
-	Limit    int
-	Offset   int
+	pagination.Params
+}
+
+type TokenListFilter struct {
+	pagination.Params
 }
 
 type ItemLoanListFilter struct {
 	OpenOnly    bool
 	OverdueOnly bool
 	TenantID    *uuid.UUID
-	Limit       int
-	Offset      int
+	pagination.Params
 }
 
 type QRValidationResult struct {

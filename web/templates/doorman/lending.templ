@@ -3,11 +3,11 @@ package doorman
 import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
-templ LendingPage() {
-	@components.AppDocument("Doorman - Lending", LendingContent())
+templ LendingPage(data LendingPageData) {
+	@components.AppDocument("Doorman - Lending", LendingContent(data))
 }
 
-templ LendingContent() {
+templ LendingContent(data LendingPageData) {
 	@components.PageHeader(
 		"Keys and accessories",
 		"Checkout to a tenant, return closes the loan; at most one open loan per lendable inventory row in this MVP.",
@@ -15,38 +15,54 @@ templ LendingContent() {
 	@partials.DoormanNav()
 	@components.BackLink("/doorman", "Back to Doorman")
 
-	@components.Section(
-		"Operational lists",
-		LendingBrowseHint(),
-	)
-
-	@components.Section(
-		"Checkout",
-		LendingCheckoutForm(),
-	)
-
-	@components.Section(
-		"Return",
-		LendingReturnForm(),
-	)
+	@components.Section("Recent loans", ItemLoansTable(data))
+	@components.Section("Checkout", LendingCheckoutForm(data))
 }
 
-templ LendingBrowseHint() {
-	<ul>
-		<li>Open or all loans (filter with query flags): GET <code>/api/doorman/loans?open_only=true</code></li>
-		<li>Overdue subset: GET <code>/api/doorman/loans?open_only=true&amp;overdue_only=true</code></li>
-		<li>Optional tenant dimension: <code>?tenant_id=UUID</code></li>
-	</ul>
+templ ItemLoansTable(data LendingPageData) {
+	@components.DataTable([]string{"Item", "Tenant", "Checked out", "Returned", "Status", "Actions"}, ItemLoanRows(data))
+	@components.PaginationNav("/doorman/lending", data.Pagination, map[string]string{})
 }
 
-templ LendingCheckoutForm() {
-	<p>POST JSON <code>/api/doorman/loans</code></p>
-	<form method="post" action="/api/doorman/loans">
-		<label for="loan-tenant">Tenant UUID</label>
-		<input id="loan-tenant" type="text" name="tenant_id"/>
+templ ItemLoanRows(data LendingPageData) {
+	if len(data.Loans) == 0 {
+		<tr>
+			<td colspan="6">No item loans in the database.</td>
+		</tr>
+	}
+	for _, loan := range data.Loans {
+		<tr>
+			<td>{ loanItemName(loan) }</td>
+			<td>{ loanTenantName(loan) }</td>
+			<td>{ loan.CheckedOutAt.Format("2006-01-02 15:04") }</td>
+			<td>{ optionalTime(loan.ReturnedAt) }</td>
+			<td>{ loanStatus(loan) }</td>
+			<td>
+				if loan.ReturnedAt == nil {
+					<form method="post" action={ templ.SafeURL("/doorman/lending/" + loan.ID.String() + "/return") } class="inline-form">
+						<button type="submit">Return</button>
+					</form>
+				}
+			</td>
+		</tr>
+	}
+}
 
-		<label for="loan-item">Inventory item UUID</label>
-		<input id="loan-item" type="text" name="inventory_item_id"/>
+templ LendingCheckoutForm(data LendingPageData) {
+	<form method="post" action="/doorman/lending">
+		<label for="loan-tenant">Tenant</label>
+		<select id="loan-tenant" name="tenant_id" required>
+			for _, t := range data.Tenants {
+				<option value={ t.ID.String() }>{ t.Name }</option>
+			}
+		</select>
+
+		<label for="loan-item">Inventory item</label>
+		<select id="loan-item" name="inventory_item_id" required>
+			for _, item := range data.Inventory {
+				<option value={ item.ID.String() }>{ item.Name }</option>
+			}
+		</select>
 
 		<label for="loan-expect">Expected return (RFC3339, optional)</label>
 		<input id="loan-expect" type="text" name="expected_return_at"/>
@@ -54,14 +70,6 @@ templ LendingCheckoutForm() {
 		<label for="loan-notes">Notes</label>
 		<input id="loan-notes" type="text" name="notes"/>
 
-		<button type="submit">Checkout (placeholder — use JSON)</button>
-	</form>
-}
-
-templ LendingReturnForm() {
-	<p>POST <code>{ `/api/doorman/loans/{id}/return` }</code></p>
-	<form method="get" action="#">
-		<label for="loan-return-id">Loan UUID</label>
-		<input id="loan-return-id" type="text" placeholder="item_loan id"/>
+		<button type="submit">Checkout</button>
 	</form>
 }

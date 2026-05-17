@@ -69,7 +69,7 @@ func (s *Service) RegisterPackage(principal administration.Principal, in Package
 	return created, nil
 }
 
-func (s *Service) ListPackages(filter PackageListFilter) ([]dm.Package, error) {
+func (s *Service) ListPackages(filter PackageListFilter) ([]dm.Package, int64, error) {
 	return s.store.ListPackages(filter)
 }
 
@@ -192,7 +192,7 @@ func (s *Service) RegisterGuestVisit(principal administration.Principal, in Gues
 	return s.store.CreateGuestVisit(v)
 }
 
-func (s *Service) ListGuestVisits(filter GuestVisitListFilter) ([]dm.GuestVisit, error) {
+func (s *Service) ListGuestVisits(filter GuestVisitListFilter) ([]dm.GuestVisit, int64, error) {
 	return s.store.ListGuestVisits(filter)
 }
 
@@ -389,7 +389,7 @@ func (s *Service) appendDenied(actor uuid.UUID, source dm.AccessEventSource, ten
 	return QRValidationResult{Outcome: dm.AccessEventOutcomeDenied, Reason: reason, Event: saved}, nil
 }
 
-func (s *Service) ListAccessEvents(filter AccessEventListFilter) ([]dm.AccessEvent, error) {
+func (s *Service) ListAccessEvents(filter AccessEventListFilter) ([]dm.AccessEvent, int64, error) {
 	return s.store.ListAccessEvents(filter)
 }
 
@@ -458,8 +458,20 @@ func (s *Service) ReturnItem(principal administration.Principal, loanID uuid.UUI
 	return updated, nil
 }
 
-func (s *Service) ListItemLoans(filter ItemLoanListFilter) ([]dm.ItemLoan, error) {
+func (s *Service) ListItemLoans(filter ItemLoanListFilter) ([]dm.ItemLoan, int64, error) {
 	return s.store.ListItemLoans(filter)
+}
+
+func (s *Service) ListTenantEntryTokens(filter TokenListFilter) ([]dm.TenantEntryToken, int64, error) {
+	return s.store.ListTenantEntryTokens(filter)
+}
+
+func (s *Service) ListActiveTenants() ([]adm.Tenant, error) {
+	return s.store.ListActiveTenants()
+}
+
+func (s *Service) ListLendableInventory() ([]adm.InventoryItem, error) {
+	return s.store.ListLendableInventory()
 }
 
 func hasStaffDoorman(p administration.Principal) bool {

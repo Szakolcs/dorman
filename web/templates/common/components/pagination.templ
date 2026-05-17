@@ -1,0 +1,38 @@
+package components
+
+import "dorm-man/internal/pagination"
+
+templ PaginationNav(basePath string, meta pagination.Meta, preserveQuery map[string]string) {
+	@PaginationNavNamed(basePath, meta, preserveQuery, "page", "page_size")
+}
+
+templ PaginationNavNamed(basePath string, meta pagination.Meta, preserveQuery map[string]string, pageKey string, pageSizeKey string) {
+	if meta.TotalPages <= 1 {
+		return
+	}
+	<nav class="pagination" aria-label="Pagination">
+		<p class="pagination-summary">
+			Page { fmtPage(meta.Page) } of { fmtPage(meta.TotalPages) }
+			<span> ({ fmtTotal(meta.Total) } items)</span>
+		</p>
+		<div class="pagination-links">
+			if meta.HasPrev {
+				<a
+					href={ templ.SafeURL(pageLinkNamed(basePath, meta.Page-1, meta.PageSize, pageKey, pageSizeKey, preserveQuery)) }
+					hx-boost="true"
+				>
+					Previous
+				</a>
+			}
+			if meta.HasNext {
+				<a
+					href={ templ.SafeURL(pageLinkNamed(basePath, meta.Page+1, meta.PageSize, pageKey, pageSizeKey, preserveQuery)) }
+					hx-boost="true"
+				>
+					Next
+				</a>
+			}
+		</div>
+	</nav>
+}
+

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"dorm-man/internal/pagination"
 	fm "dorm-man/internal/models/forum"
 
 	"github.com/google/uuid"
@@ -33,15 +34,13 @@ type FeedListFilter struct {
 	OfficialOnly  bool
 	CommunityOnly bool
 	Sort          FeedSort
-	Limit         int
-	Offset        int
 	IncludeHidden bool // staff moderation reads
+	pagination.Params
 }
 
 type CommentListFilter struct {
 	PostID uuid.UUID
-	Limit  int
-	Offset int
+	pagination.Params
 }
 
 type CommunityPostInput struct {

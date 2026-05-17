@@ -1,0 +1,66 @@
+package administration
+
+import "fmt"
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ RoomDetailPage(data RoomDetailPageData) {
+	@components.AppDocument("Room "+data.Room.Number, RoomDetailContent(data))
+}
+
+templ RoomDetailContent(data RoomDetailPageData) {
+	@partials.AdministrationNav()
+	@components.BackLink("/administration/rooms", "Back to rooms")
+	@components.PageHeader(
+		"Room "+data.Room.Number,
+		fmt.Sprintf("Capacity %d — occupancy %d.", data.Room.Capacity, data.Occupancy),
+	)
+	@components.Section("Assigned tenants", RoomAssignmentsTable(data))
+	@components.Section("Inventory in room", RoomInventoryTable(data))
+}
+
+templ RoomAssignmentsTable(data RoomDetailPageData) {
+	@components.DataTable([]string{"Tenant", "Student code", "Since"}, RoomAssignmentRows(data))
+}
+
+templ RoomAssignmentRows(data RoomDetailPageData) {
+	if len(data.Room.Assignments) == 0 {
+		<tr>
+			<td colspan="3">No active assignments.</td>
+		</tr>
+	}
+	for _, a := range data.Room.Assignments {
+		<tr>
+			if a.Tenant.Name != "" {
+				<td>
+					<a href={ templ.SafeURL("/administration/tenants/" + a.Tenant.ID.String()) }>{ a.Tenant.Name }</a>
+				</td>
+				<td>{ a.Tenant.StudentCode }</td>
+			} else {
+				<td>—</td>
+				<td>—</td>
+			}
+			<td>{ a.EffectiveAt.Format("2006-01-02") }</td>
+		</tr>
+	}
+}
+
+templ RoomInventoryTable(data RoomDetailPageData) {
+	@components.DataTable([]string{"Item", "Condition", "Status"}, RoomInventoryRows(data))
+}
+
+templ RoomInventoryRows(data RoomDetailPageData) {
+	if len(data.Room.InventoryItems) == 0 {
+		<tr>
+			<td colspan="3">No inventory items in this room.</td>
+		</tr>
+	}
+	for _, item := range data.Room.InventoryItems {
+		<tr>
+			<td>{ item.Name }</td>
+			<td>{ string(item.Condition) }</td>
+			<td>{ string(item.Status) }</td>
+		</tr>
+	}
+}

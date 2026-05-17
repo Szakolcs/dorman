@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"dorm-man/internal/administration"
+	"dorm-man/internal/pagination"
 
 	adm "dorm-man/internal/models/administration"
 	dm "dorm-man/internal/models/doorman"
@@ -17,6 +18,8 @@ import (
 type Store interface {
 	LoadPrincipal(userID uuid.UUID) (administration.Principal, error)
 	GetTenant(tenantID uuid.UUID) (adm.Tenant, error)
+	ListActiveTenants() ([]adm.Tenant, error)
+	ListLendableInventory() ([]adm.InventoryItem, error)
 	GetInventoryItem(id uuid.UUID) (adm.InventoryItem, error)
 	CreateAudit(event adm.AuditEvent) error
 	Transaction(fn func(tx *gorm.DB) error) error
@@ -24,7 +27,7 @@ type Store interface {
 	CreatePackage(p dm.Package) (dm.Package, error)
 	UpdatePackage(pkg dm.Package) (dm.Package, error)
 	GetPackage(id uuid.UUID) (dm.Package, error)
-	ListPackages(filter PackageListFilter) ([]dm.Package, error)
+	ListPackages(filter PackageListFilter) ([]dm.Package, int64, error)
 
 	CreatePackageNotification(n dm.PackageNotification) (dm.PackageNotification, error)
 	UpdatePackageNotification(n dm.PackageNotification) (dm.PackageNotification, error)
@@ -33,18 +36,19 @@ type Store interface {
 	UpdateGuestVisit(v dm.GuestVisit) (dm.GuestVisit, error)
 	GetGuestVisit(id uuid.UUID) (dm.GuestVisit, error)
 	CreateGuestAccessEvent(e dm.GuestAccessEvent) (dm.GuestAccessEvent, error)
-	ListGuestVisits(filter GuestVisitListFilter) ([]dm.GuestVisit, error)
+	ListGuestVisits(filter GuestVisitListFilter) ([]dm.GuestVisit, int64, error)
 
 	CreateTenantEntryToken(t dm.TenantEntryToken) (dm.TenantEntryToken, error)
 	GetTenantEntryTokenByPublicRef(ref string) (dm.TenantEntryToken, error)
+	ListTenantEntryTokens(filter TokenListFilter) ([]dm.TenantEntryToken, int64, error)
 	CreateAccessEvent(e dm.AccessEvent) (dm.AccessEvent, error)
-	ListAccessEvents(filter AccessEventListFilter) ([]dm.AccessEvent, error)
+	ListAccessEvents(filter AccessEventListFilter) ([]dm.AccessEvent, int64, error)
 
 	CreateItemLoan(loan dm.ItemLoan) (dm.ItemLoan, error)
 	UpdateItemLoan(loan dm.ItemLoan) (dm.ItemLoan, error)
 	GetItemLoan(id uuid.UUID) (dm.ItemLoan, error)
 	CountOpenLoansForInventory(inventoryItemID uuid.UUID) (int64, error)
-	ListItemLoans(filter ItemLoanListFilter) ([]dm.ItemLoan, error)
+	ListItemLoans(filter ItemLoanListFilter) ([]dm.ItemLoan, int64, error)
 }
 
 type GormStore struct {
@@ -62,6 +66,19 @@ func (s *GormStore) LoadPrincipal(userID uuid.UUID) (administration.Principal, e
 
 func (s *GormStore) GetTenant(tenantID uuid.UUID) (adm.Tenant, error) {
 	return s.housing.GetTenant(tenantID)
+}
+
+func (s *GormStore) ListActiveTenants() ([]adm.Tenant, error) {
+	tenants, _, err := s.housing.ListTenants(administration.TenantListFilter{
+		Status: "active",
+		Params: pagination.Unpaged(),
+	})
+	return tenants, err
+}
+
+func (s *GormStore) ListLendableInventory() ([]adm.InventoryItem, error) {
+	items, _, err := s.housing.ListInventory(administration.InventoryListFilter{Params: pagination.Unpaged()})
+	return items, err
 }
 
 func (s *GormStore) GetInventoryItem(id uuid.UUID) (adm.InventoryItem, error) {
@@ -107,8 +124,7 @@ func (s *GormStore) GetPackage(id uuid.UUID) (dm.Package, error) {
 	return p, err
 }
 
-func (s *GormStore) ListPackages(filter PackageListFilter) ([]dm.Package, error) {
-	var list []dm.Package
+func (s *GormStore) ListPackages(filter PackageListFilter) ([]dm.Package, int64, error) {
 	q := s.db.Model(&dm.Package{})
 	switch filter.Status {
 	case "pending":
@@ -123,18 +139,16 @@ func (s *GormStore) ListPackages(filter PackageListFilter) ([]dm.Package, error)
 	if filter.TenantID != nil {
 		q = q.Where("tenant_id = ?", *filter.TenantID)
 	}
-	limit := filter.Limit
-	if limit <= 0 || limit > 500 {
-		limit = 100
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	offset := filter.Offset
-	if offset < 0 {
-		offset = 0
-	}
-	err := q.Order("received_at DESC").Limit(limit).Offset(offset).
+	var list []dm.Package
+	err := q.Order("received_at DESC").
 		Preload("Tenant").
+		Scopes(pagination.Scope(filter.Params)).
 		Find(&list).Error
-	return list, err
+	return list, total, err
 }
 
 func (s *GormStore) CreatePackageNotification(n dm.PackageNotification) (dm.PackageNotification, error) {
@@ -182,8 +196,7 @@ func (s *GormStore) CreateGuestAccessEvent(e dm.GuestAccessEvent) (dm.GuestAcces
 	return e, nil
 }
 
-func (s *GormStore) ListGuestVisits(filter GuestVisitListFilter) ([]dm.GuestVisit, error) {
-	var list []dm.GuestVisit
+func (s *GormStore) ListGuestVisits(filter GuestVisitListFilter) ([]dm.GuestVisit, int64, error) {
 	q := s.db.Model(&dm.GuestVisit{})
 	if filter.OnDate != nil {
 		d := filter.OnDate.UTC()
@@ -191,20 +204,16 @@ func (s *GormStore) ListGuestVisits(filter GuestVisitListFilter) ([]dm.GuestVisi
 		end := start.Add(24 * time.Hour)
 		q = q.Where("valid_from < ? AND valid_to >= ?", end, start)
 	}
-	limit := filter.Limit
-	if limit <= 0 || limit > 500 {
-		limit = 100
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	offset := filter.Offset
-	if offset < 0 {
-		offset = 0
-	}
+	var list []dm.GuestVisit
 	err := q.Order("valid_from ASC").
 		Preload("HostTenant").
-		Limit(limit).
-		Offset(offset).
+		Scopes(pagination.Scope(filter.Params)).
 		Find(&list).Error
-	return list, err
+	return list, total, err
 }
 
 func (s *GormStore) CreateTenantEntryToken(t dm.TenantEntryToken) (dm.TenantEntryToken, error) {
@@ -224,6 +233,20 @@ func (s *GormStore) GetTenantEntryTokenByPublicRef(ref string) (dm.TenantEntryTo
 	return t, err
 }
 
+func (s *GormStore) ListTenantEntryTokens(filter TokenListFilter) ([]dm.TenantEntryToken, int64, error) {
+	q := s.db.Model(&dm.TenantEntryToken{})
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var list []dm.TenantEntryToken
+	err := q.Preload("Tenant").
+		Order("created_at DESC").
+		Scopes(pagination.Scope(filter.Params)).
+		Find(&list).Error
+	return list, total, err
+}
+
 func (s *GormStore) CreateAccessEvent(e dm.AccessEvent) (dm.AccessEvent, error) {
 	if err := s.db.Create(&e).Error; err != nil {
 		return dm.AccessEvent{}, fmt.Errorf("create access event: %w", err)
@@ -231,8 +254,7 @@ func (s *GormStore) CreateAccessEvent(e dm.AccessEvent) (dm.AccessEvent, error) 
 	return e, nil
 }
 
-func (s *GormStore) ListAccessEvents(filter AccessEventListFilter) ([]dm.AccessEvent, error) {
-	var list []dm.AccessEvent
+func (s *GormStore) ListAccessEvents(filter AccessEventListFilter) ([]dm.AccessEvent, int64, error) {
 	q := s.db.Model(&dm.AccessEvent{})
 	if filter.TenantID != nil {
 		q = q.Where("tenant_id = ?", *filter.TenantID)
@@ -246,20 +268,16 @@ func (s *GormStore) ListAccessEvents(filter AccessEventListFilter) ([]dm.AccessE
 	if filter.Outcome != "" {
 		q = q.Where("outcome = ?", filter.Outcome)
 	}
-	limit := filter.Limit
-	if limit <= 0 || limit > 500 {
-		limit = 100
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	offset := filter.Offset
-	if offset < 0 {
-		offset = 0
-	}
+	var list []dm.AccessEvent
 	err := q.Order("occurred_at DESC").
 		Preload("Tenant").
-		Limit(limit).
-		Offset(offset).
+		Scopes(pagination.Scope(filter.Params)).
 		Find(&list).Error
-	return list, err
+	return list, total, err
 }
 
 func (s *GormStore) CreateItemLoan(loan dm.ItemLoan) (dm.ItemLoan, error) {
@@ -297,8 +315,7 @@ func (s *GormStore) CountOpenLoansForInventory(inventoryItemID uuid.UUID) (int64
 	return n, err
 }
 
-func (s *GormStore) ListItemLoans(filter ItemLoanListFilter) ([]dm.ItemLoan, error) {
-	var list []dm.ItemLoan
+func (s *GormStore) ListItemLoans(filter ItemLoanListFilter) ([]dm.ItemLoan, int64, error) {
 	q := s.db.Model(&dm.ItemLoan{})
 	if filter.OpenOnly || filter.OverdueOnly {
 		q = q.Where("returned_at IS NULL")
@@ -309,19 +326,15 @@ func (s *GormStore) ListItemLoans(filter ItemLoanListFilter) ([]dm.ItemLoan, err
 	if filter.TenantID != nil {
 		q = q.Where("tenant_id = ?", *filter.TenantID)
 	}
-	limit := filter.Limit
-	if limit <= 0 || limit > 500 {
-		limit = 100
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	offset := filter.Offset
-	if offset < 0 {
-		offset = 0
-	}
+	var list []dm.ItemLoan
 	err := q.Order("checked_out_at DESC").
 		Preload("Tenant").
 		Preload("InventoryItem").
-		Limit(limit).
-		Offset(offset).
+		Scopes(pagination.Scope(filter.Params)).
 		Find(&list).Error
-	return list, err
+	return list, total, err
 }

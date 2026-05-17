@@ -22,8 +22,8 @@ templ ChatShellBody(actorTenantID string, body templ.Component) {
 			"actor_tenant_id",
 			actorTenantID,
 		)
-		@body
 	}
+	@body
 }
 
 templ ChatNav(actorTenantID string) {
@@ -37,11 +37,11 @@ templ ChatNav(actorTenantID string) {
 templ ActorStubForm() {
 	@components.PageHeader(
 		"Chat",
-		"Select a tenant actor (development stub). Use header X-Actor-Tenant-ID or the field below.",
+		"Select a tenant to act as. Paste a tenant UUID or your login user UUID; session login also works for tenant accounts.",
 	)
 	<form method="get" action="/chat/view">
-		<label for="tenant_id">Tenant ID</label>
-		<input id="tenant_id" name="tenant_id" type="text" required/>
+		<label for="tenant_id">Tenant or user ID</label>
+		<input id="tenant_id" name="tenant_id" type="text" required placeholder="Tenant UUID, or user UUID linked to a tenant"/>
 		<button type="submit">Open chat</button>
 	</form>
 }

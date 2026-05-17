@@ -138,7 +138,7 @@ func (s *Seeder) seedChat() error {
 			BaseModel: plat.BaseModel{ID: uuid.New(), CreatedAt: randTime(s.rng, s.start, s.now), UpdatedAt: s.now},
 			TenantID:  t,
 			FlatID:    fl,
-			EventType: et,
+			EventType: chatm.ChatMembershipSyncEventType(et),
 			AppliedAt: randTime(s.rng, s.start, s.now),
 			Payload:   []byte(`{"action":"seed"}`),
 		})
@@ -463,7 +463,7 @@ func (s *Seeder) seedAudit() error {
 			ActorUserID: &actor,
 			Action:     pick(s.rng, actions),
 			TargetType: pick(s.rng, targets),
-			TargetID:   uuid.New().String(),
+			TargetID:   uuid.New(),
 			Outcome:    adm.AuditOutcomeSuccess,
 			OccurredAt: randTime(s.rng, s.start, s.now),
 		})

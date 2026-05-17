@@ -3,6 +3,8 @@ package chat
 import (
 	"errors"
 
+	"dorm-man/internal/pagination"
+
 	"github.com/google/uuid"
 )
 
@@ -54,5 +56,5 @@ type MarkReadInput struct {
 
 type MessageListFilter struct {
 	BeforeMessageID *uuid.UUID
-	Limit           int
+	pagination.Params
 }

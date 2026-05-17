@@ -17,6 +17,16 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 	pages.GET("/access", h.accessPage)
 	pages.GET("/lending", h.lendingPage)
 
+	pages.POST("/packages", h.registerPackageView)
+	pages.POST("/packages/:id/pickup", h.pickupPackageView)
+	pages.POST("/packages/:id/notify", h.notifyPackageView)
+	pages.POST("/guests", h.createGuestVisitView)
+	pages.POST("/guests/:id/check-in", h.guestCheckInView)
+	pages.POST("/guests/:id/check-out", h.guestCheckOutView)
+	pages.POST("/access/tokens", h.issueTenantEntryTokenView)
+	pages.POST("/lending", h.checkoutLoanView)
+	pages.POST("/lending/:id/return", h.returnLoanView)
+
 	api := e.Group("/api/doorman")
 
 	api.POST("/packages", h.registerPackage)

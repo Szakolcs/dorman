@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"dorm-man/internal/pagination"
+	"dorm-man/internal/platform"
 	models "dorm-man/internal/models/administration"
 	adminviews "dorm-man/web/templates/administration"
 
@@ -19,12 +21,8 @@ type Handler struct {
 }
 
 func (h *Handler) actor(c echo.Context) (Principal, error) {
-	value := c.Request().Header.Get("X-Actor-User-ID")
-	if value == "" {
-		return Principal{}, ErrUnauthorized
-	}
-	actorID, err := uuid.Parse(value)
-	if err != nil {
+	actorID, ok := platform.ActorUserID(c)
+	if !ok {
 		return Principal{}, ErrUnauthorized
 	}
 	return h.service.ResolvePrincipal(actorID)
@@ -52,14 +50,17 @@ func (h *Handler) writeError(c echo.Context, err error) error {
 }
 
 func (h *Handler) listTenants(c echo.Context) error {
-	tenants, err := h.service.ListTenants(TenantListFilter{
+	params := pageParams(c)
+	filter := TenantListFilter{
 		Status: c.QueryParam("status"),
 		Search: c.QueryParam("search"),
-	})
+		Params: params,
+	}
+	tenants, total, err := h.service.ListTenants(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": tenants})
+	return writeListJSON(c, tenants, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) getTenant(c echo.Context) error {
@@ -115,14 +116,17 @@ func (h *Handler) updateTenantStatus(c echo.Context, active bool) error {
 }
 
 func (h *Handler) listRooms(c echo.Context) error {
-	rooms, err := h.service.ListRooms(RoomListFilter{
+	params := pageParams(c)
+	filter := RoomListFilter{
 		State:  strings.ToLower(c.QueryParam("state")),
 		Search: c.QueryParam("search"),
-	})
+		Params: params,
+	}
+	rooms, total, err := h.service.ListRooms(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": rooms})
+	return writeListJSON(c, rooms, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) getRoom(c echo.Context) error {
@@ -181,11 +185,12 @@ func (h *Handler) approvePlan(c echo.Context) error {
 }
 
 func (h *Handler) listInventory(c echo.Context) error {
-	items, err := h.service.ListInventory()
+	params := pageParams(c)
+	items, total, err := h.service.ListInventory(InventoryListFilter{Params: params})
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": items})
+	return writeListJSON(c, items, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) createInventory(c echo.Context) error {
@@ -229,14 +234,17 @@ func (h *Handler) updateInventoryStatus(c echo.Context) error {
 }
 
 func (h *Handler) listMaintenanceTickets(c echo.Context) error {
-	tickets, err := h.service.ListMaintenanceTickets(TicketListFilter{
+	params := pageParams(c)
+	filter := TicketListFilter{
 		ApprovalState: c.QueryParam("approval_state"),
 		Status:        c.QueryParam("status"),
-	})
+		Params:        params,
+	}
+	tickets, total, err := h.service.ListMaintenanceTickets(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": tickets})
+	return writeListJSON(c, tickets, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) createMaintenanceTicket(c echo.Context) error {
@@ -318,14 +326,16 @@ func (h *Handler) listJobs(c echo.Context) error {
 		}
 		date = &parsed
 	}
-	jobs, err := h.service.ListOperationalJobs(JobListFilter{
+	params := pageParams(c)
+	jobs, total, err := h.service.ListOperationalJobs(JobListFilter{
 		AssigneeUserID: assigneeID,
 		Date:           date,
+		Params:         params,
 	})
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": jobs})
+	return writeListJSON(c, jobs, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) createJob(c echo.Context) error {
@@ -348,11 +358,12 @@ func (h *Handler) createJob(c echo.Context) error {
 }
 
 func (h *Handler) listNews(c echo.Context) error {
-	posts, err := h.service.ListNews()
+	params := pageParams(c)
+	posts, total, err := h.service.ListNews(PublicationListFilter{Params: params})
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": posts})
+	return writeListJSON(c, posts, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) createNews(c echo.Context) error {
@@ -388,11 +399,12 @@ func (h *Handler) publishNews(c echo.Context) error {
 }
 
 func (h *Handler) listActivities(c echo.Context) error {
-	activities, err := h.service.ListActivities()
+	params := pageParams(c)
+	activities, total, err := h.service.ListActivities(PublicationListFilter{Params: params})
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": activities})
+	return writeListJSON(c, activities, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) createActivity(c echo.Context) error {
@@ -428,11 +440,12 @@ func (h *Handler) publishActivity(c echo.Context) error {
 }
 
 func (h *Handler) listEvents(c echo.Context) error {
-	events, err := h.service.ListEvents()
+	params := pageParams(c)
+	events, total, err := h.service.ListEvents(PublicationListFilter{Params: params})
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": events})
+	return writeListJSON(c, events, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) createEvent(c echo.Context) error {
@@ -485,30 +498,3 @@ func (h *Handler) dashboardPage(c echo.Context) error {
 	return renderComponent(c, adminviews.DashboardPage())
 }
 
-func (h *Handler) tenantsPage(c echo.Context) error {
-	return renderComponent(c, adminviews.TenantsPage())
-}
-
-func (h *Handler) roomsPage(c echo.Context) error {
-	return renderComponent(c, adminviews.RoomsPage())
-}
-
-func (h *Handler) inventoryPage(c echo.Context) error {
-	return renderComponent(c, adminviews.InventoryPage())
-}
-
-func (h *Handler) maintenancePage(c echo.Context) error {
-	return renderComponent(c, adminviews.MaintenancePage())
-}
-
-func (h *Handler) jobsPage(c echo.Context) error {
-	return renderComponent(c, adminviews.JobsPage())
-}
-
-func (h *Handler) publicationsPage(c echo.Context) error {
-	return renderComponent(c, adminviews.PublicationsPage())
-}
-
-func (h *Handler) auditPage(c echo.Context) error {
-	return renderComponent(c, adminviews.AuditPage())
-}

@@ -51,6 +51,8 @@ func New() (*App, error) {
 	e.Use(middleware.RequestID())
 	e.Use(middleware.Logger())
 
+	platform.ConfigureSession(cfg.SessionSecret)
+
 	administration.RegisterRoutes(e, db)
 	chat.RegisterRoutes(e, db)
 	doorman.RegisterRoutes(e, db)

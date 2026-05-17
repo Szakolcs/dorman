@@ -44,6 +44,7 @@ templ PostPageBody(data PostPageData) {
 		<h2>Comments</h2>
 		<div id="comments-list">
 			@CommentsList(data.Comments)
+			@components.PaginationNavNamed("/forum/view/posts/"+data.Post.ID.String(), data.CommentsPagination, data.CommentsPreserve, "comments_page", "comments_page_size")
 		</div>
 		@CommentForm(data.Post.ID)
 	</section>

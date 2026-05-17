@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"dorm-man/internal/pagination"
 	models "dorm-man/internal/models/administration"
 	forummodels "dorm-man/internal/models/forum"
 
@@ -15,13 +16,14 @@ import (
 
 type Store interface {
 	LoadPrincipal(userID uuid.UUID) (Principal, error)
+	ListStaffUsers() ([]models.User, error)
 
 	CreateTenant(tenant models.Tenant) (models.Tenant, error)
 	UpdateTenantStatus(tenantID uuid.UUID, active bool) (models.Tenant, error)
-	ListTenants(filter TenantListFilter) ([]models.Tenant, error)
+	ListTenants(filter TenantListFilter) ([]models.Tenant, int64, error)
 	GetTenant(tenantID uuid.UUID) (models.Tenant, error)
 
-	ListRooms(filter RoomListFilter) ([]models.Room, error)
+	ListRooms(filter RoomListFilter) ([]models.Room, int64, error)
 	GetRoom(roomID uuid.UUID) (models.Room, error)
 	GetActiveAssignmentCount(roomID uuid.UUID) (int64, error)
 	CloseActiveAssignmentByTenant(tx *gorm.DB, tenantID uuid.UUID, endedAt time.Time) error
@@ -33,34 +35,35 @@ type Store interface {
 
 	CreateInventoryItem(item models.InventoryItem) (models.InventoryItem, error)
 	UpdateInventoryStatus(id uuid.UUID, status models.InventoryStatus, condition models.InventoryCondition, withdrawDate *time.Time) (models.InventoryItem, error)
-	ListInventory() ([]models.InventoryItem, error)
+	ListInventory(filter InventoryListFilter) ([]models.InventoryItem, int64, error)
 
 	CreateMaintenanceTicket(ticket models.MaintenanceTicket) (models.MaintenanceTicket, error)
 	GetMaintenanceTicket(ticketID uuid.UUID) (models.MaintenanceTicket, error)
 	UpdateMaintenanceTicket(ticket models.MaintenanceTicket) (models.MaintenanceTicket, error)
 	CreateTicketStatusChange(change models.TicketStatusChange) error
-	ListMaintenanceTickets(filter TicketListFilter) ([]models.MaintenanceTicket, error)
+	ListMaintenanceTickets(filter TicketListFilter) ([]models.MaintenanceTicket, int64, error)
 
 	ListJobConflicts(assigneeID uuid.UUID, startsAt, endsAt time.Time) ([]models.OperationalJob, error)
 	CreateOperationalJob(job models.OperationalJob) (models.OperationalJob, error)
-	ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, error)
+	ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, int64, error)
 
 	CreateForumPost(post forummodels.ForumPost) (forummodels.ForumPost, error)
 	UpdateForumPost(post forummodels.ForumPost) (forummodels.ForumPost, error)
 	GetForumPost(id uuid.UUID) (forummodels.ForumPost, error)
-	ListForumPosts() ([]forummodels.ForumPost, error)
+	ListForumPosts(filter PublicationListFilter) ([]forummodels.ForumPost, int64, error)
 
 	CreateActivity(activity models.Activity) (models.Activity, error)
 	UpdateActivity(activity models.Activity) (models.Activity, error)
 	GetActivity(id uuid.UUID) (models.Activity, error)
-	ListActivities() ([]models.Activity, error)
+	ListActivities(filter PublicationListFilter) ([]models.Activity, int64, error)
 
 	CreateEvent(event models.Event) (models.Event, error)
 	UpdateEvent(event models.Event) (models.Event, error)
 	GetEvent(id uuid.UUID) (models.Event, error)
-	ListEvents() ([]models.Event, error)
+	ListEvents(filter PublicationListFilter) ([]models.Event, int64, error)
 
 	CreateAudit(event models.AuditEvent) error
+	ListAuditEvents(filter AuditListFilter) ([]models.AuditEvent, int64, error)
 }
 
 type GormStore struct {
@@ -93,6 +96,25 @@ func (s *GormStore) LoadPrincipal(userID uuid.UUID) (Principal, error) {
 	return Principal{UserID: userID, Roles: roles}, nil
 }
 
+func (s *GormStore) ListStaffUsers() ([]models.User, error) {
+	staffRoles := []models.RoleName{
+		models.RoleAdministrator,
+		models.RoleOfficeWorker,
+		models.RoleDirector,
+		models.RoleDoorman,
+	}
+	var users []models.User
+	err := s.db.
+		Joins("JOIN user_roles ON user_roles.user_id = users.id AND user_roles.revoked_at IS NULL").
+		Joins("JOIN roles ON roles.id = user_roles.role_id").
+		Where("roles.name IN ?", staffRoles).
+		Where("users.is_active = ?", true).
+		Distinct("users.*").
+		Order("users.name ASC").
+		Find(&users).Error
+	return users, err
+}
+
 func (s *GormStore) CreateTenant(tenant models.Tenant) (models.Tenant, error) {
 	if err := s.db.Create(&tenant).Error; err != nil {
 		return models.Tenant{}, err
@@ -115,8 +137,7 @@ func (s *GormStore) UpdateTenantStatus(tenantID uuid.UUID, active bool) (models.
 	return tenant, nil
 }
 
-func (s *GormStore) ListTenants(filter TenantListFilter) ([]models.Tenant, error) {
-	var tenants []models.Tenant
+func (s *GormStore) ListTenants(filter TenantListFilter) ([]models.Tenant, int64, error) {
 	q := s.db.Model(&models.Tenant{})
 	switch strings.ToLower(filter.Status) {
 	case "active":
@@ -128,10 +149,15 @@ func (s *GormStore) ListTenants(filter TenantListFilter) ([]models.Tenant, error
 		like := "%" + strings.ToLower(strings.TrimSpace(filter.Search)) + "%"
 		q = q.Where("LOWER(name) LIKE ? OR LOWER(student_code) LIKE ? OR LOWER(email) LIKE ?", like, like, like)
 	}
-	if err := q.Order("name ASC").Find(&tenants).Error; err != nil {
-		return nil, err
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	return tenants, nil
+	var tenants []models.Tenant
+	if err := q.Order("name ASC").Scopes(pagination.Scope(filter.Params)).Find(&tenants).Error; err != nil {
+		return nil, 0, err
+	}
+	return tenants, total, nil
 }
 
 func (s *GormStore) GetTenant(tenantID uuid.UUID) (models.Tenant, error) {
@@ -145,17 +171,21 @@ func (s *GormStore) GetTenant(tenantID uuid.UUID) (models.Tenant, error) {
 	return tenant, err
 }
 
-func (s *GormStore) ListRooms(filter RoomListFilter) ([]models.Room, error) {
-	var rooms []models.Room
-	q := s.db.Model(&models.Room{}).Preload("InventoryItems")
+func (s *GormStore) ListRooms(filter RoomListFilter) ([]models.Room, int64, error) {
+	q := s.db.Model(&models.Room{})
 	if strings.TrimSpace(filter.Search) != "" {
 		like := "%" + strings.ToLower(strings.TrimSpace(filter.Search)) + "%"
 		q = q.Where("LOWER(number) LIKE ?", like)
 	}
-	if err := q.Order("number ASC").Find(&rooms).Error; err != nil {
-		return nil, err
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	return rooms, nil
+	var rooms []models.Room
+	if err := q.Preload("InventoryItems").Order("number ASC").Scopes(pagination.Scope(filter.Params)).Find(&rooms).Error; err != nil {
+		return nil, 0, err
+	}
+	return rooms, total, nil
 }
 
 func (s *GormStore) GetRoom(roomID uuid.UUID) (models.Room, error) {
@@ -244,12 +274,18 @@ func (s *GormStore) UpdateInventoryStatus(id uuid.UUID, status models.InventoryS
 	return item, nil
 }
 
-func (s *GormStore) ListInventory() ([]models.InventoryItem, error) {
+func (s *GormStore) ListInventory(filter InventoryListFilter) ([]models.InventoryItem, int64, error) {
+	q := s.db.Model(&models.InventoryItem{})
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
 	var items []models.InventoryItem
-	err := s.db.Preload("Room").Preload("Flat").Preload("Building").
+	err := q.Preload("Room").Preload("Flat").Preload("Building").
 		Order("name ASC").
+		Scopes(pagination.Scope(filter.Params)).
 		Find(&items).Error
-	return items, err
+	return items, total, err
 }
 
 func (s *GormStore) CreateMaintenanceTicket(ticket models.MaintenanceTicket) (models.MaintenanceTicket, error) {
@@ -282,17 +318,24 @@ func (s *GormStore) CreateTicketStatusChange(change models.TicketStatusChange) e
 	return s.db.Create(&change).Error
 }
 
-func (s *GormStore) ListMaintenanceTickets(filter TicketListFilter) ([]models.MaintenanceTicket, error) {
-	var tickets []models.MaintenanceTicket
-	q := s.db.Model(&models.MaintenanceTicket{}).Preload("CreatedByUser").Preload("AssigneeUser")
+func (s *GormStore) ListMaintenanceTickets(filter TicketListFilter) ([]models.MaintenanceTicket, int64, error) {
+	q := s.db.Model(&models.MaintenanceTicket{})
 	if filter.Status != "" {
 		q = q.Where("status = ?", filter.Status)
 	}
 	if filter.ApprovalState == "pending" {
 		q = q.Where("status = ?", models.MaintenanceStatusReported)
 	}
-	err := q.Order("created_at DESC").Find(&tickets).Error
-	return tickets, err
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var tickets []models.MaintenanceTicket
+	err := q.Preload("CreatedByUser").Preload("AssigneeUser").
+		Order("created_at DESC").
+		Scopes(pagination.Scope(filter.Params)).
+		Find(&tickets).Error
+	return tickets, total, err
 }
 
 func (s *GormStore) ListJobConflicts(assigneeID uuid.UUID, startsAt, endsAt time.Time) ([]models.OperationalJob, error) {
@@ -309,9 +352,8 @@ func (s *GormStore) CreateOperationalJob(job models.OperationalJob) (models.Oper
 	return job, nil
 }
 
-func (s *GormStore) ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, error) {
-	var jobs []models.OperationalJob
-	q := s.db.Model(&models.OperationalJob{}).Preload("AssigneeUser")
+func (s *GormStore) ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, int64, error) {
+	q := s.db.Model(&models.OperationalJob{})
 	if filter.AssigneeUserID != nil {
 		q = q.Where("assignee_user_id = ?", *filter.AssigneeUserID)
 	}
@@ -320,8 +362,16 @@ func (s *GormStore) ListOperationalJobs(filter JobListFilter) ([]models.Operatio
 		end := start.Add(24 * time.Hour)
 		q = q.Where("starts_at < ? AND ends_at > ?", end, start)
 	}
-	err := q.Order("starts_at ASC").Find(&jobs).Error
-	return jobs, err
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var jobs []models.OperationalJob
+	err := q.Preload("AssigneeUser").
+		Order("starts_at ASC").
+		Scopes(pagination.Scope(filter.Params)).
+		Find(&jobs).Error
+	return jobs, total, err
 }
 
 func (s *GormStore) CreateForumPost(post forummodels.ForumPost) (forummodels.ForumPost, error) {
@@ -347,10 +397,18 @@ func (s *GormStore) GetForumPost(id uuid.UUID) (forummodels.ForumPost, error) {
 	return post, err
 }
 
-func (s *GormStore) ListForumPosts() ([]forummodels.ForumPost, error) {
+func (s *GormStore) ListForumPosts(filter PublicationListFilter) ([]forummodels.ForumPost, int64, error) {
+	q := s.db.Model(&forummodels.ForumPost{}).Where("kind = ?", forummodels.ForumPostKindOfficialNews)
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
 	var posts []forummodels.ForumPost
-	err := s.db.Order("created_at DESC").Find(&posts).Error
-	return posts, err
+	err := q.Preload("AuthorUser").
+		Order("created_at DESC").
+		Scopes(pagination.Scope(filter.Params)).
+		Find(&posts).Error
+	return posts, total, err
 }
 
 func (s *GormStore) CreateActivity(activity models.Activity) (models.Activity, error) {
@@ -376,10 +434,15 @@ func (s *GormStore) GetActivity(id uuid.UUID) (models.Activity, error) {
 	return activity, err
 }
 
-func (s *GormStore) ListActivities() ([]models.Activity, error) {
+func (s *GormStore) ListActivities(filter PublicationListFilter) ([]models.Activity, int64, error) {
+	q := s.db.Model(&models.Activity{})
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
 	var activities []models.Activity
-	err := s.db.Order("created_at DESC").Find(&activities).Error
-	return activities, err
+	err := q.Order("created_at DESC").Scopes(pagination.Scope(filter.Params)).Find(&activities).Error
+	return activities, total, err
 }
 
 func (s *GormStore) CreateEvent(event models.Event) (models.Event, error) {
@@ -405,10 +468,29 @@ func (s *GormStore) GetEvent(id uuid.UUID) (models.Event, error) {
 	return event, err
 }
 
-func (s *GormStore) ListEvents() ([]models.Event, error) {
+func (s *GormStore) ListEvents(filter PublicationListFilter) ([]models.Event, int64, error) {
+	q := s.db.Model(&models.Event{})
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
 	var events []models.Event
-	err := s.db.Order("starts_at ASC").Find(&events).Error
-	return events, err
+	err := q.Preload("Organizer").Order("starts_at ASC").Scopes(pagination.Scope(filter.Params)).Find(&events).Error
+	return events, total, err
+}
+
+func (s *GormStore) ListAuditEvents(filter AuditListFilter) ([]models.AuditEvent, int64, error) {
+	q := s.db.Model(&models.AuditEvent{})
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var events []models.AuditEvent
+	err := q.Preload("ActorUser").
+		Order("occurred_at DESC").
+		Scopes(pagination.Scope(filter.Params)).
+		Find(&events).Error
+	return events, total, err
 }
 
 func (s *GormStore) CreateAudit(event models.AuditEvent) error {

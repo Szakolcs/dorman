@@ -1,0 +1,43 @@
+package administration
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ TenantDetailPage(data TenantDetailPageData) {
+	@components.AppDocument("Tenant — "+data.Tenant.Name, TenantDetailContent(data))
+}
+
+templ TenantDetailContent(data TenantDetailPageData) {
+	@partials.AdministrationNav()
+	@components.BackLink("/administration/tenants", "Back to tenants")
+	@components.PageHeader(data.Tenant.Name, "Tenant profile and room assignment.")
+	<dl>
+		<dt>Student code</dt>
+		<dd>{ data.Tenant.StudentCode }</dd>
+		<dt>Email</dt>
+		<dd>{ data.Tenant.Email }</dd>
+		<dt>Status</dt>
+		<dd>{ tenantStatus(data.Tenant.IsActive) }</dd>
+		if data.Tenant.Nationality != nil {
+			<dt>Nationality</dt>
+			<dd>{ string(*data.Tenant.Nationality) }</dd>
+		}
+	</dl>
+	if len(data.Tenant.RoomAssignments) > 0 {
+		@components.Section("Current room", TenantRoomSection(data))
+	}
+}
+
+templ TenantRoomSection(data TenantDetailPageData) {
+	<ul>
+		for _, a := range data.Tenant.RoomAssignments {
+			if a.Room.Number != "" {
+				<li>
+					<a href={ templ.SafeURL("/administration/rooms/" + a.Room.ID.String()) }>
+						Room { a.Room.Number }
+					</a>
+				</li>
+			}
+		}
+	</ul>
+}

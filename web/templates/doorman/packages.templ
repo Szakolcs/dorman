@@ -1,13 +1,17 @@
 package doorman
 
+import (
+	dm "dorm-man/internal/models/doorman"
+)
+
 import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
-templ PackagesPage() {
-	@components.AppDocument("Doorman - Packages", PackagesContent())
+templ PackagesPage(data PackagesPageData) {
+	@components.AppDocument("Doorman - Packages", PackagesContent(data))
 }
 
-templ PackagesContent() {
+templ PackagesContent(data PackagesPageData) {
 	@components.PageHeader(
 		"Packages",
 		"Inbound parcels: register with optional tenant mapping, lifecycle received → notified (optional) → picked up.",
@@ -15,67 +19,64 @@ templ PackagesContent() {
 	@partials.DoormanNav()
 	@components.BackLink("/doorman", "Back to Doorman")
 
-	@components.Section(
-		"Parcel queue filters",
-		PackagesFilters(),
-	)
-
-	@components.Section(
-		"Parcel intake",
-		PackageRegisterForm(),
-	)
-
-	@components.Section(
-		"Pending queue (browse via API)",
-		PackagesBrowseHint(),
-	)
-
-	@components.Section(
-		"Pickup and notification helpers",
-		PackagePickupNotifyForms(),
-	)
+	@components.Section("Recent parcels", PackagesTable(data))
+	@components.Section("Parcel intake", PackageRegisterForm(data))
 }
 
-templ PackagesFilters() {
-	<p>Use the REST API GET <code>/api/doorman/packages</code> with query parameters:</p>
-	<ul>
-		<li><code>status=pending</code>: not picked up</li>
-		<li><code>status=received|notified|picked_up</code></li>
-		<li><code>tenant_id=UUID</code></li>
-		<li><code>limit</code>, <code>offset</code></li>
-	</ul>
+templ PackagesTable(data PackagesPageData) {
+	@components.DataTable([]string{"Recipient", "Tenant", "Status", "Received", "Actions"}, PackageRows(data))
+	@components.PaginationNav("/doorman/packages", data.Pagination, map[string]string{})
 }
 
-templ PackageRegisterForm() {
-	<p>POST JSON to <code>/api/doorman/packages</code> (header <code>X-Actor-User-ID</code>). Form below documents fields only.</p>
-	<form method="post" action="/api/doorman/packages">
+templ PackageRows(data PackagesPageData) {
+	if len(data.Packages) == 0 {
+		<tr>
+			<td colspan="5">No packages in the database.</td>
+		</tr>
+	}
+	for _, p := range data.Packages {
+		<tr>
+			<td>{ p.RecipientLabel }</td>
+			<td>{ packageTenantLabel(p) }</td>
+			<td>{ string(p.Status) }</td>
+			<td>{ p.ReceivedAt.Format("2006-01-02 15:04") }</td>
+			<td>
+				@PackageRowActions(p)
+			</td>
+		</tr>
+	}
+}
+
+templ PackageRowActions(p dm.Package) {
+	if p.Status != dm.PackageStatusPickedUp {
+		<form method="post" action={ templ.SafeURL("/doorman/packages/" + p.ID.String() + "/pickup") } class="inline-form">
+			<button type="submit">Pickup</button>
+		</form>
+		if p.Status == dm.PackageStatusReceived {
+			<form method="post" action={ templ.SafeURL("/doorman/packages/" + p.ID.String() + "/notify") } class="inline-form">
+				<input type="hidden" name="channel" value="email"/>
+				<button type="submit">Notify</button>
+			</form>
+		}
+	}
+}
+
+templ PackageRegisterForm(data PackagesPageData) {
+	<form method="post" action="/doorman/packages">
 		<label for="pkg-recipient">Recipient label</label>
-		<input id="pkg-recipient" type="text" name="recipient_label"/>
+		<input id="pkg-recipient" type="text" name="recipient_label" required/>
 
 		<label for="pkg-desc">Description</label>
 		<input id="pkg-desc" type="text" name="description"/>
 
-		<label for="pkg-tenant">Tenant UUID (optional)</label>
-		<input id="pkg-tenant" type="text" name="tenant_id"/>
+		<label for="pkg-tenant">Tenant (optional)</label>
+		<select id="pkg-tenant" name="tenant_id">
+			<option value="">—</option>
+			for _, t := range data.Tenants {
+				<option value={ t.ID.String() }>{ t.Name }</option>
+			}
+		</select>
 
-		<button type="submit">Submit (placeholder — use JSON API)</button>
-	</form>
-}
-
-templ PackagesBrowseHint() {
-	<ul>
-		<li>List pending pickups from the parcel queue (<code>/api/doorman/packages?status=pending</code>).</li>
-		<li>Pickup confirmation: POST <code>{ `/api/doorman/packages/{id}/pickup` }</code></li>
-		<li>Manual status: POST <code>{ `/api/doorman/packages/{id}/transition` }</code> body <code>{ `{"to":"notified"}` }</code></li>
-		<li>In-app/email notification log: POST <code>{ `/api/doorman/packages/{id}/notify` }</code> body <code>{ `{"channel":"in_app"}` }</code></li>
-	</ul>
-}
-
-templ PackagePickupNotifyForms() {
-	<form method="get" action="#">
-		<label for="pkg-id-actions">Parcel UUID</label>
-		<input id="pkg-id-actions" type="text" placeholder="parcel id"/>
-
-		<p>Wire these actions against <code>/api/doorman/packages/:id/pickup</code> or <code>.../notify</code>.</p>
+		<button type="submit">Register parcel</button>
 	</form>
 }

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"dorm-man/internal/administration"
+	"dorm-man/internal/pagination"
+	"dorm-man/internal/platform"
 	fm "dorm-man/internal/models/forum"
 	forumviews "dorm-man/web/templates/forum"
 
@@ -29,18 +31,8 @@ func (h *Handler) actor(c echo.Context) (administration.Principal, error) {
 }
 
 func (h *Handler) actorFromRequest(c echo.Context) (administration.Principal, error) {
-	value := c.Request().Header.Get("X-Actor-User-ID")
-	if value == "" {
-		value = c.FormValue("actor_user_id")
-	}
-	if value == "" {
-		value = c.QueryParam("actor_user_id")
-	}
-	if value == "" {
-		return administration.Principal{}, ErrUnauthorized
-	}
-	id, err := uuid.Parse(value)
-	if err != nil {
+	id, ok := platform.ActorUserID(c)
+	if !ok {
 		return administration.Principal{}, ErrUnauthorized
 	}
 	return h.service.ResolvePrincipal(id)
@@ -115,20 +107,12 @@ func (h *Handler) listFeed(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	filter := FeedListFilter{
-		Kind:          fm.ForumPostKind(c.QueryParam("kind")),
-		OfficialOnly:  parseBoolQuery(c, "official_only"),
-		CommunityOnly: parseBoolQuery(c, "community_only"),
-		Sort:          FeedSort(c.QueryParam("sort")),
-		Limit:         queryPositiveInt(c, "limit", 50),
-		Offset:        queryPositiveInt(c, "offset", 0),
-		IncludeHidden: parseBoolQuery(c, "include_hidden"),
-	}
-	posts, err := h.service.ListFeed(principal, filter)
+	filter := feedFilterFromRequest(c)
+	posts, total, err := h.service.ListFeed(principal, filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": posts})
+	return writeListJSON(c, posts, pagination.NewMeta(filter.Params, total))
 }
 
 func (h *Handler) getPost(c echo.Context) error {
@@ -208,15 +192,13 @@ func (h *Handler) listComments(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	list, err := h.service.ListComments(principal, CommentListFilter{
-		PostID: postID,
-		Limit:  queryPositiveInt(c, "limit", 100),
-		Offset: queryPositiveInt(c, "offset", 0),
-	})
+	params := pageParams(c)
+	filter := CommentListFilter{PostID: postID, Params: params}
+	list, total, err := h.service.ListComments(principal, filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": list})
+	return writeListJSON(c, list, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) createComment(c echo.Context) error {
@@ -447,13 +429,7 @@ func isHtmx(c echo.Context) bool {
 }
 
 func actorUserIDFromRequest(c echo.Context) string {
-	if v := c.Request().Header.Get("X-Actor-User-ID"); v != "" {
-		return v
-	}
-	if v := c.FormValue("actor_user_id"); v != "" {
-		return v
-	}
-	return c.QueryParam("actor_user_id")
+	return platform.ActorUserIDString(c)
 }
 
 func (h *Handler) renderViewError(c echo.Context, err error) error {
@@ -489,12 +465,12 @@ func (h *Handler) feedListFragment(c echo.Context) error {
 	if err != nil {
 		return h.renderViewError(c, err)
 	}
-	return renderComponent(c, forumviews.FeedList(data.Posts))
+	return renderComponent(c, forumviews.FeedListFragment(data))
 }
 
 func (h *Handler) buildFeedPageData(c echo.Context, principal administration.Principal) (forumviews.FeedPageData, error) {
 	filter := feedFilterFromRequest(c)
-	posts, err := h.service.ListFeed(principal, filter)
+	posts, total, err := h.service.ListFeed(principal, filter)
 	if err != nil {
 		return forumviews.FeedPageData{}, err
 	}
@@ -505,6 +481,8 @@ func (h *Handler) buildFeedPageData(c echo.Context, principal administration.Pri
 		OfficialOnly:  filter.OfficialOnly,
 		CommunityOnly: filter.CommunityOnly,
 		ActorUserID:   actorUserIDFromRequest(c),
+		Pagination:    pagination.NewMeta(filter.Params, total),
+		Preserve:      queryPreserve(c),
 	}, nil
 }
 
@@ -518,9 +496,8 @@ func feedFilterFromRequest(c echo.Context) FeedListFilter {
 		OfficialOnly:  parseBoolQuery(c, "official_only"),
 		CommunityOnly: parseBoolQuery(c, "community_only"),
 		Sort:          sort,
-		Limit:         queryPositiveInt(c, "limit", 50),
-		Offset:        queryPositiveInt(c, "offset", 0),
 		IncludeHidden: parseBoolQuery(c, "include_hidden"),
+		Params:        pageParams(c),
 	}
 }
 
@@ -537,19 +514,20 @@ func (h *Handler) postPage(c echo.Context) error {
 	if err != nil {
 		return h.renderViewError(c, ErrValidation)
 	}
-	data, err := h.buildPostPageData(principal, postID, true, actorUserIDFromRequest(c))
+	data, err := h.buildPostPageData(c, principal, postID, true, actorUserIDFromRequest(c))
 	if err != nil {
 		return h.renderViewError(c, err)
 	}
 	return renderComponent(c, forumviews.PostPage(data))
 }
 
-func (h *Handler) buildPostPageData(principal administration.Principal, postID uuid.UUID, recordView bool, actorUserID string) (forumviews.PostPageData, error) {
+func (h *Handler) buildPostPageData(c echo.Context, principal administration.Principal, postID uuid.UUID, recordView bool, actorUserID string) (forumviews.PostPageData, error) {
 	detail, err := h.service.GetPost(principal, postID, recordView)
 	if err != nil {
 		return forumviews.PostPageData{}, err
 	}
-	comments, err := h.service.ListComments(principal, CommentListFilter{PostID: postID, Limit: 200})
+	commentParams := pageParamsNamed(c, "comments_page", "comments_page_size")
+	comments, commentTotal, err := h.service.ListComments(principal, CommentListFilter{PostID: postID, Params: commentParams})
 	if err != nil {
 		return forumviews.PostPageData{}, err
 	}
@@ -570,12 +548,14 @@ func (h *Handler) buildPostPageData(principal administration.Principal, postID u
 	}
 
 	data := forumviews.PostPageData{
-		Post:        detail.Post,
-		Aggregates:  agg,
-		Schedule:    detail.Post.Schedule,
-		Comments:    comments,
-		Updates:     updates,
-		ActorUserID: actorUserID,
+		Post:               detail.Post,
+		Aggregates:         agg,
+		Schedule:           detail.Post.Schedule,
+		Comments:           comments,
+		CommentsPagination: pagination.NewMeta(commentParams, commentTotal),
+		CommentsPreserve:   queryPreserve(c, "comments_page", "comments_page_size"),
+		Updates:            updates,
+		ActorUserID:        actorUserID,
 	}
 
 	if detail.Post.Poll != nil {
@@ -614,7 +594,7 @@ func (h *Handler) createCommunityPostView(c echo.Context) error {
 	if err != nil {
 		return h.renderViewError(c, err)
 	}
-	return renderComponent(c, forumviews.FeedList(data.Posts))
+	return renderComponent(c, forumviews.FeedListFragment(data))
 }
 
 func communityPostInputFromForm(c echo.Context) (CommunityPostInput, error) {
@@ -658,7 +638,8 @@ func (h *Handler) createCommentView(c echo.Context) error {
 	if _, err := h.service.CreateComment(principal, postID, CommentInput{Body: body}); err != nil {
 		return h.renderViewError(c, err)
 	}
-	comments, err := h.service.ListComments(principal, CommentListFilter{PostID: postID, Limit: 200})
+	commentParams := pageParamsNamed(c, "comments_page", "comments_page_size")
+	comments, _, err := h.service.ListComments(principal, CommentListFilter{PostID: postID, Params: commentParams})
 	if err != nil {
 		return h.renderViewError(c, err)
 	}
@@ -746,7 +727,7 @@ func (h *Handler) castPollVoteView(c echo.Context) error {
 	if err != nil {
 		return h.renderViewError(c, err)
 	}
-	data, err := h.buildPostPageData(principal, poll.ForumPostID, false, actorUserIDFromRequest(c))
+	data, err := h.buildPostPageData(c, principal, poll.ForumPostID, false, actorUserIDFromRequest(c))
 	if err != nil {
 		return h.renderViewError(c, err)
 	}

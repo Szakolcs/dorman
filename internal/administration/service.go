@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"dorm-man/internal/pagination"
 	models "dorm-man/internal/models/administration"
 	forummodels "dorm-man/internal/models/forum"
 
@@ -24,7 +25,15 @@ func (s *Service) ResolvePrincipal(actorID uuid.UUID) (Principal, error) {
 	return s.store.LoadPrincipal(actorID)
 }
 
-func (s *Service) ListTenants(filter TenantListFilter) ([]models.Tenant, error) {
+func (s *Service) ListStaffUsers() ([]models.User, error) {
+	return s.store.ListStaffUsers()
+}
+
+func (s *Service) ListUnassignedActiveTenants() ([]models.Tenant, error) {
+	return s.store.ListUnassignedActiveTenants()
+}
+
+func (s *Service) ListTenants(filter TenantListFilter) ([]models.Tenant, int64, error) {
 	return s.store.ListTenants(filter)
 }
 
@@ -67,20 +76,24 @@ func (s *Service) GetTenant(tenantID uuid.UUID) (models.Tenant, error) {
 	return s.store.GetTenant(tenantID)
 }
 
-func (s *Service) ListRooms(filter RoomListFilter) ([]models.Room, error) {
-	rooms, err := s.store.ListRooms(filter)
+func (s *Service) ListRooms(filter RoomListFilter) ([]models.Room, int64, error) {
+	storeFilter := filter
+	if filter.State != "" {
+		storeFilter.Params = pagination.Params{Page: 1, PageSize: 0}
+	}
+	rooms, total, err := s.store.ListRooms(storeFilter)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if filter.State == "" {
-		return rooms, nil
+		return rooms, total, nil
 	}
 
 	filtered := make([]models.Room, 0, len(rooms))
 	for _, room := range rooms {
 		occupancy, err := s.store.GetActiveAssignmentCount(room.ID)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		switch filter.State {
 		case "occupied":
@@ -92,7 +105,6 @@ func (s *Service) ListRooms(filter RoomListFilter) ([]models.Room, error) {
 				filtered = append(filtered, room)
 			}
 		case "maintenance-needed":
-			// Placeholder for future rule integration, currently inferred by low-quality inventory.
 			hasDamagedInventory := false
 			for _, item := range room.InventoryItems {
 				if item.Condition == models.InventoryConditionDamaged || item.Condition == models.InventoryConditionBroken {
@@ -107,11 +119,15 @@ func (s *Service) ListRooms(filter RoomListFilter) ([]models.Room, error) {
 			filtered = append(filtered, room)
 		}
 	}
-	return filtered, nil
+	return filtered, int64(len(filtered)), nil
 }
 
 func (s *Service) GetRoom(roomID uuid.UUID) (models.Room, error) {
 	return s.store.GetRoom(roomID)
+}
+
+func (s *Service) RoomOccupancy(roomID uuid.UUID) (int64, error) {
+	return s.store.GetActiveAssignmentCount(roomID)
 }
 
 func (s *Service) AssignTenant(principal Principal, tenantID, roomID uuid.UUID) (models.RoomAssignment, error) {
@@ -268,8 +284,8 @@ func (s *Service) UpdateInventoryStatus(principal Principal, id uuid.UUID, statu
 	return item, nil
 }
 
-func (s *Service) ListInventory() ([]models.InventoryItem, error) {
-	return s.store.ListInventory()
+func (s *Service) ListInventory(filter InventoryListFilter) ([]models.InventoryItem, int64, error) {
+	return s.store.ListInventory(filter)
 }
 
 func (s *Service) CreateMaintenanceTicket(principal Principal, ticket models.MaintenanceTicket) (models.MaintenanceTicket, error) {
@@ -351,7 +367,7 @@ func (s *Service) TransitionMaintenanceTicket(principal Principal, ticketID uuid
 	return updated, nil
 }
 
-func (s *Service) ListMaintenanceTickets(filter TicketListFilter) ([]models.MaintenanceTicket, error) {
+func (s *Service) ListMaintenanceTickets(filter TicketListFilter) ([]models.MaintenanceTicket, int64, error) {
 	return s.store.ListMaintenanceTickets(filter)
 }
 
@@ -385,7 +401,7 @@ func (s *Service) CreateOperationalJob(principal Principal, job models.Operation
 	return CreateJobResult{Job: created, Conflicts: mapped}, nil
 }
 
-func (s *Service) ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, error) {
+func (s *Service) ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, int64, error) {
 	return s.store.ListOperationalJobs(filter)
 }
 
@@ -435,8 +451,12 @@ func (s *Service) PublishNews(principal Principal, id uuid.UUID) (forummodels.Fo
 	return updated, nil
 }
 
-func (s *Service) ListNews() ([]forummodels.ForumPost, error) {
-	return s.store.ListForumPosts()
+func (s *Service) ListNews(filter PublicationListFilter) ([]forummodels.ForumPost, int64, error) {
+	return s.store.ListForumPosts(filter)
+}
+
+func (s *Service) ListAuditEvents(filter AuditListFilter) ([]models.AuditEvent, int64, error) {
+	return s.store.ListAuditEvents(filter)
 }
 
 func (s *Service) CreateActivity(principal Principal, input ActivityUpsertInput) (models.Activity, error) {
@@ -481,8 +501,8 @@ func (s *Service) PublishActivity(principal Principal, id uuid.UUID) (models.Act
 	return updated, nil
 }
 
-func (s *Service) ListActivities() ([]models.Activity, error) {
-	return s.store.ListActivities()
+func (s *Service) ListActivities(filter PublicationListFilter) ([]models.Activity, int64, error) {
+	return s.store.ListActivities(filter)
 }
 
 func (s *Service) CreateEvent(principal Principal, input EventUpsertInput) (models.Event, error) {
@@ -541,8 +561,8 @@ func (s *Service) UpdateEventState(principal Principal, eventID uuid.UUID, state
 	return updated, nil
 }
 
-func (s *Service) ListEvents() ([]models.Event, error) {
-	return s.store.ListEvents()
+func (s *Service) ListEvents(filter PublicationListFilter) ([]models.Event, int64, error) {
+	return s.store.ListEvents(filter)
 }
 
 func hasAnyRole(principal Principal, required ...models.RoleName) bool {

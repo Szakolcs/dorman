@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"dorm-man/internal/administration"
+	"dorm-man/internal/pagination"
+	"dorm-man/internal/platform"
 	dm "dorm-man/internal/models/doorman"
 	doormanviews "dorm-man/web/templates/doorman"
 
@@ -24,12 +26,8 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) actor(c echo.Context) (administration.Principal, error) {
-	value := c.Request().Header.Get("X-Actor-User-ID")
-	if value == "" {
-		return administration.Principal{}, ErrUnauthorized
-	}
-	id, err := uuid.Parse(value)
-	if err != nil {
+	id, ok := platform.ActorUserID(c)
+	if !ok {
 		return administration.Principal{}, ErrUnauthorized
 	}
 	return h.service.ResolvePrincipal(id)
@@ -127,10 +125,10 @@ func (h *Handler) listPackages(c echo.Context) error {
 	if _, err := h.staffActor(c); err != nil {
 		return h.writeError(c, err)
 	}
+	params := pageParams(c)
 	filter := PackageListFilter{
 		Status: c.QueryParam("status"),
-		Limit:  queryPositiveInt(c, "limit", 100),
-		Offset: queryPositiveInt(c, "offset", 0),
+		Params: params,
 	}
 	if tid := c.QueryParam("tenant_id"); tid != "" {
 		id, err := uuid.Parse(tid)
@@ -139,11 +137,11 @@ func (h *Handler) listPackages(c echo.Context) error {
 		}
 		filter.TenantID = &id
 	}
-	list, err := h.service.ListPackages(filter)
+	list, total, err := h.service.ListPackages(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": list})
+	return writeListJSON(c, list, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) getPackage(c echo.Context) error {
@@ -239,10 +237,8 @@ func (h *Handler) listGuestVisits(c echo.Context) error {
 	if _, err := h.staffActor(c); err != nil {
 		return h.writeError(c, err)
 	}
-	filter := GuestVisitListFilter{
-		Limit:  queryPositiveInt(c, "limit", 100),
-		Offset: queryPositiveInt(c, "offset", 0),
-	}
+	params := pageParams(c)
+	filter := GuestVisitListFilter{Params: params}
 	if on := c.QueryParam("on"); on != "" {
 		t, err := time.Parse("2006-01-02", on)
 		if err != nil {
@@ -250,11 +246,11 @@ func (h *Handler) listGuestVisits(c echo.Context) error {
 		}
 		filter.OnDate = &t
 	}
-	list, err := h.service.ListGuestVisits(filter)
+	list, total, err := h.service.ListGuestVisits(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": list})
+	return writeListJSON(c, list, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) getGuestVisit(c echo.Context) error {
@@ -356,10 +352,8 @@ func (h *Handler) listAccessEvents(c echo.Context) error {
 	if _, err := h.staffActor(c); err != nil {
 		return h.writeError(c, err)
 	}
-	filter := AccessEventListFilter{
-		Limit:  queryPositiveInt(c, "limit", 100),
-		Offset: queryPositiveInt(c, "offset", 0),
-	}
+	params := pageParams(c)
+	filter := AccessEventListFilter{Params: params}
 	if tid := c.QueryParam("tenant_id"); tid != "" {
 		id, err := uuid.Parse(tid)
 		if err != nil {
@@ -384,11 +378,11 @@ func (h *Handler) listAccessEvents(c echo.Context) error {
 	if oc := c.QueryParam("outcome"); oc != "" {
 		filter.Outcome = dm.AccessEventOutcome(oc)
 	}
-	list, err := h.service.ListAccessEvents(filter)
+	list, total, err := h.service.ListAccessEvents(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": list})
+	return writeListJSON(c, list, pagination.NewMeta(params, total))
 }
 
 func (h *Handler) checkoutLoan(c echo.Context) error {
@@ -427,11 +421,11 @@ func (h *Handler) listLoans(c echo.Context) error {
 	if _, err := h.staffActor(c); err != nil {
 		return h.writeError(c, err)
 	}
+	params := pageParams(c)
 	filter := ItemLoanListFilter{
 		OpenOnly:    c.QueryParam("open_only") == "true",
 		OverdueOnly: c.QueryParam("overdue_only") == "true",
-		Limit:       queryPositiveInt(c, "limit", 100),
-		Offset:      queryPositiveInt(c, "offset", 0),
+		Params:      params,
 	}
 	if tid := c.QueryParam("tenant_id"); tid != "" {
 		id, err := uuid.Parse(tid)
@@ -440,11 +434,11 @@ func (h *Handler) listLoans(c echo.Context) error {
 		}
 		filter.TenantID = &id
 	}
-	list, err := h.service.ListItemLoans(filter)
+	list, total, err := h.service.ListItemLoans(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": list})
+	return writeListJSON(c, list, pagination.NewMeta(params, total))
 }
 
 func renderComponent(c echo.Context, component templ.Component) error {
@@ -456,18 +450,3 @@ func (h *Handler) dashboardPage(c echo.Context) error {
 	return renderComponent(c, doormanviews.DashboardPage())
 }
 
-func (h *Handler) packagesPage(c echo.Context) error {
-	return renderComponent(c, doormanviews.PackagesPage())
-}
-
-func (h *Handler) guestsPage(c echo.Context) error {
-	return renderComponent(c, doormanviews.GuestsPage())
-}
-
-func (h *Handler) accessPage(c echo.Context) error {
-	return renderComponent(c, doormanviews.AccessPage())
-}
-
-func (h *Handler) lendingPage(c echo.Context) error {
-	return renderComponent(c, doormanviews.LendingPage())
-}

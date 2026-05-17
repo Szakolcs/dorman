@@ -3,58 +3,75 @@ package administration
 import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
-templ JobsPage() {
-	@components.AppDocument("Administration - Jobs", JobsContent())
+templ JobsPage(data JobsPageData) {
+	@components.AppDocument("Administration - Jobs", JobsContent(data))
 }
 
-templ JobsContent() {
+templ JobsContent(data JobsPageData) {
 	@partials.AdministrationNav()
 	@components.PageHeader(
 		"Operational Scheduling",
 		"Create and review operational jobs with overlap visibility by assignee and date.",
 	)
-	@components.Section("Job Filters", JobFilterForm())
-	@components.Section("Job Board", JobTable())
-	@components.Section("Create Job", JobCreateForm())
+	@components.Section("Job Filters", JobFilterForm(data))
+	@components.Section("Job Board", JobTable(data))
+	@components.Section("Create Job", JobCreateForm(data))
 }
 
-templ JobFilterForm() {
+templ JobFilterForm(data JobsPageData) {
 	<form method="get" action="/administration/jobs">
-		<label for="job-assignee-id">Assignee User ID</label>
-		<input id="job-assignee-id" name="assignee_user_id" type="text"/>
+		<label for="job-assignee-id">Assignee</label>
+		<select id="job-assignee-id" name="assignee_user_id">
+			<option value="" selected?={ data.AssigneeUserID == "" }>All</option>
+			for _, u := range data.StaffUsers {
+				<option value={ u.ID.String() } selected?={ data.AssigneeUserID == u.ID.String() }>{ u.Name }</option>
+			}
+		</select>
 
 		<label for="job-date">Date</label>
-		<input id="job-date" name="date" type="date"/>
+		<input id="job-date" name="date" type="date" value={ data.Date }/>
 
 		<button type="submit">Apply</button>
 	</form>
 }
 
-templ JobTable() {
-	@components.DataTable([]string{"Title", "Assignee", "Starts", "Ends", "Priority", "Status"}, JobRows())
+templ JobTable(data JobsPageData) {
+	@components.DataTable([]string{"Title", "Assignee", "Starts", "Ends", "Priority", "Status"}, JobRows(data))
+	@components.PaginationNav("/administration/jobs", data.Pagination, jobsPreserve(data))
 }
 
-templ JobRows() {
-	<tr>
-		<td>Inventory Audit</td>
-		<td>worker-id</td>
-		<td>2026-05-22T09:00</td>
-		<td>2026-05-22T11:00</td>
-		<td>high</td>
-		<td>planned</td>
-	</tr>
+templ JobRows(data JobsPageData) {
+	if len(data.Jobs) == 0 {
+		<tr>
+			<td colspan="6">No operational jobs match the current filters.</td>
+		</tr>
+	}
+	for _, j := range data.Jobs {
+		<tr>
+			<td>{ j.Title }</td>
+			<td>{ userName(j.AssigneeUser) }</td>
+			<td>{ j.StartsAt.Format("2006-01-02 15:04") }</td>
+			<td>{ j.EndsAt.Format("2006-01-02 15:04") }</td>
+			<td>{ string(j.Priority) }</td>
+			<td>{ string(j.Status) }</td>
+		</tr>
+	}
 }
 
-templ JobCreateForm() {
-	<form method="post" action="/api/administration/jobs">
+templ JobCreateForm(data JobsPageData) {
+	<form method="post" action="/administration/jobs">
 		<label for="job-title">Title</label>
 		<input id="job-title" name="title" type="text"/>
 
 		<label for="job-description">Description</label>
 		<textarea id="job-description" name="description"></textarea>
 
-		<label for="job-assignee">Assignee User ID</label>
-		<input id="job-assignee" name="assignee_user_id" type="text"/>
+		<label for="job-assignee">Assignee</label>
+		<select id="job-assignee" name="assignee_user_id" required>
+			for _, u := range data.StaffUsers {
+				<option value={ u.ID.String() }>{ u.Name }</option>
+			}
+		</select>
 
 		<label for="job-starts-at">Starts At</label>
 		<input id="job-starts-at" name="starts_at" type="datetime-local"/>

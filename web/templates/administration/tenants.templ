@@ -3,58 +3,68 @@ package administration
 import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
-templ TenantsPage() {
-	@components.AppDocument("Administration - Tenants", TenantsContent())
+templ TenantsPage(data TenantsPageData) {
+	@components.AppDocument("Administration - Tenants", TenantsContent(data))
 }
 
-templ TenantsContent() {
+templ TenantsContent(data TenantsPageData) {
 	@partials.AdministrationNav()
 	@components.PageHeader(
 		"Tenant Management",
 		"Register, activate, deactivate, and review tenant details for the semester lifecycle.",
 	)
-	@components.Section("Directory Filters", TenantsFilters())
-	@components.Section("Tenant Directory", TenantsDirectory())
+	@components.Section("Directory Filters", TenantsFilters(data))
+	@components.Section("Tenant Directory", TenantsDirectory(data))
 	@components.Section("Register New Tenant", TenantRegistrationForm())
 }
 
-templ TenantsFilters() {
+templ TenantsFilters(data TenantsPageData) {
 	<form method="get" action="/administration/tenants">
 		<label for="tenant-search">Search</label>
-		<input id="tenant-search" name="search" type="text"/>
+		<input id="tenant-search" name="search" type="text" value={ data.Search }/>
 
 		<label for="tenant-status">Status</label>
 		<select id="tenant-status" name="status">
-			<option value="">All</option>
-			<option value="active">Active</option>
-			<option value="inactive">Inactive</option>
+			<option value="" selected?={ data.Status == "" }>All</option>
+			<option value="active" selected?={ data.Status == "active" }>Active</option>
+			<option value="inactive" selected?={ data.Status == "inactive" }>Inactive</option>
 		</select>
 
 		<button type="submit">Apply</button>
 	</form>
 }
 
-templ TenantsDirectory() {
-	@components.DataTable([]string{"Name", "Student Code", "Email", "Status", "Actions"}, TenantRows())
+templ TenantsDirectory(data TenantsPageData) {
+	@components.DataTable([]string{"Name", "Student Code", "Email", "Status", "Actions"}, TenantRows(data))
+	@components.PaginationNav("/administration/tenants", data.Pagination, tenantsPreserve(data))
 }
 
-templ TenantRows() {
-	<tr>
-		<td>Example Tenant</td>
-		<td>ABC123</td>
-		<td>tenant@example.com</td>
-		<td>active</td>
-		<td>
-			<a href="/administration/tenants/tenant-id">Details</a>
-			<form method="post" action="/api/administration/tenants/tenant-id/deactivate">
-				<button type="submit">Deactivate</button>
-			</form>
-		</td>
-	</tr>
+templ TenantRows(data TenantsPageData) {
+	if len(data.Tenants) == 0 {
+		<tr>
+			<td colspan="5">No tenants match the current filters.</td>
+		</tr>
+	}
+	for _, t := range data.Tenants {
+		<tr>
+			<td>{ t.Name }</td>
+			<td>{ t.StudentCode }</td>
+			<td>{ t.Email }</td>
+			<td>{ tenantStatus(t.IsActive) }</td>
+			<td>
+				<a href={ templ.SafeURL("/administration/tenants/" + t.ID.String()) }>Details</a>
+				if t.IsActive {
+					<form method="post" action={ templ.SafeURL("/administration/tenants/" + t.ID.String() + "/deactivate") }>
+						<button type="submit">Deactivate</button>
+					</form>
+				}
+			</td>
+		</tr>
+	}
 }
 
 templ TenantRegistrationForm() {
-	<form method="post" action="/api/administration/tenants">
+	<form method="post" action="/administration/tenants">
 		<label for="tenant-name">Name</label>
 		<input id="tenant-name" name="name" type="text"/>
 

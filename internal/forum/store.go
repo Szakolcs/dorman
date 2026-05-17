@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"dorm-man/internal/administration"
+	"dorm-man/internal/pagination"
 
 	adm "dorm-man/internal/models/administration"
 	fm "dorm-man/internal/models/forum"
@@ -22,7 +23,7 @@ type Store interface {
 	CreatePost(post fm.ForumPost) (fm.ForumPost, error)
 	UpdatePost(post fm.ForumPost) (fm.ForumPost, error)
 	GetPost(id uuid.UUID) (fm.ForumPost, error)
-	ListPosts(filter FeedListFilter) ([]fm.ForumPost, error)
+	ListPosts(filter FeedListFilter) ([]fm.ForumPost, int64, error)
 
 	UpsertSchedule(schedule fm.ForumPostSchedule) (fm.ForumPostSchedule, error)
 	GetScheduleByPostID(postID uuid.UUID) (fm.ForumPostSchedule, error)
@@ -43,7 +44,7 @@ type Store interface {
 	CreateComment(c fm.ForumComment) (fm.ForumComment, error)
 	UpdateComment(c fm.ForumComment) (fm.ForumComment, error)
 	GetComment(id uuid.UUID) (fm.ForumComment, error)
-	ListComments(filter CommentListFilter) ([]fm.ForumComment, error)
+	ListComments(filter CommentListFilter) ([]fm.ForumComment, int64, error)
 	CountVisibleComments(postID uuid.UUID) (int64, error)
 
 	GetReaction(userID uuid.UUID, targetType fm.ReactionTargetType, targetID uuid.UUID) (fm.ForumReaction, error)
@@ -123,8 +124,7 @@ func (s *GormStore) GetPost(id uuid.UUID) (fm.ForumPost, error) {
 	return post, err
 }
 
-func (s *GormStore) ListPosts(filter FeedListFilter) ([]fm.ForumPost, error) {
-	var posts []fm.ForumPost
+func (s *GormStore) ListPosts(filter FeedListFilter) ([]fm.ForumPost, int64, error) {
 	q := s.db.Model(&fm.ForumPost{})
 
 	if !filter.IncludeHidden {
@@ -143,13 +143,9 @@ func (s *GormStore) ListPosts(filter FeedListFilter) ([]fm.ForumPost, error) {
 		q = q.Where("source = ? AND kind = ?", fm.ForumPostSourceForum, fm.ForumPostKindCommunityActivity)
 	}
 
-	limit := filter.Limit
-	if limit <= 0 || limit > 500 {
-		limit = 50
-	}
-	offset := filter.Offset
-	if offset < 0 {
-		offset = 0
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
 	switch filter.Sort {
@@ -163,12 +159,13 @@ func (s *GormStore) ListPosts(filter FeedListFilter) ([]fm.ForumPost, error) {
 		q = q.Order("published_at DESC NULLS LAST").Order("id DESC")
 	}
 
-	err := q.Limit(limit).Offset(offset).
+	var posts []fm.ForumPost
+	err := q.Scopes(pagination.Scope(filter.Params)).
 		Preload("AuthorUser").
 		Preload("AuthorTenant").
 		Preload("Schedule").
 		Find(&posts).Error
-	return posts, err
+	return posts, total, err
 }
 
 func (s *GormStore) UpsertSchedule(schedule fm.ForumPostSchedule) (fm.ForumPostSchedule, error) {
@@ -320,27 +317,22 @@ func (s *GormStore) GetComment(id uuid.UUID) (fm.ForumComment, error) {
 	return c, err
 }
 
-func (s *GormStore) ListComments(filter CommentListFilter) ([]fm.ForumComment, error) {
-	var list []fm.ForumComment
+func (s *GormStore) ListComments(filter CommentListFilter) ([]fm.ForumComment, int64, error) {
 	q := s.db.Model(&fm.ForumComment{}).
 		Where("post_id = ? AND moderation_state = ?", filter.PostID, fm.CommentModerationStateVisible).
 		Where("deleted_at IS NULL")
 
-	limit := filter.Limit
-	if limit <= 0 || limit > 500 {
-		limit = 100
-	}
-	offset := filter.Offset
-	if offset < 0 {
-		offset = 0
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
+	var list []fm.ForumComment
 	err := q.Order("created_at ASC").
 		Preload("AuthorUser").
-		Limit(limit).
-		Offset(offset).
+		Scopes(pagination.Scope(filter.Params)).
 		Find(&list).Error
-	return list, err
+	return list, total, err
 }
 
 func (s *GormStore) CountVisibleComments(postID uuid.UUID) (int64, error) {

@@ -2,39 +2,32 @@ package platform
 
 import "dorm-man/web/templates/common/components"
 
-templ AboutPage() {
-	@components.AppDocument("About the Dormitory", AboutContent())
+templ AboutPage(data AboutPageData) {
+	@components.AppDocument(data.Title, AboutContent(data))
 }
 
-templ AboutContent() {
+templ AboutContent(data AboutPageData) {
 	@components.PageHeader(
 		"About the Dormitory",
 		"A short overview for current and incoming students.",
 	)
-	@components.Section("History", AboutHistory())
-	@components.Section("Student Life", AboutStudentLife())
-	@components.Section("Useful Information for Newcomers", AboutUsefulInformation())
+	@components.Section("History", AboutHistory(data))
+	@components.Section("Student Life", AboutStudentLife(data))
+	@components.Section("Useful Information for Newcomers", AboutUsefulInformation(data))
 }
 
-templ AboutHistory() {
-	<p>
-		This dormitory has hosted university students for many years and has grown into
-		a strong learning and community environment.
-	</p>
+templ AboutHistory(data AboutPageData) {
+	<p>{ data.History }</p>
 }
 
-templ AboutStudentLife() {
-	<p>
-		Students balance studying with social activities, sports, and community events
-		organized throughout the semester.
-	</p>
+templ AboutStudentLife(data AboutPageData) {
+	<p>{ data.StudentLife }</p>
 }
 
-templ AboutUsefulInformation() {
+templ AboutUsefulInformation(data AboutPageData) {
 	<ul>
-		<li>Check administration announcements for move-in and semester schedules.</li>
-		<li>Use official maintenance flows to report room or shared-area issues.</li>
-		<li>Follow forum news and events to stay informed about dorm programs.</li>
-		<li>Contact office staff during official support hours for urgent help.</li>
+		for _, item := range data.UsefulInformation {
+			<li>{ item }</li>
+		}
 	</ul>
 }

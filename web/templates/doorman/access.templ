@@ -3,11 +3,11 @@ package doorman
 import "dorm-man/web/templates/common/components"
 import "dorm-man/web/templates/common/partials"
 
-templ AccessPage() {
-	@components.AppDocument("Doorman - Access", AccessContent())
+templ AccessPage(data AccessPageData) {
+	@components.AppDocument("Doorman - Access", AccessContent(data))
 }
 
-templ AccessContent() {
+templ AccessContent(data AccessPageData) {
 	@components.PageHeader(
 		"Dorm entry verification",
 		"QR or manual verification creates immutable access rows; denial reasons include invalid, expired, revoked.",
@@ -15,32 +15,61 @@ templ AccessContent() {
 	@partials.DoormanNav()
 	@components.BackLink("/doorman", "Back to Doorman")
 
-	@components.Section(
-		"Tenant entry token (mint)",
-		IssueEntryTokenForm(),
-	)
-
-	@components.Section(
-		"Validate QR payload",
-		ValidateQRDocs(),
-	)
-
-	@components.Section(
-		"Manual verification",
-		ValidateManualDocs(),
-	)
-
-	@components.Section(
-		"Access event log filters",
-		AccessEventsFilters(),
-	)
+	@components.Section("Entry tokens", EntryTokensTable(data))
+	@components.Section("Recent access events", AccessEventsTable(data))
+	@components.Section("Issue tenant entry token", IssueEntryTokenForm(data))
 }
 
-templ IssueEntryTokenForm() {
-	<p>POST JSON <code>/api/doorman/tenant-entry-tokens</code>.</p>
-	<form method="post" action="/api/doorman/tenant-entry-tokens">
-		<label for="tok-tenant">Tenant UUID</label>
-		<input id="tok-tenant" type="text" name="tenant_id"/>
+templ EntryTokensTable(data AccessPageData) {
+	@components.DataTable([]string{"Public ref", "Tenant", "Expires", "Revoked"}, EntryTokenRows(data))
+	@components.PaginationNavNamed("/doorman/access", data.TokensPagination, data.TokensPreserve, "tokens_page", "tokens_page_size")
+}
+
+templ EntryTokenRows(data AccessPageData) {
+	if len(data.Tokens) == 0 {
+		<tr>
+			<td colspan="4">No entry tokens issued yet.</td>
+		</tr>
+	}
+	for _, t := range data.Tokens {
+		<tr>
+			<td><code>{ t.PublicRef }</code></td>
+			<td>{ entryTokenTenant(t) }</td>
+			<td>{ optionalTime(t.ExpiresAt) }</td>
+			<td>{ optionalTime(t.RevokedAt) }</td>
+		</tr>
+	}
+}
+
+templ AccessEventsTable(data AccessPageData) {
+	@components.DataTable([]string{"When", "Outcome", "Source", "Tenant"}, AccessEventRows(data))
+	@components.PaginationNavNamed("/doorman/access", data.EventsPagination, data.EventsPreserve, "events_page", "events_page_size")
+}
+
+templ AccessEventRows(data AccessPageData) {
+	if len(data.Events) == 0 {
+		<tr>
+			<td colspan="4">No access events yet.</td>
+		</tr>
+	}
+	for _, e := range data.Events {
+		<tr>
+			<td>{ e.OccurredAt.Format("2006-01-02 15:04") }</td>
+			<td>{ string(e.Outcome) }</td>
+			<td>{ string(e.Source) }</td>
+			<td>{ accessEventTenant(e) }</td>
+		</tr>
+	}
+}
+
+templ IssueEntryTokenForm(data AccessPageData) {
+	<form method="post" action="/doorman/access/tokens">
+		<label for="tok-tenant">Tenant</label>
+		<select id="tok-tenant" name="tenant_id" required>
+			for _, t := range data.Tenants {
+				<option value={ t.ID.String() }>{ t.Name }</option>
+			}
+		</select>
 
 		<label for="tok-ref">Public ref (optional)</label>
 		<input id="tok-ref" type="text" name="public_ref" placeholder="empty = server-generated"/>
@@ -48,27 +77,6 @@ templ IssueEntryTokenForm() {
 		<label for="tok-exp">Expires at (RFC3339, optional)</label>
 		<input id="tok-exp" type="text" name="expires_at"/>
 
-		<button type="submit">Issue (placeholder — use JSON)</button>
+		<button type="submit">Issue token</button>
 	</form>
-}
-
-templ ValidateQRDocs() {
-	<p>POST <code>/api/doorman/access/validate-qr</code></p>
-	<pre>{ `{"public_ref":"token-from-qr-or-scanner"}` }</pre>
-	<p>Response lists <code>outcome</code> granted or denied, optional <code>reason</code>, linked <code>event</code> id, tenant snapshot when granted.</p>
-}
-
-templ ValidateManualDocs() {
-	<p>POST <code>/api/doorman/access/validate-manual</code></p>
-	<pre>{ `{"tenant_id":"UUID"}` }</pre>
-}
-
-templ AccessEventsFilters() {
-	<p>GET <code>/api/doorman/access/events</code> query params:</p>
-	<ul>
-		<li><code>tenant_id</code></li>
-		<li><code>from</code>, <code>to</code> RFC3339</li>
-		<li><code>outcome=granted|denied</code></li>
-		<li><code>limit</code>, <code>offset</code></li>
-	</ul>
 }

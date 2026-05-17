@@ -387,6 +387,38 @@ dd {
 	margin: 0;
 }
 
+/* Pagination */
+.pagination {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-sm);
+	margin-top: var(--space-md);
+}
+
+.pagination-summary {
+	margin: 0;
+	color: var(--color-muted);
+	font-size: 0.9rem;
+}
+
+.pagination-links {
+	display: flex;
+	gap: var(--space-sm);
+}
+
+.pagination-links a {
+	padding: var(--space-xs) var(--space-sm);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-sm);
+	text-decoration: none;
+}
+
+.pagination-links a:hover {
+	background: var(--color-surface-elevated);
+}
+
 /* Responsive */
 @media (max-width: 48rem) {
 	#chat-workspace {

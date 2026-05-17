@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"dorm-man/internal/administration"
+	"dorm-man/internal/pagination"
 
 	adm "dorm-man/internal/models/administration"
 	cm "dorm-man/internal/models/chat"
@@ -35,7 +36,7 @@ type Store interface {
 	GetMessage(messageID uuid.UUID) (cm.ChatMessage, error)
 	GetMessageByClientKey(roomID, authorTenantID uuid.UUID, clientMessageID uuid.UUID) (cm.ChatMessage, error)
 	GetLatestMessageInRoom(roomID uuid.UUID) (cm.ChatMessage, error)
-	ListMessages(roomID uuid.UUID, beforeMessageID *uuid.UUID, limit int) ([]cm.ChatMessage, error)
+	ListMessages(roomID uuid.UUID, filter MessageListFilter) ([]cm.ChatMessage, int64, error)
 	CreateMessage(msg cm.ChatMessage) (cm.ChatMessage, error)
 	CountUnreadMessages(roomID, readerTenantID uuid.UUID, lastReadMessageID *uuid.UUID) (int64, error)
 
@@ -219,36 +220,53 @@ func (s *GormStore) GetLatestMessageInRoom(roomID uuid.UUID) (cm.ChatMessage, er
 	return msg, err
 }
 
-func (s *GormStore) ListMessages(roomID uuid.UUID, beforeMessageID *uuid.UUID, limit int) ([]cm.ChatMessage, error) {
+func (s *GormStore) ListMessages(roomID uuid.UUID, filter MessageListFilter) ([]cm.ChatMessage, int64, error) {
+	limit := filter.Params.PageSize
 	if limit <= 0 || limit > 50 {
 		limit = 50
 	}
 
 	q := s.db.Model(&cm.ChatMessage{}).Where("room_id = ?", roomID)
-	if beforeMessageID != nil {
-		anchor, err := s.GetMessage(*beforeMessageID)
+	if filter.BeforeMessageID != nil {
+		anchor, err := s.GetMessage(*filter.BeforeMessageID)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		q = q.Where(
 			"(created_at < ? OR (created_at = ? AND id < ?))",
 			anchor.CreatedAt, anchor.CreatedAt, anchor.ID,
 		)
+		var list []cm.ChatMessage
+		err = q.Order("created_at DESC, id DESC").
+			Limit(limit).
+			Preload("AuthorTenant").
+			Find(&list).Error
+		if err != nil {
+			return nil, 0, err
+		}
+		for i, j := 0, len(list)-1; i < j; i, j = i+1, j-1 {
+			list[i], list[j] = list[j], list[i]
+		}
+		return list, int64(len(list)), nil
+	}
+
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
 
 	var list []cm.ChatMessage
 	err := q.Order("created_at DESC, id DESC").
-		Limit(limit).
+		Scopes(pagination.Scope(filter.Params)).
 		Preload("AuthorTenant").
 		Find(&list).Error
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-
 	for i, j := 0, len(list)-1; i < j; i, j = i+1, j-1 {
 		list[i], list[j] = list[j], list[i]
 	}
-	return list, nil
+	return list, total, nil
 }
 
 func (s *GormStore) CreateMessage(msg cm.ChatMessage) (cm.ChatMessage, error) {

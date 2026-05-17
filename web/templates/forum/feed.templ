@@ -16,13 +16,18 @@ templ FeedPageBody(data FeedPageData) {
 	)
 	@components.Section("Filters", FeedFilters(data))
 	@components.Section("New community activity", CommunityPostForm())
-	@components.Section("Posts", FeedListContainer(data.Posts))
+	@components.Section("Posts", FeedListContainer(data))
 }
 
-templ FeedListContainer(posts []fm.ForumPost) {
+templ FeedListContainer(data FeedPageData) {
 	<div id="feed-list" class="feed-list">
-		@FeedList(posts)
+		@FeedListFragment(data)
 	</div>
+}
+
+templ FeedListFragment(data FeedPageData) {
+	@FeedList(data.Posts)
+	@components.PaginationNav("/forum/view", data.Pagination, data.Preserve)
 }
 
 templ FeedFilters(data FeedPageData) {
