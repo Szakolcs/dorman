@@ -1,6 +1,6 @@
 # User Stories Backlog
 
-This directory contains initial user stories derived from the Dormitory Manager project overview.
+User stories derived from product modules, with acceptance criteria. Stories inform requirements traceability matrices and use-case coverage.
 
 ## Personas
 
@@ -16,8 +16,9 @@ This directory contains initial user stories derived from the Dormitory Manager 
 - Doorman Operations
 - Tenant Forum
 - Tenant Chat
+- Cross-cutting (platform)
 
-## Story Format
+## Story format
 
 Each story follows:
 
@@ -28,15 +29,15 @@ Each story follows:
 
 ## Traceability
 
-| Story prefix | Thematic FR cluster | Specs / other docs |
-|--------------|---------------------|---------------------|
-| `AO-*` | [administration-office requirements](../requirements/administration-office.md) | [use-cases/administration-office.md](../use-cases/administration-office.md) |
-| `DM-*` (doorman file) | [doorman requirements](../requirements/doorman.md) | [use-cases/doorman.md](../use-cases/doorman.md) |
-| `FM-*` | [forum requirements](../requirements/forum.md) | [use-cases/forum.md](../use-cases/forum.md) |
-| `CM-*` | [chat requirements](../requirements/chat.md) | [use-cases/chat.md](../use-cases/chat.md) |
-| `CC-*` | [platform requirements](../requirements/platform.md) (`FR-CC-*`) | [use-cases/cross-cutting.md](../use-cases/cross-cutting.md) |
+| Story prefix | Requirements | Use cases |
+|--------------|--------------|-----------|
+| `AO-*` | [administration-office.md](../requirements/administration-office.md) (`FR-AO-*`) | [administration-office.md](../use-cases/administration-office.md) |
+| `DM-*` | [doorman.md](../requirements/doorman.md) (`FR-DM-*`) | [doorman.md](../use-cases/doorman.md) |
+| `FM-*` | [forum.md](../requirements/forum.md) (`FR-FM-*`) | [forum.md](../use-cases/forum.md) |
+| `CM-*` | [chat.md](../requirements/chat.md) (`FR-CM-*`) | [chat.md](../use-cases/chat.md) |
+| `CC-*` | [platform.md](../requirements/platform.md) (`FR-CC-*`) | [cross-cutting.md](../use-cases/cross-cutting.md) |
 
-Cross-cutting stories (`CC-*`) map to [platform requirements](../requirements/platform.md).
+Specifications and schema: [../specifications/](../specifications/), [../database/](../database/).
 
 ## Documents
 
