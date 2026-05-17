@@ -6,6 +6,7 @@ import (
 
 	"dorm-man/internal/administration"
 	"dorm-man/internal/config"
+	"dorm-man/internal/doorman"
 	models "dorm-man/internal/models/administration"
 	doormanModels "dorm-man/internal/models/doorman"
 	"dorm-man/internal/platform"
@@ -43,6 +44,7 @@ func New() (*App, error) {
 	e.Use(middleware.Logger())
 
 	administration.RegisterRoutes(e, db)
+	doorman.RegisterRoutes(e, db)
 	platform.RegisterRoutes(e, db)
 
 	e.GET("/healthz", func(c echo.Context) error {

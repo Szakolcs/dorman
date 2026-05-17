@@ -1,0 +1,68 @@
+package doorman
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ LendingPage() {
+	@components.Document("Doorman - Lending", LendingContent())
+}
+
+templ LendingContent() {
+	@partials.MainNav()
+	@components.PageHeader(
+		"Keys and accessories",
+		"Checkout to a tenant, return closes the loan; at most one open loan per lendable inventory row in this MVP.",
+	)
+
+	<p><a href="/doorman">Back to Doorman</a></p>
+
+	@components.Section(
+		"Operational lists",
+		LendingBrowseHint(),
+	)
+
+	@components.Section(
+		"Checkout",
+		LendingCheckoutForm(),
+	)
+
+	@components.Section(
+		"Return",
+		LendingReturnForm(),
+	)
+}
+
+templ LendingBrowseHint() {
+	<ul>
+		<li>Open or all loans (filter with query flags): GET <code>/api/doorman/loans?open_only=true</code></li>
+		<li>Overdue subset: GET <code>/api/doorman/loans?open_only=true&amp;overdue_only=true</code></li>
+		<li>Optional tenant dimension: <code>?tenant_id=UUID</code></li>
+	</ul>
+}
+
+templ LendingCheckoutForm() {
+	<p>POST JSON <code>/api/doorman/loans</code></p>
+	<form method="post" action="/api/doorman/loans">
+		<label for="loan-tenant">Tenant UUID</label>
+		<input id="loan-tenant" type="text" name="tenant_id"/>
+
+		<label for="loan-item">Inventory item UUID</label>
+		<input id="loan-item" type="text" name="inventory_item_id"/>
+
+		<label for="loan-expect">Expected return (RFC3339, optional)</label>
+		<input id="loan-expect" type="text" name="expected_return_at"/>
+
+		<label for="loan-notes">Notes</label>
+		<input id="loan-notes" type="text" name="notes"/>
+
+		<button type="submit">Checkout (placeholder — use JSON)</button>
+	</form>
+}
+
+templ LendingReturnForm() {
+	<p>POST <code>{ `/api/doorman/loans/{id}/return` }</code></p>
+	<form method="get" action="#">
+		<label for="loan-return-id">Loan UUID</label>
+		<input id="loan-return-id" type="text" placeholder="item_loan id"/>
+	</form>
+}
