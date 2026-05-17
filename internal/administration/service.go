@@ -33,6 +33,30 @@ func (s *Service) ListUnassignedActiveTenants() ([]models.Tenant, error) {
 	return s.store.ListUnassignedActiveTenants()
 }
 
+func (s *Service) DashboardStats() (DashboardStats, error) {
+	return s.store.GetDashboardStats()
+}
+
+func (s *Service) RoomsWithOldestAssignedTickets(limit int) ([]RoomOldestAssignedTicket, error) {
+	return s.store.ListRoomsWithOldestAssignedTickets(limit)
+}
+
+func (s *Service) OpenMaintenanceTickets(limit int) ([]DashboardOpenMaintenanceTicket, error) {
+	return s.store.ListOpenMaintenanceTickets(limit)
+}
+
+func (s *Service) JobsScheduledToday(limit int) ([]DashboardJobToday, error) {
+	return s.store.ListJobsScheduledToday(limit)
+}
+
+func (s *Service) RecentPublications(limit int) ([]DashboardPublication, error) {
+	return s.store.ListRecentPublications(limit)
+}
+
+func (s *Service) RecentEvents(limit int) ([]DashboardEventRow, error) {
+	return s.store.ListRecentEvents(limit)
+}
+
 func (s *Service) ListTenants(filter TenantListFilter) ([]models.Tenant, int64, error) {
 	return s.store.ListTenants(filter)
 }
@@ -371,6 +395,10 @@ func (s *Service) ListMaintenanceTickets(filter TicketListFilter) ([]models.Main
 	return s.store.ListMaintenanceTickets(filter)
 }
 
+func (s *Service) GetMaintenanceTicket(ticketID uuid.UUID) (models.MaintenanceTicket, error) {
+	return s.store.GetMaintenanceTicket(ticketID)
+}
+
 func (s *Service) CreateOperationalJob(principal Principal, job models.OperationalJob, allowConflict bool) (CreateJobResult, error) {
 	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleDirector) {
 		return CreateJobResult{}, ErrUnauthorized
@@ -403,6 +431,29 @@ func (s *Service) CreateOperationalJob(principal Principal, job models.Operation
 
 func (s *Service) ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, int64, error) {
 	return s.store.ListOperationalJobs(filter)
+}
+
+func (s *Service) GetOperationalJob(jobID uuid.UUID) (models.OperationalJob, error) {
+	return s.store.GetOperationalJob(jobID)
+}
+
+func (s *Service) GetNewsPost(id uuid.UUID) (forummodels.ForumPost, error) {
+	post, err := s.store.GetForumPost(id)
+	if err != nil {
+		return forummodels.ForumPost{}, err
+	}
+	if post.Kind != forummodels.ForumPostKindOfficialNews {
+		return forummodels.ForumPost{}, ErrNotFound
+	}
+	return post, nil
+}
+
+func (s *Service) GetActivity(id uuid.UUID) (models.Activity, error) {
+	return s.store.GetActivity(id)
+}
+
+func (s *Service) GetEvent(id uuid.UUID) (models.Event, error) {
+	return s.store.GetEvent(id)
 }
 
 func (s *Service) CreateNews(principal Principal, input NewsUpsertInput) (forummodels.ForumPost, error) {

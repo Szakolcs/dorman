@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"dorm-man/internal/pagination"
 	models "dorm-man/internal/models/administration"
 	forummodels "dorm-man/internal/models/forum"
+	"dorm-man/internal/pagination"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -46,6 +46,7 @@ type Store interface {
 	ListJobConflicts(assigneeID uuid.UUID, startsAt, endsAt time.Time) ([]models.OperationalJob, error)
 	CreateOperationalJob(job models.OperationalJob) (models.OperationalJob, error)
 	ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, int64, error)
+	GetOperationalJob(jobID uuid.UUID) (models.OperationalJob, error)
 
 	CreateForumPost(post forummodels.ForumPost) (forummodels.ForumPost, error)
 	UpdateForumPost(post forummodels.ForumPost) (forummodels.ForumPost, error)
@@ -64,6 +65,13 @@ type Store interface {
 
 	CreateAudit(event models.AuditEvent) error
 	ListAuditEvents(filter AuditListFilter) ([]models.AuditEvent, int64, error)
+
+	GetDashboardStats() (DashboardStats, error)
+	ListRoomsWithOldestAssignedTickets(limit int) ([]RoomOldestAssignedTicket, error)
+	ListOpenMaintenanceTickets(limit int) ([]DashboardOpenMaintenanceTicket, error)
+	ListJobsScheduledToday(limit int) ([]DashboardJobToday, error)
+	ListRecentPublications(limit int) ([]DashboardPublication, error)
+	ListRecentEvents(limit int) ([]DashboardEventRow, error)
 }
 
 type GormStore struct {
@@ -297,9 +305,13 @@ func (s *GormStore) CreateMaintenanceTicket(ticket models.MaintenanceTicket) (mo
 
 func (s *GormStore) GetMaintenanceTicket(ticketID uuid.UUID) (models.MaintenanceTicket, error) {
 	var ticket models.MaintenanceTicket
-	err := s.db.Preload("CreatedByUser").
+	err := s.db.Preload("Room").
+		Preload("CreatedByUser").
 		Preload("AssigneeUser").
-		Preload("StatusTransitions").
+		Preload("StatusTransitions", func(db *gorm.DB) *gorm.DB {
+			return db.Order("created_at ASC")
+		}).
+		Preload("StatusTransitions.ActorUser").
 		First(&ticket, "id = ?", ticketID).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return models.MaintenanceTicket{}, ErrNotFound
@@ -352,6 +364,18 @@ func (s *GormStore) CreateOperationalJob(job models.OperationalJob) (models.Oper
 	return job, nil
 }
 
+func (s *GormStore) GetOperationalJob(jobID uuid.UUID) (models.OperationalJob, error) {
+	var job models.OperationalJob
+	err := s.db.Preload("Room").
+		Preload("AssigneeUser").
+		Preload("CreatedByUser").
+		First(&job, "id = ?", jobID).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.OperationalJob{}, ErrNotFound
+	}
+	return job, err
+}
+
 func (s *GormStore) ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, int64, error) {
 	q := s.db.Model(&models.OperationalJob{})
 	if filter.AssigneeUserID != nil {
@@ -390,7 +414,7 @@ func (s *GormStore) UpdateForumPost(post forummodels.ForumPost) (forummodels.For
 
 func (s *GormStore) GetForumPost(id uuid.UUID) (forummodels.ForumPost, error) {
 	var post forummodels.ForumPost
-	err := s.db.First(&post, "id = ?", id).Error
+	err := s.db.Preload("AuthorUser").First(&post, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return forummodels.ForumPost{}, ErrNotFound
 	}
@@ -427,7 +451,7 @@ func (s *GormStore) UpdateActivity(activity models.Activity) (models.Activity, e
 
 func (s *GormStore) GetActivity(id uuid.UUID) (models.Activity, error) {
 	var activity models.Activity
-	err := s.db.First(&activity, "id = ?", id).Error
+	err := s.db.Preload("Building").First(&activity, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return models.Activity{}, ErrNotFound
 	}
@@ -461,7 +485,7 @@ func (s *GormStore) UpdateEvent(event models.Event) (models.Event, error) {
 
 func (s *GormStore) GetEvent(id uuid.UUID) (models.Event, error) {
 	var event models.Event
-	err := s.db.First(&event, "id = ?", id).Error
+	err := s.db.Preload("Organizer").Preload("Building").First(&event, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return models.Event{}, ErrNotFound
 	}
@@ -501,4 +525,279 @@ func (s *GormStore) CreateAudit(event models.AuditEvent) error {
 		return fmt.Errorf("create audit event: %w", err)
 	}
 	return nil
+}
+
+func (s *GormStore) GetDashboardStats() (DashboardStats, error) {
+	var stats DashboardStats
+	db := s.db
+
+	if err := db.Model(&models.Tenant{}).Count(&stats.TenantsTotal).Error; err != nil {
+		return stats, err
+	}
+	if err := db.Model(&models.Tenant{}).Where("is_active = ?", true).Count(&stats.TenantsActive).Error; err != nil {
+		return stats, err
+	}
+	stats.TenantsInactive = stats.TenantsTotal - stats.TenantsActive
+
+	unassignedSub := db.Model(&models.RoomAssignment{}).
+		Select("tenant_id").
+		Where("ended_at IS NULL")
+	if err := db.Model(&models.Tenant{}).
+		Where("is_active = true AND id NOT IN (?)", unassignedSub).
+		Count(&stats.TenantsUnassigned).Error; err != nil {
+		return stats, err
+	}
+
+	roomBase := db.Model(&models.Room{}).Where("is_archived = ?", false)
+	if err := roomBase.Count(&stats.RoomsTotal).Error; err != nil {
+		return stats, err
+	}
+	if err := db.Model(&models.RoomAssignment{}).
+		Where("ended_at IS NULL").
+		Distinct("room_id").
+		Count(&stats.RoomsOccupied).Error; err != nil {
+		return stats, err
+	}
+	if err := db.Model(&models.InventoryItem{}).
+		Where("room_id IS NOT NULL AND condition IN ?", []models.InventoryCondition{
+			models.InventoryConditionDamaged,
+			models.InventoryConditionBroken,
+		}).
+		Distinct("room_id").
+		Count(&stats.RoomsMaintenanceNeeded).Error; err != nil {
+		return stats, err
+	}
+	if err := db.Raw(`
+		SELECT COUNT(*) FROM rooms r
+		WHERE r.is_archived = false
+		AND (
+			SELECT COUNT(*) FROM room_assignments ra
+			WHERE ra.room_id = r.id AND ra.ended_at IS NULL
+		) < r.capacity
+	`).Scan(&stats.RoomsAvailable).Error; err != nil {
+		return stats, err
+	}
+
+	if err := db.Model(&models.InventoryItem{}).Count(&stats.InventoryTotal).Error; err != nil {
+		return stats, err
+	}
+	if err := db.Model(&models.InventoryItem{}).
+		Where("condition IN ?", []models.InventoryCondition{
+			models.InventoryConditionDamaged,
+			models.InventoryConditionBroken,
+		}).
+		Count(&stats.InventoryAttention).Error; err != nil {
+		return stats, err
+	}
+
+	if err := db.Model(&models.MaintenanceTicket{}).Count(&stats.MaintenanceTotal).Error; err != nil {
+		return stats, err
+	}
+	if err := db.Model(&models.MaintenanceTicket{}).
+		Where("status = ?", models.MaintenanceStatusReported).
+		Count(&stats.MaintenancePending).Error; err != nil {
+		return stats, err
+	}
+	if err := db.Model(&models.MaintenanceTicket{}).
+		Where("status IN ?", []models.MaintenanceStatus{
+			models.MaintenanceStatusReported,
+			models.MaintenanceStatusInProgress,
+			models.MaintenanceStatusHalted,
+		}).
+		Count(&stats.MaintenanceOpen).Error; err != nil {
+		return stats, err
+	}
+
+	if err := db.Model(&models.OperationalJob{}).Count(&stats.JobsTotal).Error; err != nil {
+		return stats, err
+	}
+	now := time.Now().UTC()
+	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	dayEnd := dayStart.Add(24 * time.Hour)
+	if err := db.Model(&models.OperationalJob{}).
+		Where("starts_at < ? AND ends_at > ?", dayEnd, dayStart).
+		Count(&stats.JobsToday).Error; err != nil {
+		return stats, err
+	}
+
+	if err := db.Model(&forummodels.ForumPost{}).
+		Where("kind = ?", forummodels.ForumPostKindOfficialNews).
+		Count(&stats.NewsTotal).Error; err != nil {
+		return stats, err
+	}
+	if err := db.Model(&models.Activity{}).Count(&stats.ActivitiesTotal).Error; err != nil {
+		return stats, err
+	}
+	if err := db.Model(&models.Event{}).Count(&stats.EventsTotal).Error; err != nil {
+		return stats, err
+	}
+
+	if err := db.Model(&models.AuditEvent{}).Count(&stats.AuditTotal).Error; err != nil {
+		return stats, err
+	}
+
+	return stats, nil
+}
+
+func (s *GormStore) ListRoomsWithOldestAssignedTickets(limit int) ([]RoomOldestAssignedTicket, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	var rows []RoomOldestAssignedTicket
+	err := s.db.Raw(`
+		WITH oldest_per_room AS (
+			SELECT DISTINCT ON (room_id)
+				room_id,
+				id AS ticket_id,
+				created_at,
+				status
+			FROM maintenance_tickets
+			WHERE room_id IS NOT NULL
+				AND assignee_user_id IS NOT NULL
+			ORDER BY room_id, created_at ASC
+		)
+		SELECT
+			opr.room_id,
+			r.number AS room_number,
+			opr.ticket_id,
+			opr.status
+		FROM oldest_per_room opr
+		INNER JOIN rooms r ON r.id = opr.room_id
+		WHERE r.is_archived = false
+		ORDER BY opr.created_at ASC
+		LIMIT ?
+	`, limit).Scan(&rows).Error
+	return rows, err
+}
+
+func (s *GormStore) ListOpenMaintenanceTickets(limit int) ([]DashboardOpenMaintenanceTicket, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	var tickets []models.MaintenanceTicket
+	err := s.db.
+		Where("status IN ?", []models.MaintenanceStatus{
+			models.MaintenanceStatusReported,
+			models.MaintenanceStatusInProgress,
+			models.MaintenanceStatusHalted,
+		}).
+		Preload("Room").
+		Order("created_at ASC").
+		Limit(limit).
+		Find(&tickets).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]DashboardOpenMaintenanceTicket, len(tickets))
+	for i, t := range tickets {
+		roomNumber := "—"
+		if t.Room != nil && t.Room.Number != "" {
+			roomNumber = t.Room.Number
+		}
+		out[i] = DashboardOpenMaintenanceTicket{
+			ID:         t.ID,
+			Category:   t.Category,
+			Severity:   t.Severity,
+			Status:     t.Status,
+			RoomNumber: roomNumber,
+		}
+	}
+	return out, nil
+}
+
+func (s *GormStore) ListJobsScheduledToday(limit int) ([]DashboardJobToday, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	now := time.Now().UTC()
+	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	dayEnd := dayStart.Add(24 * time.Hour)
+
+	var jobs []models.OperationalJob
+	err := s.db.
+		Where("starts_at < ? AND ends_at > ?", dayEnd, dayStart).
+		Preload("AssigneeUser").
+		Order("starts_at ASC").
+		Limit(limit).
+		Find(&jobs).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]DashboardJobToday, len(jobs))
+	for i, j := range jobs {
+		name := "—"
+		if j.AssigneeUser.Name != "" {
+			name = j.AssigneeUser.Name
+		}
+		out[i] = DashboardJobToday{
+			ID:           j.ID,
+			Title:        j.Title,
+			AssigneeName: name,
+			StartsAt:     j.StartsAt,
+			EndsAt:       j.EndsAt,
+			Status:       j.Status,
+		}
+	}
+	return out, nil
+}
+
+func (s *GormStore) ListRecentPublications(limit int) ([]DashboardPublication, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	var scanned []struct {
+		ID        uuid.UUID
+		Kind      string
+		Title     string
+		State     string
+		CreatedAt time.Time
+	}
+	err := s.db.Raw(`
+		SELECT id, kind, title, state, created_at FROM (
+			SELECT id, 'news' AS kind, title, state::text AS state, created_at
+			FROM forum_posts
+			WHERE kind = ?
+			UNION ALL
+			SELECT id, 'activity' AS kind, title, state::text AS state, created_at
+			FROM activities
+		) AS publications
+		ORDER BY created_at DESC
+		LIMIT ?
+	`, forummodels.ForumPostKindOfficialNews, limit).Scan(&scanned).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]DashboardPublication, len(scanned))
+	for i, row := range scanned {
+		out[i] = DashboardPublication{
+			ID:        row.ID,
+			Kind:      row.Kind,
+			Title:     row.Title,
+			State:     models.PublicationState(row.State),
+			CreatedAt: row.CreatedAt,
+		}
+	}
+	return out, nil
+}
+
+func (s *GormStore) ListRecentEvents(limit int) ([]DashboardEventRow, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	var events []models.Event
+	err := s.db.Order("created_at DESC").Limit(limit).Find(&events).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]DashboardEventRow, len(events))
+	for i, e := range events {
+		out[i] = DashboardEventRow{
+			ID:       e.ID,
+			Title:    e.Title,
+			StartsAt: e.StartsAt,
+			EndsAt:   e.EndsAt,
+			State:    e.State,
+		}
+	}
+	return out, nil
 }

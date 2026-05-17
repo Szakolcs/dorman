@@ -1,27 +1,252 @@
 package administration
 
-import (
-	"dorm-man/web/templates/common/components"
-	"dorm-man/web/templates/common/partials"
-)
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
 
-templ DashboardPage() {
-	@components.AppDocument("Administration", DashboardContent())
+templ DashboardPage(data DashboardPageData) {
+	@components.AppDocument("Administration", DashboardContent(data))
 }
 
-templ DashboardContent() {
+templ DashboardContent(data DashboardPageData) {
 	@partials.AdministrationNav()
 	@components.PageHeader(
 		"Administration Module",
-		"Central entry point for tenant lifecycle, occupancy, inventory, maintenance, scheduling, publications, and audit flows.",
+		"Overview of tenant lifecycle, occupancy, inventory, maintenance, scheduling, publications, and audit activity.",
 	)
-	<ul>
-		<li><a href="/administration/tenants" hx-boost="true">Tenant Management</a></li>
-		<li><a href="/administration/rooms" hx-boost="true">Room and Capacity</a></li>
-		<li><a href="/administration/inventory" hx-boost="true">Inventory</a></li>
-		<li><a href="/administration/maintenance" hx-boost="true">Maintenance</a></li>
-		<li><a href="/administration/jobs" hx-boost="true">Operational Scheduling</a></li>
-		<li><a href="/administration/publications" hx-boost="true">Publications</a></li>
-		<li><a href="/administration/audit" hx-boost="true">Audit</a></li>
-	</ul>
+	<div class="stat-list">
+		@components.StatCard(
+			"/administration/tenants",
+			"Tenant management",
+			formatCount(data.Stats.TenantsActive)+" active",
+			formatCount(data.Stats.TenantsTotal)+" total · "+formatCount(data.Stats.TenantsUnassigned)+" unassigned",
+		)
+		@RoomsDashboardPanel(data)
+		@MaintenanceDashboardPanel(data)
+		@JobsDashboardPanel(data)
+		@PublicationsDashboardPanel(data)
+		@components.StatCard(
+			"/administration/audit",
+			"Audit trail",
+			formatCount(data.Stats.AuditTotal)+" events",
+			"Sensitive actions across the module",
+		)
+		@components.StatCard(
+			"/administration/inventory",
+			"Inventory",
+			formatCount(data.Stats.InventoryTotal)+" items",
+			formatCount(data.Stats.InventoryAttention)+" need attention",
+		)
+	</div>
+}
+
+templ StatPanelHeader(href string, title string, value string, detail string) {
+	<div
+		class="stat-card-full"
+		hx-get={ templ.SafeURL(href) }
+		hx-target=".app"
+		hx-swap="innerHTML"
+		hx-trigger="click"
+		style="cursor:pointer;"
+	>
+		<header class="stat-panel__header">
+			<h3 class="stat-card__title">{ title }</h3>
+			<p class="stat-card__value">{ value }</p>
+			if detail != "" {
+				<p class="stat-card__detail">{ detail }</p>
+			}
+		</header>
+	</div>
+}
+
+templ RoomsDashboardPanel(data DashboardPageData) {
+	<article class="stat-panel">
+		@StatPanelHeader(
+			"/administration/rooms",
+			"Room and capacity",
+			formatCount(data.Stats.RoomsTotal)+" rooms",
+			formatCount(data.Stats.RoomsOccupied)+" occupied · "+formatCount(data.Stats.RoomsAvailable)+" available · "+formatCount(data.Stats.RoomsMaintenanceNeeded)+" need maintenance",
+		)
+		<div class="stat-panel__body">
+			<h4 class="stat-panel__subtitle">Oldest assigned maintenance tickets by room</h4>
+			@components.DataTable(
+				[]string{"Room", "Ticket ID", "Status"},
+				RoomsOldestMaintenanceRows(data),
+			)
+		</div>
+	</article>
+}
+
+templ RoomsOldestMaintenanceRows(data DashboardPageData) {
+	if len(data.RoomsOldestMaintenance) == 0 {
+		<tr>
+			<td colspan="3">No rooms with assigned maintenance tickets.</td>
+		</tr>
+	}
+	for _, row := range data.RoomsOldestMaintenance {
+		<tr
+			class="stat-table-row"
+			hx-get={ templ.SafeURL("/administration/rooms/" + row.RoomID) }
+			hx-target=".app"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+			style="cursor:pointer;"
+		>
+			<td>{ row.RoomNumber }</td>
+			<td><code>{ row.TicketID }</code></td>
+			<td><code>{ row.Status }</code></td>
+		</tr>
+	}
+}
+
+templ MaintenanceDashboardPanel(data DashboardPageData) {
+	<article class="stat-panel">
+		@StatPanelHeader(
+			"/administration/maintenance",
+			"Maintenance",
+			formatCount(data.Stats.MaintenanceOpen)+" open",
+			formatCount(data.Stats.MaintenancePending)+" pending approval · "+formatCount(data.Stats.MaintenanceTotal)+" total tickets",
+		)
+		<div class="stat-panel__body">
+			<h4 class="stat-panel__subtitle">Open maintenance tickets</h4>
+			@components.DataTable(
+				[]string{"Ticket ID", "Category", "Severity", "Status", "Room"},
+				OpenMaintenanceRows(data),
+			)
+		</div>
+	</article>
+}
+
+templ OpenMaintenanceRows(data DashboardPageData) {
+	if len(data.OpenMaintenance) == 0 {
+		<tr>
+			<td colspan="5">No open maintenance tickets.</td>
+		</tr>
+	}
+	for _, row := range data.OpenMaintenance {
+		<tr
+			class="stat-table-row"
+			hx-get={ templ.SafeURL("/administration/maintenance/tickets/" + row.TicketID) }
+			hx-target=".app"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+			style="cursor:pointer;"
+		>
+			<td><code>{ row.TicketID }</code></td>
+			<td>{ row.Category }</td>
+			<td>{ row.Severity }</td>
+			<td><code>{ row.Status }</code></td>
+			<td>{ row.RoomNumber }</td>
+		</tr>
+	}
+}
+
+templ JobsDashboardPanel(data DashboardPageData) {
+	<article class="stat-panel">
+		@StatPanelHeader(
+			"/administration/jobs?date="+data.JobsTodayDate,
+			"Operational scheduling",
+			formatCount(data.Stats.JobsToday)+" today",
+			formatCount(data.Stats.JobsTotal)+" total jobs",
+		)
+		<div class="stat-panel__body">
+			<h4 class="stat-panel__subtitle">Jobs scheduled for today</h4>
+			@components.DataTable(
+				[]string{"Title", "Assignee", "Starts", "Ends", "Status"},
+				JobsTodayRows(data),
+			)
+		</div>
+	</article>
+}
+
+templ JobsTodayRows(data DashboardPageData) {
+	if len(data.JobsToday) == 0 {
+		<tr>
+			<td colspan="5">No jobs scheduled for today.</td>
+		</tr>
+	}
+	for _, row := range data.JobsToday {
+		<tr
+			class="stat-table-row"
+			hx-get={ templ.SafeURL("/administration/jobs/" + row.JobID) }
+			hx-target=".app"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+			style="cursor:pointer;"
+		>
+			<td>{ row.Title }</td>
+			<td>{ row.AssigneeName }</td>
+			<td>{ row.StartsAt }</td>
+			<td>{ row.EndsAt }</td>
+			<td><code>{ row.Status }</code></td>
+		</tr>
+	}
+}
+
+templ PublicationsDashboardPanel(data DashboardPageData) {
+	<article class="stat-panel">
+		@StatPanelHeader(
+			"/administration/publications",
+			"Publications",
+			formatCount(data.Stats.NewsTotal+data.Stats.ActivitiesTotal+data.Stats.EventsTotal)+" entries",
+			formatCount(data.Stats.NewsTotal)+" news · "+formatCount(data.Stats.ActivitiesTotal)+" activities · "+formatCount(data.Stats.EventsTotal)+" events",
+		)
+		<div class="stat-panel__body">
+			<h4 class="stat-panel__subtitle">Recent publications</h4>
+			@components.DataTable(
+				[]string{"Kind", "Title", "State", "Created"},
+				RecentPublicationRows(data),
+			)
+			<h4 class="stat-panel__subtitle">Recent events</h4>
+			@components.DataTable(
+				[]string{"Title", "Starts", "Ends", "State"},
+				RecentEventRows(data),
+			)
+		</div>
+	</article>
+}
+
+templ RecentPublicationRows(data DashboardPageData) {
+	if len(data.RecentPublications) == 0 {
+		<tr>
+			<td colspan="4">No publications yet.</td>
+		</tr>
+	}
+	for _, row := range data.RecentPublications {
+		<tr
+			class="stat-table-row"
+			hx-get={ templ.SafeURL(publicationDetailPath(row.Kind, row.ID)) }
+			hx-target=".app"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+			style="cursor:pointer;"
+		>
+			<td>{ row.Kind }</td>
+			<td>{ row.Title }</td>
+			<td><code>{ row.State }</code></td>
+			<td>{ row.CreatedAt }</td>
+		</tr>
+	}
+}
+
+templ RecentEventRows(data DashboardPageData) {
+	if len(data.RecentEvents) == 0 {
+		<tr>
+			<td colspan="4">No events yet.</td>
+		</tr>
+	}
+	for _, row := range data.RecentEvents {
+		<tr
+			class="stat-table-row"
+			hx-get={ templ.SafeURL("/administration/publications/events/" + row.EventID) }
+			hx-target=".app"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+			style="cursor:pointer;"
+		>
+			<td>{ row.Title }</td>
+			<td>{ row.StartsAt }</td>
+			<td>{ row.EndsAt }</td>
+			<td><code>{ row.State }</code></td>
+		</tr>
+	}
 }

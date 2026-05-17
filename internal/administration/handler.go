@@ -495,6 +495,32 @@ func renderComponent(c echo.Context, component templ.Component) error {
 }
 
 func (h *Handler) dashboardPage(c echo.Context) error {
-	return renderComponent(c, adminviews.DashboardPage())
+	stats, err := h.service.DashboardStats()
+	if err != nil {
+		return err
+	}
+	roomRows, err := h.service.RoomsWithOldestAssignedTickets(5)
+	if err != nil {
+		return err
+	}
+	openTickets, err := h.service.OpenMaintenanceTickets(5)
+	if err != nil {
+		return err
+	}
+	jobsToday, err := h.service.JobsScheduledToday(5)
+	if err != nil {
+		return err
+	}
+	publications, err := h.service.RecentPublications(5)
+	if err != nil {
+		return err
+	}
+	events, err := h.service.RecentEvents(5)
+	if err != nil {
+		return err
+	}
+	return renderComponent(c, adminviews.DashboardPage(dashboardPageData(
+		stats, roomRows, openTickets, jobsToday, publications, events,
+	)))
 }
 

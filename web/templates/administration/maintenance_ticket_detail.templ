@@ -1,0 +1,122 @@
+package administration
+
+import adm "dorm-man/internal/models/administration"
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ MaintenanceTicketDetailPage(data MaintenanceTicketDetailPageData) {
+	@components.AppDocument("Maintenance ticket", MaintenanceTicketDetailContent(data))
+}
+
+templ MaintenanceTicketDetailContent(data MaintenanceTicketDetailPageData) {
+	@partials.AdministrationNav()
+	@components.BackLink("/administration/maintenance", "Back to maintenance")
+	@components.PageHeader(
+		"Ticket "+data.Ticket.ID.String()[:8],
+		string(data.Ticket.Category)+" · "+string(data.Ticket.Status),
+	)
+	<dl>
+		<dt>Ticket ID</dt>
+		<dd><code>{ data.Ticket.ID.String() }</code></dd>
+		<dt>Category</dt>
+		<dd>{ string(data.Ticket.Category) }</dd>
+		<dt>Severity</dt>
+		<dd>{ string(data.Ticket.Severity) }</dd>
+		<dt>Impact</dt>
+		<dd>{ string(data.Ticket.Impact) }</dd>
+		<dt>Status</dt>
+		<dd>{ string(data.Ticket.Status) }</dd>
+		<dt>Created by</dt>
+		<dd>{ userName(data.Ticket.CreatedByUser) }</dd>
+		<dt>Assignee</dt>
+		<dd>{ userNamePtr(data.Ticket.AssigneeUser) }</dd>
+		<dt>Due</dt>
+		<dd>{ maintenanceDue(data.Ticket.DueAt) }</dd>
+		<dt>Room</dt>
+		<dd>
+			if data.Ticket.Room != nil && data.Ticket.Room.Number != "" {
+				<a href={ templ.SafeURL("/administration/rooms/" + data.Ticket.Room.ID.String()) } hx-boost="true">
+					Room { data.Ticket.Room.Number }
+				</a>
+			} else {
+				—
+			}
+		</dd>
+		<dt>Created</dt>
+		<dd>{ data.Ticket.CreatedAt.Format("2006-01-02 15:04") }</dd>
+		if data.Ticket.ClosedAt != nil {
+			<dt>Closed</dt>
+			<dd>{ data.Ticket.ClosedAt.Format("2006-01-02 15:04") }</dd>
+		}
+	</dl>
+	@components.Section("Description", MaintenanceTicketDescription(data))
+	@components.Section("Status history", MaintenanceTicketStatusHistory(data))
+	if data.Ticket.Status == adm.MaintenanceStatusReported {
+		@components.Section("Approve ticket", MaintenanceTicketApproveForm(data))
+	}
+	@components.Section("Transition ticket", MaintenanceTicketTransitionForm(data))
+}
+
+templ MaintenanceTicketDescription(data MaintenanceTicketDetailPageData) {
+	<p>{ data.Ticket.Description }</p>
+}
+
+templ MaintenanceTicketStatusHistory(data MaintenanceTicketDetailPageData) {
+	@components.DataTable([]string{"When", "Actor", "From", "To", "Note"}, MaintenanceTicketStatusHistoryRows(data))
+}
+
+templ MaintenanceTicketStatusHistoryRows(data MaintenanceTicketDetailPageData) {
+	if len(data.Ticket.StatusTransitions) == 0 {
+		<tr>
+			<td colspan="5">No status changes recorded.</td>
+		</tr>
+	}
+	for _, c := range data.Ticket.StatusTransitions {
+		<tr>
+			<td>{ c.CreatedAt.Format("2006-01-02 15:04") }</td>
+			<td>{ userName(c.ActorUser) }</td>
+			<td>{ maintenanceFromStatus(c.FromStatus) }</td>
+			<td>{ string(c.ToStatus) }</td>
+			<td>{ c.Note }</td>
+		</tr>
+	}
+}
+
+templ MaintenanceTicketApproveForm(data MaintenanceTicketDetailPageData) {
+	<form method="post" action={ templ.SafeURL("/administration/maintenance/tickets/" + data.Ticket.ID.String() + "/approve") }>
+		<label>Assignee</label>
+		<select name="assignee_user_id">
+			<option value="">—</option>
+			for _, u := range data.StaffUsers {
+				<option value={ u.ID.String() }>{ u.Name }</option>
+			}
+		</select>
+		<label>Due at</label>
+		<input name="due_at" type="datetime-local"/>
+		<button type="submit">Approve</button>
+	</form>
+}
+
+templ MaintenanceTicketTransitionForm(data MaintenanceTicketDetailPageData) {
+	<form method="post" action={ templ.SafeURL("/administration/maintenance/tickets/" + data.Ticket.ID.String() + "/transition") }>
+		<label>To status</label>
+		<select name="to_status">
+			<option value="in_progress">in_progress</option>
+			<option value="duplicate">duplicate</option>
+			<option value="halted">halted</option>
+			<option value="resolved">resolved</option>
+			<option value="closed">closed</option>
+		</select>
+		<label>Note</label>
+		<textarea name="note"></textarea>
+		<button type="submit">Apply transition</button>
+	</form>
+}
+
+func maintenanceFromStatus(s *adm.MaintenanceStatus) string {
+	if s == nil {
+		return "—"
+	}
+	return string(*s)
+}

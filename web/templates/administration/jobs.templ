@@ -47,7 +47,14 @@ templ JobRows(data JobsPageData) {
 		</tr>
 	}
 	for _, j := range data.Jobs {
-		<tr>
+		<tr
+			class="stat-table-row"
+			hx-get={ templ.SafeURL("/administration/jobs/" + j.ID.String()) }
+			hx-target=".app"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+			style="cursor:pointer;"
+		>
 			<td>{ j.Title }</td>
 			<td>{ userName(j.AssigneeUser) }</td>
 			<td>{ j.StartsAt.Format("2006-01-02 15:04") }</td>

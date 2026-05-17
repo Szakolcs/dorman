@@ -56,8 +56,15 @@ templ MaintenanceRows(data MaintenancePageData) {
 		</tr>
 	}
 	for _, t := range data.Tickets {
-		<tr>
-			<td>{ t.ID.String()[:8] }</td>
+		<tr
+			class="stat-table-row"
+			hx-get={ templ.SafeURL("/administration/maintenance/tickets/" + t.ID.String()) }
+			hx-target=".app"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+			style="cursor:pointer;"
+		>
+			<td><code>{ t.ID.String()[:8] }</code></td>
 			<td>{ string(t.Category) }</td>
 			<td>{ string(t.Severity) }</td>
 			<td>{ string(t.Status) }</td>

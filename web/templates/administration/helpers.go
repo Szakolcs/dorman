@@ -2,10 +2,15 @@ package administration
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	adm "dorm-man/internal/models/administration"
 )
+
+func formatCount(n int64) string {
+	return strconv.FormatInt(n, 10)
+}
 
 func inventoryLocation(item adm.InventoryItem) string {
 	if item.Room != nil && item.Room.Number != "" {
@@ -93,6 +98,24 @@ func maintenancePreserve(data MaintenancePageData) map[string]string {
 		m["status"] = data.Status
 	}
 	return m
+}
+
+func buildingName(b *adm.Building) string {
+	if b == nil || b.Name == "" {
+		return "—"
+	}
+	return b.Name
+}
+
+func publicationDetailPath(kind, id string) string {
+	switch kind {
+	case "news":
+		return "/administration/publications/news/" + id
+	case "activity":
+		return "/administration/publications/activities/" + id
+	default:
+		return "/administration/publications"
+	}
 }
 
 func auditActor(e adm.AuditEvent) string {

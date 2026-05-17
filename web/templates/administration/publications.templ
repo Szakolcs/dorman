@@ -51,7 +51,14 @@ templ NewsRows(data PublicationsPageData) {
 		</tr>
 	}
 	for _, p := range data.News {
-		<tr>
+		<tr
+			class="stat-table-row"
+			hx-get={ templ.SafeURL("/administration/publications/news/" + p.ID.String()) }
+			hx-target=".app"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+			style="cursor:pointer;"
+		>
 			<td>{ p.Title }</td>
 			<td>{ string(p.State) }</td>
 			<td>{ publishDate(p.PublishedAt) }</td>
@@ -94,7 +101,14 @@ templ ActivityRows(data PublicationsPageData) {
 		</tr>
 	}
 	for _, a := range data.Activities {
-		<tr>
+		<tr
+			class="stat-table-row"
+			hx-get={ templ.SafeURL("/administration/publications/activities/" + a.ID.String()) }
+			hx-target=".app"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+			style="cursor:pointer;"
+		>
 			<td>{ a.Title }</td>
 			<td>{ a.Location }</td>
 			<td>{ fmt.Sprintf("%d", a.Capacity) }</td>
@@ -145,7 +159,14 @@ templ EventRows(data PublicationsPageData) {
 		</tr>
 	}
 	for _, e := range data.Events {
-		<tr>
+		<tr
+			class="stat-table-row"
+			hx-get={ templ.SafeURL("/administration/publications/events/" + e.ID.String()) }
+			hx-target=".app"
+			hx-swap="innerHTML"
+			hx-trigger="click"
+			style="cursor:pointer;"
+		>
 			<td>{ e.Title }</td>
 			<td>{ e.Location }</td>
 			<td>{ e.StartsAt.Format("2006-01-02 15:04") }</td>

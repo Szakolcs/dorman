@@ -1,0 +1,37 @@
+package administration
+
+import "fmt"
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ ActivityDetailPage(data ActivityDetailPageData) {
+	@components.AppDocument("Activity — "+data.Activity.Title, ActivityDetailContent(data))
+}
+
+templ ActivityDetailContent(data ActivityDetailPageData) {
+	@partials.AdministrationNav()
+	@components.BackLink("/administration/publications", "Back to publications")
+	@components.PageHeader(data.Activity.Title, "Official activity publication.")
+	<dl>
+		<dt>Activity ID</dt>
+		<dd><code>{ data.Activity.ID.String() }</code></dd>
+		<dt>State</dt>
+		<dd>{ string(data.Activity.State) }</dd>
+		<dt>Location</dt>
+		<dd>{ data.Activity.Location }</dd>
+		<dt>Capacity</dt>
+		<dd>{ fmt.Sprintf("%d", data.Activity.Capacity) }</dd>
+		<dt>Building</dt>
+		<dd>{ buildingName(data.Activity.Building) }</dd>
+		<dt>Created</dt>
+		<dd>{ data.Activity.CreatedAt.Format("2006-01-02 15:04") }</dd>
+	</dl>
+	if data.Activity.Description != "" {
+		@components.Section("Description", ActivityDescription(data))
+	}
+}
+
+templ ActivityDescription(data ActivityDetailPageData) {
+	<p>{ data.Activity.Description }</p>
+}

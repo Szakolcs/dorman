@@ -1,0 +1,51 @@
+package administration
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ JobDetailPage(data JobDetailPageData) {
+	@components.AppDocument("Job — "+data.Job.Title, JobDetailContent(data))
+}
+
+templ JobDetailContent(data JobDetailPageData) {
+	@partials.AdministrationNav()
+	@components.BackLink("/administration/jobs", "Back to jobs")
+	@components.PageHeader(data.Job.Title, "Operational job details.")
+	<dl>
+		<dt>Job ID</dt>
+		<dd><code>{ data.Job.ID.String() }</code></dd>
+		<dt>Status</dt>
+		<dd>{ string(data.Job.Status) }</dd>
+		<dt>Priority</dt>
+		<dd>{ string(data.Job.Priority) }</dd>
+		<dt>Assignee</dt>
+		<dd>{ userName(data.Job.AssigneeUser) }</dd>
+		<dt>Starts</dt>
+		<dd>{ data.Job.StartsAt.Format("2006-01-02 15:04") }</dd>
+		<dt>Ends</dt>
+		<dd>{ data.Job.EndsAt.Format("2006-01-02 15:04") }</dd>
+		<dt>Room</dt>
+		<dd>
+			if data.Job.Room != nil && data.Job.Room.Number != "" {
+				<a href={ templ.SafeURL("/administration/rooms/" + data.Job.Room.ID.String()) } hx-boost="true">
+					Room { data.Job.Room.Number }
+				</a>
+			} else {
+				—
+			}
+		</dd>
+		if data.Job.CreatedByUser != nil {
+			<dt>Created by</dt>
+			<dd>{ userNamePtr(data.Job.CreatedByUser) }</dd>
+		}
+		<dt>Created</dt>
+		<dd>{ data.Job.CreatedAt.Format("2006-01-02 15:04") }</dd>
+	</dl>
+	if data.Job.Description != "" {
+		@components.Section("Description", JobDescription(data))
+	}
+}
+
+templ JobDescription(data JobDetailPageData) {
+	<p>{ data.Job.Description }</p>
+}

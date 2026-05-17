@@ -1,0 +1,11 @@
+package components
+
+templ StatCard(href string, title string, value string, detail string) {
+	<a class="stat-card" href={ templ.SafeURL(href) } hx-boost="true">
+		<h3 class="stat-card__title">{ title }</h3>
+		<p class="stat-card__value">{ value }</p>
+		if detail != "" {
+			<p class="stat-card__detail">{ detail }</p>
+		}
+	</a>
+}

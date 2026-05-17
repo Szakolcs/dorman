@@ -1,0 +1,35 @@
+package administration
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ NewsDetailPage(data NewsDetailPageData) {
+	@components.AppDocument("News — "+data.Post.Title, NewsDetailContent(data))
+}
+
+templ NewsDetailContent(data NewsDetailPageData) {
+	@partials.AdministrationNav()
+	@components.BackLink("/administration/publications", "Back to publications")
+	@components.PageHeader(data.Post.Title, "Official news post.")
+	<dl>
+		<dt>Post ID</dt>
+		<dd><code>{ data.Post.ID.String() }</code></dd>
+		<dt>State</dt>
+		<dd>{ string(data.Post.State) }</dd>
+		<dt>Author</dt>
+		<dd>{ userName(data.Post.AuthorUser) }</dd>
+		<dt>Published</dt>
+		<dd>{ publishDate(data.Post.PublishedAt) }</dd>
+		<dt>Created</dt>
+		<dd>{ data.Post.CreatedAt.Format("2006-01-02 15:04") }</dd>
+		if data.Post.Tags != "" {
+			<dt>Tags</dt>
+			<dd>{ data.Post.Tags }</dd>
+		}
+	</dl>
+	@components.Section("Body", NewsBody(data))
+}
+
+templ NewsBody(data NewsDetailPageData) {
+	<p>{ data.Post.Body }</p>
+}

@@ -222,6 +222,73 @@ func (h *Handler) publicationsPage(c echo.Context) error {
 	}))
 }
 
+func (h *Handler) maintenanceTicketDetailPage(c echo.Context) error {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid ticket id")
+	}
+	ticket, err := h.service.GetMaintenanceTicket(id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, err.Error())
+	}
+	staff, err := h.service.ListStaffUsers()
+	if err != nil {
+		return err
+	}
+	return renderComponent(c, adminviews.MaintenanceTicketDetailPage(adminviews.MaintenanceTicketDetailPageData{
+		Ticket:     ticket,
+		StaffUsers: staff,
+	}))
+}
+
+func (h *Handler) jobDetailPage(c echo.Context) error {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid job id")
+	}
+	job, err := h.service.GetOperationalJob(id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, err.Error())
+	}
+	return renderComponent(c, adminviews.JobDetailPage(adminviews.JobDetailPageData{Job: job}))
+}
+
+func (h *Handler) newsDetailPage(c echo.Context) error {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid post id")
+	}
+	post, err := h.service.GetNewsPost(id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, err.Error())
+	}
+	return renderComponent(c, adminviews.NewsDetailPage(adminviews.NewsDetailPageData{Post: post}))
+}
+
+func (h *Handler) activityDetailPage(c echo.Context) error {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid activity id")
+	}
+	activity, err := h.service.GetActivity(id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, err.Error())
+	}
+	return renderComponent(c, adminviews.ActivityDetailPage(adminviews.ActivityDetailPageData{Activity: activity}))
+}
+
+func (h *Handler) eventDetailPage(c echo.Context) error {
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid event id")
+	}
+	event, err := h.service.GetEvent(id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, err.Error())
+	}
+	return renderComponent(c, adminviews.EventDetailPage(adminviews.EventDetailPageData{Event: event}))
+}
+
 func (h *Handler) auditPage(c echo.Context) error {
 	params := pageParams(c)
 	events, total, err := h.service.ListAuditEvents(AuditListFilter{Params: params})

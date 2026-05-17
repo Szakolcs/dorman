@@ -167,7 +167,7 @@ func (h *Handler) approveMaintenanceTicketView(c echo.Context) error {
 		dueAt = &t
 	}
 	_, err = h.service.ApproveMaintenanceTicket(principal, id, assigneeID, dueAt)
-	return redirectView(c, "/administration/maintenance", err)
+	return redirectView(c, "/administration/maintenance/tickets/"+id.String(), err)
 }
 
 func (h *Handler) transitionMaintenanceTicketView(c echo.Context) error {
@@ -181,7 +181,7 @@ func (h *Handler) transitionMaintenanceTicketView(c echo.Context) error {
 	}
 	toStatus := models.MaintenanceStatus(c.FormValue("to_status"))
 	_, err = h.service.TransitionMaintenanceTicket(principal, id, toStatus, c.FormValue("note"))
-	return redirectView(c, "/administration/maintenance", err)
+	return redirectView(c, "/administration/maintenance/tickets/"+id.String(), err)
 }
 
 func (h *Handler) createJobView(c echo.Context) error {

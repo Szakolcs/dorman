@@ -1,0 +1,43 @@
+package administration
+
+import "fmt"
+
+import "dorm-man/web/templates/common/components"
+import "dorm-man/web/templates/common/partials"
+
+templ EventDetailPage(data EventDetailPageData) {
+	@components.AppDocument("Event — "+data.Event.Title, EventDetailContent(data))
+}
+
+templ EventDetailContent(data EventDetailPageData) {
+	@partials.AdministrationNav()
+	@components.BackLink("/administration/publications", "Back to publications")
+	@components.PageHeader(data.Event.Title, "Official event publication.")
+	<dl>
+		<dt>Event ID</dt>
+		<dd><code>{ data.Event.ID.String() }</code></dd>
+		<dt>State</dt>
+		<dd>{ string(data.Event.State) }</dd>
+		<dt>Location</dt>
+		<dd>{ data.Event.Location }</dd>
+		<dt>Starts</dt>
+		<dd>{ data.Event.StartsAt.Format("2006-01-02 15:04") }</dd>
+		<dt>Ends</dt>
+		<dd>{ data.Event.EndsAt.Format("2006-01-02 15:04") }</dd>
+		<dt>Capacity</dt>
+		<dd>{ fmt.Sprintf("%d", data.Event.Capacity) }</dd>
+		<dt>Organizer</dt>
+		<dd>{ userName(data.Event.Organizer) }</dd>
+		<dt>Building</dt>
+		<dd>{ buildingName(data.Event.Building) }</dd>
+		<dt>Created</dt>
+		<dd>{ data.Event.CreatedAt.Format("2006-01-02 15:04") }</dd>
+	</dl>
+	if data.Event.Description != "" {
+		@components.Section("Description", EventDescription(data))
+	}
+}
+
+templ EventDescription(data EventDetailPageData) {
+	<p>{ data.Event.Description }</p>
+}
