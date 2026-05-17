@@ -20,15 +20,16 @@ const (
 	ForumPostKindSystemNotice      ForumPostKind = "system_notice"
 )
 
-type ForumPostState string
+// ForumPostState matches administration PublicationState (platform.PublicationState).
+type ForumPostState = platform.PublicationState
 
 const (
-	ForumPostStateDraft     ForumPostState = "draft"
-	ForumPostStatePublished ForumPostState = "published"
-	ForumPostStateArchived  ForumPostState = "archived"
-	ForumPostStateCanceled  ForumPostState = "canceled"
-	ForumPostStatePostponed ForumPostState = "postponed"
-	ForumPostStateHidden    ForumPostState = "hidden"
+	ForumPostStateDraft     = platform.PublicationStateDraft
+	ForumPostStatePublished = platform.PublicationStatePublished
+	ForumPostStateArchived  = platform.PublicationStateArchived
+	ForumPostStateCanceled  = platform.PublicationStateCanceled
+	ForumPostStatePostponed = platform.PublicationStatePostponed
+	ForumPostStateHidden    = platform.PublicationStateHidden
 )
 
 type ForumPostSource string
@@ -38,6 +39,8 @@ const (
 	ForumPostSourceAdministration ForumPostSource = "administration"
 )
 
+// ForumPost author fields: AuthorUserID is always the authenticated user (staff or linked tenant user).
+// AuthorTenantID is set for tenant-authored community content (organizer identity in the dorm).
 type ForumPost struct {
 	platform.BaseModel
 	AuthorUserID   uuid.UUID       `gorm:"type:uuid;not null;index"`
@@ -70,7 +73,7 @@ type ForumPostSchedule struct {
 	platform.BaseModel
 	ForumPostID          uuid.UUID  `gorm:"type:uuid;not null;uniqueIndex"`
 	StartsAt             *time.Time `gorm:"index"`
-	EndsAt               *time.Time
+	EndsAt               *time.Time `gorm:"index"`
 	Location             string
 	Capacity             *int
 	RegistrationDeadline *time.Time

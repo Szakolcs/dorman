@@ -48,6 +48,7 @@ type ForumPollOption struct {
 	Votes []ForumPollVote `gorm:"foreignKey:OptionID"`
 }
 
+// ForumPollVote and ForumAttendanceIntent use TenantID (dorm resident identity for participation).
 type ForumPollVote struct {
 	platform.BaseModel
 	PollID   uuid.UUID `gorm:"type:uuid;not null;index;uniqueIndex:idx_forum_poll_vote"`

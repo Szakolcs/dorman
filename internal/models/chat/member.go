@@ -27,8 +27,8 @@ const (
 // ChatRoomMember tracks tenant membership in a room, read cursor, and leave state.
 type ChatRoomMember struct {
 	platform.BaseModel
-	RoomID            uuid.UUID            `gorm:"type:uuid;not null;index"`
-	TenantID          uuid.UUID            `gorm:"type:uuid;not null;index"`
+	RoomID            uuid.UUID            `gorm:"type:uuid;not null;index;uniqueIndex:idx_chat_room_member_active,where:left_at IS NULL"`
+	TenantID          uuid.UUID            `gorm:"type:uuid;not null;index;uniqueIndex:idx_chat_room_member_active,where:left_at IS NULL"`
 	Role              ChatRoomMemberRole   `gorm:"type:varchar(20);not null;default:'member'"`
 	JoinedAt          time.Time            `gorm:"not null;default:CURRENT_TIMESTAMP"`
 	LeftAt            *time.Time           `gorm:"index"`

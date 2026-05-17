@@ -35,6 +35,7 @@ func New() (*App, error) {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
+	// Order: administration (incl. User/Role) → forum → chat → doorman (FKs to administration).
 	toMigrate := append([]any(nil), models.All()...)
 	toMigrate = append(toMigrate, forumModels.All()...)
 	toMigrate = append(toMigrate, chatModels.All()...)

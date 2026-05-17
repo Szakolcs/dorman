@@ -37,7 +37,7 @@ const (
 type InventoryItem struct {
 	platform.BaseModel
 	Name         string `gorm:"not null;index"`
-	Description  string
+	Description  string `gorm:"type:text"`
 	LocationType InventoryLocationType `gorm:"type:varchar(20);not null;index"`
 	RoomID       *uuid.UUID            `gorm:"type:uuid;index"`
 	FlatID       *uuid.UUID            `gorm:"type:uuid;index"`

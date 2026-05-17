@@ -20,7 +20,7 @@ type AuditEvent struct {
 	ActorUserID *uuid.UUID   `gorm:"type:uuid;index"`
 	Action      string       `gorm:"not null;index"`
 	TargetType  string       `gorm:"not null;index"`
-	TargetID    string       `gorm:"index"`
+	TargetID    uuid.UUID    `gorm:"type:uuid;index"`
 	Outcome     AuditOutcome `gorm:"type:varchar(20);not null;index"`
 	Metadata    string       `gorm:"type:text"`
 	OccurredAt  time.Time    `gorm:"not null;default:CURRENT_TIMESTAMP;index"`

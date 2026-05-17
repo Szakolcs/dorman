@@ -51,7 +51,7 @@ type GuestAccessEvent struct {
 	GuestVisitID uuid.UUID            `gorm:"type:uuid;not null;index"`
 	ActorUserID  uuid.UUID            `gorm:"type:uuid;not null;index"`
 	EventType    GuestAccessEventType `gorm:"type:varchar(20);not null;index"`
-	OccurredAt   time.Time            `gorm:"not null;index;default:CURRENT_TIMESTAMP"`
+	OccurredAt   time.Time            `gorm:"not null;default:CURRENT_TIMESTAMP;index"`
 	Reason       *string              `gorm:"type:varchar(64);index"`
 
 	GuestVisit *GuestVisit `gorm:"foreignKey:GuestVisitID;references:ID"`

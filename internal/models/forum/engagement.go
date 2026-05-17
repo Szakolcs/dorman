@@ -30,6 +30,7 @@ const (
 	ReactionTypeLike ReactionType = "like"
 )
 
+// ForumComment and ForumReaction use AuthorUserID / UserID (authenticated user), not tenant ID.
 type ForumComment struct {
 	platform.BaseModel
 	PostID          uuid.UUID  `gorm:"type:uuid;not null;index"`

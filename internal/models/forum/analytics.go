@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// ForumPostView: set ViewerUserID for staff, ViewerTenantID for tenant sessions (at least one in application logic).
 type ForumPostView struct {
 	platform.BaseModel
 	PostID         uuid.UUID  `gorm:"type:uuid;not null;index"`

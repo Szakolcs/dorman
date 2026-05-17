@@ -43,7 +43,7 @@ func (s *Service) RegisterTenant(principal Principal, tenant models.Tenant) (mod
 	if err != nil {
 		return models.Tenant{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "tenant.register", "tenant", created.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "tenant.register", "tenant", created.ID, models.AuditOutcomeSuccess))
 	return created, nil
 }
 
@@ -59,7 +59,7 @@ func (s *Service) SetTenantActive(principal Principal, tenantID uuid.UUID, activ
 	if active {
 		action = "tenant.activate"
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, action, "tenant", tenant.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, action, "tenant", tenant.ID, models.AuditOutcomeSuccess))
 	return tenant, nil
 }
 
@@ -160,7 +160,7 @@ func (s *Service) AssignTenant(principal Principal, tenantID, roomID uuid.UUID) 
 		return models.RoomAssignment{}, err
 	}
 
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "room.assignment", "room_assignment", created.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "room.assignment", "room_assignment", created.ID, models.AuditOutcomeSuccess))
 	return created, nil
 }
 
@@ -252,7 +252,7 @@ func (s *Service) CreateInventoryItem(principal Principal, item models.Inventory
 	if err != nil {
 		return models.InventoryItem{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "inventory.create", "inventory_item", created.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "inventory.create", "inventory_item", created.ID, models.AuditOutcomeSuccess))
 	return created, nil
 }
 
@@ -264,7 +264,7 @@ func (s *Service) UpdateInventoryStatus(principal Principal, id uuid.UUID, statu
 	if err != nil {
 		return models.InventoryItem{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "inventory.status_change", "inventory_item", item.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "inventory.status_change", "inventory_item", item.ID, models.AuditOutcomeSuccess))
 	return item, nil
 }
 
@@ -397,7 +397,7 @@ func (s *Service) CreateNews(principal Principal, input NewsUpsertInput) (forumm
 		AuthorUserID: principal.UserID,
 		Kind:         forummodels.ForumPostKindOfficialNews,
 		Source:       forummodels.ForumPostSourceAdministration,
-		State:        forummodels.ForumPostState(input.State),
+		State:        input.State,
 		Title:        input.Title,
 		Body:         input.Body,
 		Tags:         input.Tags,
@@ -411,7 +411,7 @@ func (s *Service) CreateNews(principal Principal, input NewsUpsertInput) (forumm
 		return forummodels.ForumPost{}, err
 	}
 	if created.State == forummodels.ForumPostStatePublished {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", created.ID.String(), models.AuditOutcomeSuccess))
+		_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", created.ID, models.AuditOutcomeSuccess))
 	}
 	return created, nil
 }
@@ -431,7 +431,7 @@ func (s *Service) PublishNews(principal Principal, id uuid.UUID) (forummodels.Fo
 	if err != nil {
 		return forummodels.ForumPost{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", updated.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", updated.ID, models.AuditOutcomeSuccess))
 	return updated, nil
 }
 
@@ -459,7 +459,7 @@ func (s *Service) CreateActivity(principal Principal, input ActivityUpsertInput)
 		return models.Activity{}, err
 	}
 	if created.State == models.PublicationStatePublished {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "activity.publish", "activity", created.ID.String(), models.AuditOutcomeSuccess))
+		_ = s.store.CreateAudit(newAudit(principal.UserID, "activity.publish", "activity", created.ID, models.AuditOutcomeSuccess))
 	}
 	return created, nil
 }
@@ -477,7 +477,7 @@ func (s *Service) PublishActivity(principal Principal, id uuid.UUID) (models.Act
 	if err != nil {
 		return models.Activity{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "activity.publish", "activity", updated.ID.String(), models.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "activity.publish", "activity", updated.ID, models.AuditOutcomeSuccess))
 	return updated, nil
 }
 
@@ -511,7 +511,7 @@ func (s *Service) CreateEvent(principal Principal, input EventUpsertInput) (mode
 		return models.Event{}, err
 	}
 	if created.State == models.PublicationStatePublished {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "event.publish", "event", created.ID.String(), models.AuditOutcomeSuccess))
+		_ = s.store.CreateAudit(newAudit(principal.UserID, "event.publish", "event", created.ID, models.AuditOutcomeSuccess))
 	}
 	return created, nil
 }
@@ -536,7 +536,7 @@ func (s *Service) UpdateEventState(principal Principal, eventID uuid.UUID, state
 		return models.Event{}, err
 	}
 	if state == models.PublicationStatePublished || state == models.PublicationStatePostponed || state == models.PublicationStateCanceled {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "event.state_change", "event", updated.ID.String(), models.AuditOutcomeSuccess))
+		_ = s.store.CreateAudit(newAudit(principal.UserID, "event.state_change", "event", updated.ID, models.AuditOutcomeSuccess))
 	}
 	return updated, nil
 }
@@ -556,7 +556,7 @@ func hasAnyRole(principal Principal, required ...models.RoleName) bool {
 	return false
 }
 
-func newAudit(actorID uuid.UUID, action, targetType, targetID string, outcome models.AuditOutcome) models.AuditEvent {
+func newAudit(actorID uuid.UUID, action, targetType string, targetID uuid.UUID, outcome models.AuditOutcome) models.AuditEvent {
 	return models.AuditEvent{
 		ActorUserID: &actorID,
 		Action:      action,

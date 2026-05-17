@@ -408,7 +408,7 @@ func (s *Service) CreatePoll(principal administration.Principal, in PollCreateIn
 	if err != nil {
 		return fm.ForumPost{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "forum.poll.create", "forum_post", createdPost.ID.String(), adm.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "forum.poll.create", "forum_post", createdPost.ID, adm.AuditOutcomeSuccess))
 	return s.store.GetPost(createdPost.ID)
 }
 
@@ -632,7 +632,7 @@ func (s *Service) Moderate(principal administration.Principal, in ModerationInpu
 	if _, err := s.store.CreateModerationAction(action); err != nil {
 		return err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, auditAction, string(in.TargetType), in.TargetID.String(), adm.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, auditAction, string(in.TargetType), in.TargetID, adm.AuditOutcomeSuccess))
 	return nil
 }
 
@@ -799,7 +799,7 @@ func canManageOfficialPoll(p administration.Principal) bool {
 	return isStaffModerator(p)
 }
 
-func newAudit(actorID uuid.UUID, action, targetType, targetID string, outcome adm.AuditOutcome) adm.AuditEvent {
+func newAudit(actorID uuid.UUID, action, targetType string, targetID uuid.UUID, outcome adm.AuditOutcome) adm.AuditEvent {
 	return adm.AuditEvent{
 		ActorUserID: &actorID,
 		Action:      action,

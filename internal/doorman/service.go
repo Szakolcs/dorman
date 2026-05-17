@@ -65,7 +65,7 @@ func (s *Service) RegisterPackage(principal administration.Principal, in Package
 	if err != nil {
 		return dm.Package{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "package.create", "package", created.ID.String(), adm.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "package.create", "package", created.ID, adm.AuditOutcomeSuccess))
 	return created, nil
 }
 
@@ -93,7 +93,7 @@ func (s *Service) TransitionPackage(principal administration.Principal, packageI
 	if err != nil {
 		return dm.Package{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "package.status_change", "package", updated.ID.String(), adm.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "package.status_change", "package", updated.ID, adm.AuditOutcomeSuccess))
 	return updated, nil
 }
 
@@ -117,7 +117,7 @@ func (s *Service) ConfirmPackagePickup(principal administration.Principal, packa
 	if err != nil {
 		return dm.Package{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "package.pickup", "package", updated.ID.String(), adm.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "package.pickup", "package", updated.ID, adm.AuditOutcomeSuccess))
 	return updated, nil
 }
 
@@ -159,7 +159,7 @@ func (s *Service) NotifyPackageTenant(principal administration.Principal, packag
 			return created, err
 		}
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "package.notification", "package", pkg.ID.String(), adm.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "package.notification", "package", pkg.ID, adm.AuditOutcomeSuccess))
 	return created, nil
 }
 
@@ -218,7 +218,7 @@ func (s *Service) GuestCheckIn(principal administration.Principal, visitID uuid.
 			OccurredAt:   now,
 			Reason:       &reason,
 		})
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "guest.access_denied", "guest_visit", v.ID.String(), adm.AuditOutcomeFailure))
+		_ = s.store.CreateAudit(newAudit(principal.UserID, "guest.access_denied", "guest_visit", v.ID, adm.AuditOutcomeFailure))
 		return dm.GuestVisit{}, ErrOutsideVisitWindow
 	}
 	switch v.Status {
@@ -385,7 +385,7 @@ func (s *Service) appendDenied(actor uuid.UUID, source dm.AccessEventSource, ten
 	if err != nil {
 		return QRValidationResult{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(actor, "access.denied", "access_event", saved.ID.String(), adm.AuditOutcomeFailure))
+	_ = s.store.CreateAudit(newAudit(actor, "access.denied", "access_event", saved.ID, adm.AuditOutcomeFailure))
 	return QRValidationResult{Outcome: dm.AccessEventOutcomeDenied, Reason: reason, Event: saved}, nil
 }
 
@@ -431,7 +431,7 @@ func (s *Service) CheckoutItem(principal administration.Principal, body Checkout
 	if err != nil {
 		return dm.ItemLoan{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "loan.checkout", "item_loan", created.ID.String(), adm.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "loan.checkout", "item_loan", created.ID, adm.AuditOutcomeSuccess))
 	return created, nil
 }
 
@@ -454,7 +454,7 @@ func (s *Service) ReturnItem(principal administration.Principal, loanID uuid.UUI
 	if err != nil {
 		return dm.ItemLoan{}, err
 	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "loan.return", "item_loan", updated.ID.String(), adm.AuditOutcomeSuccess))
+	_ = s.store.CreateAudit(newAudit(principal.UserID, "loan.return", "item_loan", updated.ID, adm.AuditOutcomeSuccess))
 	return updated, nil
 }
 
@@ -492,7 +492,7 @@ func canTransitionPackage(from, to dm.PackageStatus) bool {
 	return false
 }
 
-func newAudit(actorID uuid.UUID, action, targetType, targetID string, outcome adm.AuditOutcome) adm.AuditEvent {
+func newAudit(actorID uuid.UUID, action, targetType string, targetID uuid.UUID, outcome adm.AuditOutcome) adm.AuditEvent {
 	return adm.AuditEvent{
 		ActorUserID: &actorID,
 		Action:      action,

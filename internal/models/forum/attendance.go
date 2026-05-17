@@ -14,6 +14,7 @@ const (
 	AttendanceIntentNotGoing AttendanceIntent = "not_going"
 )
 
+// ForumAttendanceIntent records a tenant's going / not-going intent (see poll.go for poll votes).
 type ForumAttendanceIntent struct {
 	platform.BaseModel
 	PostID   uuid.UUID        `gorm:"type:uuid;not null;index;uniqueIndex:idx_attendance_post_tenant"`

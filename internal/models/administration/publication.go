@@ -8,14 +8,15 @@ import (
 	"github.com/google/uuid"
 )
 
-type PublicationState string
+type PublicationState = platform.PublicationState
 
 const (
-	PublicationStateDraft     PublicationState = "draft"
-	PublicationStatePublished PublicationState = "published"
-	PublicationStateArchived  PublicationState = "archived"
-	PublicationStateCanceled  PublicationState = "canceled"
-	PublicationStatePostponed PublicationState = "postponed"
+	PublicationStateDraft     = platform.PublicationStateDraft
+	PublicationStatePublished = platform.PublicationStatePublished
+	PublicationStateArchived  = platform.PublicationStateArchived
+	PublicationStateCanceled  = platform.PublicationStateCanceled
+	PublicationStatePostponed = platform.PublicationStatePostponed
+	PublicationStateHidden    = platform.PublicationStateHidden
 )
 
 type Activity struct {

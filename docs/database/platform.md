@@ -34,7 +34,7 @@ This document declares relational tables **owned by the platform layer**: identi
 | **Suggested fields** | `uni_code` (unique), `email`, `password_hash`, `name`, `principal_type` enum (`staff`, `tenant`), `is_active`, `last_login_at`, timestamps |
 | **Integrity** | `email` unique per deployment policy; inactive users cannot authenticate |
 
-**Maps to:** FR-CC-002, implementation in `internal/models/platform/user.go`.
+**Maps to:** FR-CC-002, implementation in `internal/models/administration/user.go` (migrated with administration models).
 
 ### `Role`
 

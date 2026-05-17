@@ -356,7 +356,7 @@ func (s *Service) RemoveGroupMember(p TenantPrincipal, roomID, tenantID uuid.UUI
 		return cm.ChatRoomMember{}, err
 	}
 	if p.UserID != nil {
-		_ = s.store.CreateAudit(newAudit(*p.UserID, "chat.group.member.remove", "chat_room_member", member.ID.String(), adm.AuditOutcomeSuccess))
+		_ = s.store.CreateAudit(newAudit(*p.UserID, "chat.group.member.remove", "chat_room_member", member.ID, adm.AuditOutcomeSuccess))
 	}
 	return updated, nil
 }
@@ -439,7 +439,7 @@ func (s *Service) UpdateProfile(p TenantPrincipal, in UpdateProfileInput) (chatv
 		return chatviews.TenantProfileView{}, err
 	}
 	if p.UserID != nil {
-		_ = s.store.CreateAudit(newAudit(*p.UserID, "chat.profile.update", "chat_tenant_profile", saved.TenantID.String(), adm.AuditOutcomeSuccess))
+		_ = s.store.CreateAudit(newAudit(*p.UserID, "chat.profile.update", "chat_tenant_profile", saved.TenantID, adm.AuditOutcomeSuccess))
 	}
 	return chatviews.TenantProfileView{
 		Profile:     &saved,
@@ -449,7 +449,7 @@ func (s *Service) UpdateProfile(p TenantPrincipal, in UpdateProfileInput) (chatv
 }
 
 // SyncFlatMembershipForTenant applies assignment-driven flat-room membership (FR-CM-002).
-func (s *Service) SyncFlatMembershipForTenant(tenantID, flatID uuid.UUID, eventType string) error {
+func (s *Service) SyncFlatMembershipForTenant(tenantID, flatID uuid.UUID, eventType cm.ChatMembershipSyncEventType) error {
 	flat, err := s.store.GetFlat(flatID)
 	if err != nil {
 		return err
@@ -557,7 +557,7 @@ func (s *Service) loadPeerProfiles(memberships []cm.ChatRoomMember, selfID uuid.
 	return s.store.GetProfiles(ids)
 }
 
-func (s *Service) logSync(tenantID, flatID uuid.UUID, eventType string, payload map[string]any) error {
+func (s *Service) logSync(tenantID, flatID uuid.UUID, eventType cm.ChatMembershipSyncEventType, payload map[string]any) error {
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -662,7 +662,7 @@ func conversationLess(a, b chatviews.ConversationSummary) bool {
 	return at.After(*bt)
 }
 
-func newAudit(actorID uuid.UUID, action, targetType, targetID string, outcome adm.AuditOutcome) adm.AuditEvent {
+func newAudit(actorID uuid.UUID, action, targetType string, targetID uuid.UUID, outcome adm.AuditOutcome) adm.AuditEvent {
 	return adm.AuditEvent{
 		ActorUserID: &actorID,
 		Action:      action,

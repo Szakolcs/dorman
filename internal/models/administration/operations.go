@@ -29,7 +29,7 @@ const (
 type OperationalJob struct {
 	platform.BaseModel
 	Title           string `gorm:"not null;index"`
-	Description     string
+	Description     string `gorm:"type:text"`
 	RoomID          *uuid.UUID  `gorm:"type:uuid;index"`
 	AssigneeUserID  uuid.UUID   `gorm:"type:uuid;not null;index"`
 	CreatedByUserID *uuid.UUID  `gorm:"type:uuid;index"`

@@ -51,7 +51,7 @@ type AccessEvent struct {
 	Outcome     AccessEventOutcome `gorm:"type:varchar(20);not null;index"`
 	Reason      *string            `gorm:"type:varchar(64);index"`
 	Source      AccessEventSource  `gorm:"type:varchar(20);not null;index"`
-	OccurredAt  time.Time          `gorm:"not null;index;default:CURRENT_TIMESTAMP"`
+	OccurredAt  time.Time          `gorm:"not null;default:CURRENT_TIMESTAMP;index"`
 
 	Tenant     *adm.Tenant       `gorm:"foreignKey:TenantID;references:ID"`
 	ActorUser  *adm.User         `gorm:"foreignKey:ActorUserID;references:ID"`
