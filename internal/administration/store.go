@@ -7,6 +7,7 @@ import (
 	"time"
 
 	models "dorm-man/internal/models/administration"
+	forummodels "dorm-man/internal/models/forum"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -44,10 +45,10 @@ type Store interface {
 	CreateOperationalJob(job models.OperationalJob) (models.OperationalJob, error)
 	ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, error)
 
-	CreateForumPost(post models.ForumPost) (models.ForumPost, error)
-	UpdateForumPost(post models.ForumPost) (models.ForumPost, error)
-	GetForumPost(id uuid.UUID) (models.ForumPost, error)
-	ListForumPosts() ([]models.ForumPost, error)
+	CreateForumPost(post forummodels.ForumPost) (forummodels.ForumPost, error)
+	UpdateForumPost(post forummodels.ForumPost) (forummodels.ForumPost, error)
+	GetForumPost(id uuid.UUID) (forummodels.ForumPost, error)
+	ListForumPosts() ([]forummodels.ForumPost, error)
 
 	CreateActivity(activity models.Activity) (models.Activity, error)
 	UpdateActivity(activity models.Activity) (models.Activity, error)
@@ -323,31 +324,31 @@ func (s *GormStore) ListOperationalJobs(filter JobListFilter) ([]models.Operatio
 	return jobs, err
 }
 
-func (s *GormStore) CreateForumPost(post models.ForumPost) (models.ForumPost, error) {
+func (s *GormStore) CreateForumPost(post forummodels.ForumPost) (forummodels.ForumPost, error) {
 	if err := s.db.Create(&post).Error; err != nil {
-		return models.ForumPost{}, err
+		return forummodels.ForumPost{}, err
 	}
 	return post, nil
 }
 
-func (s *GormStore) UpdateForumPost(post models.ForumPost) (models.ForumPost, error) {
+func (s *GormStore) UpdateForumPost(post forummodels.ForumPost) (forummodels.ForumPost, error) {
 	if err := s.db.Save(&post).Error; err != nil {
-		return models.ForumPost{}, err
+		return forummodels.ForumPost{}, err
 	}
 	return post, nil
 }
 
-func (s *GormStore) GetForumPost(id uuid.UUID) (models.ForumPost, error) {
-	var post models.ForumPost
+func (s *GormStore) GetForumPost(id uuid.UUID) (forummodels.ForumPost, error) {
+	var post forummodels.ForumPost
 	err := s.db.First(&post, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models.ForumPost{}, ErrNotFound
+		return forummodels.ForumPost{}, ErrNotFound
 	}
 	return post, err
 }
 
-func (s *GormStore) ListForumPosts() ([]models.ForumPost, error) {
-	var posts []models.ForumPost
+func (s *GormStore) ListForumPosts() ([]forummodels.ForumPost, error) {
+	var posts []forummodels.ForumPost
 	err := s.db.Order("created_at DESC").Find(&posts).Error
 	return posts, err
 }

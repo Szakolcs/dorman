@@ -9,6 +9,7 @@ import (
 	"dorm-man/internal/doorman"
 	models "dorm-man/internal/models/administration"
 	doormanModels "dorm-man/internal/models/doorman"
+	forumModels "dorm-man/internal/models/forum"
 	"dorm-man/internal/platform"
 
 	"github.com/labstack/echo/v4"
@@ -32,6 +33,7 @@ func New() (*App, error) {
 	}
 
 	toMigrate := append([]any(nil), models.All()...)
+	toMigrate = append(toMigrate, forumModels.All()...)
 	toMigrate = append(toMigrate, doormanModels.All()...)
 	if err := db.AutoMigrate(toMigrate...); err != nil {
 		return nil, fmt.Errorf("auto migrate models: %w", err)
