@@ -6,6 +6,7 @@ import (
 	"time"
 
 	models "dorm-man/internal/models/administration"
+	forummodels "dorm-man/internal/models/forum"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -388,52 +389,53 @@ func (s *Service) ListOperationalJobs(filter JobListFilter) ([]models.Operationa
 	return s.store.ListOperationalJobs(filter)
 }
 
-func (s *Service) CreateNews(principal Principal, input NewsUpsertInput) (models.ForumPost, error) {
+func (s *Service) CreateNews(principal Principal, input NewsUpsertInput) (forummodels.ForumPost, error) {
 	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return models.ForumPost{}, ErrUnauthorized
+		return forummodels.ForumPost{}, ErrUnauthorized
 	}
-	post := models.ForumPost{
+	post := forummodels.ForumPost{
 		AuthorUserID: principal.UserID,
-		Kind:         models.ForumPostKindOfficialNews,
-		State:        input.State,
+		Kind:         forummodels.ForumPostKindOfficialNews,
+		Source:       forummodels.ForumPostSourceAdministration,
+		State:        forummodels.ForumPostState(input.State),
 		Title:        input.Title,
 		Body:         input.Body,
 		Tags:         input.Tags,
 		PublishedAt:  input.PublishDate,
 	}
 	if post.State == "" {
-		post.State = models.PublicationStateDraft
+		post.State = forummodels.ForumPostStateDraft
 	}
 	created, err := s.store.CreateForumPost(post)
 	if err != nil {
-		return models.ForumPost{}, err
+		return forummodels.ForumPost{}, err
 	}
-	if created.State == models.PublicationStatePublished {
+	if created.State == forummodels.ForumPostStatePublished {
 		_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", created.ID.String(), models.AuditOutcomeSuccess))
 	}
 	return created, nil
 }
 
-func (s *Service) PublishNews(principal Principal, id uuid.UUID) (models.ForumPost, error) {
+func (s *Service) PublishNews(principal Principal, id uuid.UUID) (forummodels.ForumPost, error) {
 	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return models.ForumPost{}, ErrUnauthorized
+		return forummodels.ForumPost{}, ErrUnauthorized
 	}
 	post, err := s.store.GetForumPost(id)
 	if err != nil {
-		return models.ForumPost{}, err
+		return forummodels.ForumPost{}, err
 	}
 	now := time.Now().UTC()
-	post.State = models.PublicationStatePublished
+	post.State = forummodels.ForumPostStatePublished
 	post.PublishedAt = &now
 	updated, err := s.store.UpdateForumPost(post)
 	if err != nil {
-		return models.ForumPost{}, err
+		return forummodels.ForumPost{}, err
 	}
 	_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", updated.ID.String(), models.AuditOutcomeSuccess))
 	return updated, nil
 }
 
-func (s *Service) ListNews() ([]models.ForumPost, error) {
+func (s *Service) ListNews() ([]forummodels.ForumPost, error) {
 	return s.store.ListForumPosts()
 }
 

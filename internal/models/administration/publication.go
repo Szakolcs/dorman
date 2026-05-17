@@ -18,25 +18,6 @@ const (
 	PublicationStatePostponed PublicationState = "postponed"
 )
 
-type ForumPostKind string
-
-const (
-	ForumPostKindOfficialNews ForumPostKind = "official_news"
-)
-
-type ForumPost struct {
-	platform.BaseModel
-	AuthorUserID uuid.UUID        `gorm:"type:uuid;not null;index"`
-	Kind         ForumPostKind    `gorm:"type:varchar(30);not null;index"`
-	State        PublicationState `gorm:"type:varchar(20);not null;default:'draft';index"`
-	Title        string           `gorm:"not null"`
-	Body         string           `gorm:"type:text;not null"`
-	Tags         string
-	PublishedAt  *time.Time `gorm:"index"`
-
-	AuthorUser User `gorm:"foreignKey:AuthorUserID;references:ID"`
-}
-
 type Activity struct {
 	platform.BaseModel
 	Title       string           `gorm:"not null;index"`

@@ -195,7 +195,28 @@ Package status change, guest check-in, QR validate, loan return: single transact
 
 ---
 
-## 6. Cross-References
+## 6. Cross-Module Interaction Specification
+
+### 6.1 Administration Integration
+
+- `Tenant`, `Room`, and `InventoryItem` are read from administration schema for package linkage, guest host context, and lendable stock.
+- Doorman does not mutate room assignments or inventory master definitions except mirrored lendable status when policy allows.
+- Package records reference `tenant_id` → `Tenant.id` when identified.
+
+### 6.2 Platform Integration
+
+- Doorman mutations require staff principal with doorman (or administrator) role.
+- Sensitive transitions call shared `RecordAudit` (`package.status_change`, `guest_access.denied`, `access.qr.validate`, etc.).
+- In-app package notifications may enqueue platform `InAppNotification` rows after doorman-owned `PackageNotification` records.
+
+### 6.3 Forum and Tenant Surfaces
+
+- Package-ready and similar operational notices may appear in tenant forum feed as `system_notice` posts when product enables cross-module fan-in.
+- Doorman remains authoritative for package status and pickup; forum rows are presentation only.
+
+---
+
+## 7. Cross-References
 
 - Use cases: [doorman.md](../use-cases/doorman.md) (UC-DM-01–04)
 - User stories: [doorman.md](../user-stories/doorman.md) (DM-001–005)

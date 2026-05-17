@@ -15,11 +15,11 @@ import (
 )
 
 type Handler struct {
-	svc *Service
+	service *Service
 }
 
-func NewHandler(svc *Service) *Handler {
-	return &Handler{svc: svc}
+func NewHandler(service *Service) *Handler {
+	return &Handler{service: service}
 }
 
 func (h *Handler) actor(c echo.Context) (administration.Principal, error) {
@@ -31,7 +31,7 @@ func (h *Handler) actor(c echo.Context) (administration.Principal, error) {
 	if err != nil {
 		return administration.Principal{}, ErrUnauthorized
 	}
-	return h.svc.ResolvePrincipal(id)
+	return h.service.ResolvePrincipal(id)
 }
 
 func (h *Handler) staffActor(c echo.Context) (administration.Principal, error) {
@@ -39,7 +39,7 @@ func (h *Handler) staffActor(c echo.Context) (administration.Principal, error) {
 	if err != nil {
 		return p, err
 	}
-	return p, h.svc.RequireStaffDoormanPrincipal(p)
+	return p, h.service.RequireStaffDoormanPrincipal(p)
 }
 
 func (h *Handler) writeError(c echo.Context, err error) error {
@@ -115,7 +115,7 @@ func (h *Handler) registerPackage(c echo.Context) error {
 	if err := c.Bind(&body); err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	pkg, err := h.svc.RegisterPackage(p, body)
+	pkg, err := h.service.RegisterPackage(p, body)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -138,7 +138,7 @@ func (h *Handler) listPackages(c echo.Context) error {
 		}
 		filter.TenantID = &id
 	}
-	list, err := h.svc.ListPackages(filter)
+	list, err := h.service.ListPackages(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -153,7 +153,7 @@ func (h *Handler) getPackage(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	pkg, err := h.svc.GetPackage(id)
+	pkg, err := h.service.GetPackage(id)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -175,7 +175,7 @@ func (h *Handler) transitionPackage(c echo.Context) error {
 	if err := c.Bind(&body); err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	pkg, err := h.svc.TransitionPackage(principal, id, body.To)
+	pkg, err := h.service.TransitionPackage(principal, id, body.To)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -191,7 +191,7 @@ func (h *Handler) pickupPackage(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	pkg, err := h.svc.ConfirmPackagePickup(principal, id)
+	pkg, err := h.service.ConfirmPackagePickup(principal, id)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -211,7 +211,7 @@ func (h *Handler) notifyPackage(c echo.Context) error {
 	if err := c.Bind(&body); err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	n, err := h.svc.NotifyPackageTenant(principal, id, body)
+	n, err := h.service.NotifyPackageTenant(principal, id, body)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -227,7 +227,7 @@ func (h *Handler) createGuestVisit(c echo.Context) error {
 	if err := c.Bind(&body); err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	v, err := h.svc.RegisterGuestVisit(principal, body)
+	v, err := h.service.RegisterGuestVisit(principal, body)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -249,7 +249,7 @@ func (h *Handler) listGuestVisits(c echo.Context) error {
 		}
 		filter.OnDate = &t
 	}
-	list, err := h.svc.ListGuestVisits(filter)
+	list, err := h.service.ListGuestVisits(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -264,7 +264,7 @@ func (h *Handler) getGuestVisit(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	v, err := h.svc.GetGuestVisit(id)
+	v, err := h.service.GetGuestVisit(id)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -280,7 +280,7 @@ func (h *Handler) guestCheckIn(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	v, err := h.svc.GuestCheckIn(principal, id)
+	v, err := h.service.GuestCheckIn(principal, id)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -296,7 +296,7 @@ func (h *Handler) guestCheckOut(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	v, err := h.svc.GuestCheckOut(principal, id)
+	v, err := h.service.GuestCheckOut(principal, id)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -312,7 +312,7 @@ func (h *Handler) issueTenantEntryToken(c echo.Context) error {
 	if err := c.Bind(&body); err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	t, err := h.svc.IssueTenantEntryToken(principal, body)
+	t, err := h.service.IssueTenantEntryToken(principal, body)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -328,7 +328,7 @@ func (h *Handler) validateEntryQR(c echo.Context) error {
 	if err := c.Bind(&body); err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	out, err := h.svc.ValidateEntryByQR(principal, body.PublicRef)
+	out, err := h.service.ValidateEntryByQR(principal, body.PublicRef)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -344,7 +344,7 @@ func (h *Handler) validateEntryManual(c echo.Context) error {
 	if err := c.Bind(&body); err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	out, err := h.svc.ValidateEntryManual(principal, body.TenantID)
+	out, err := h.service.ValidateEntryManual(principal, body.TenantID)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -383,7 +383,7 @@ func (h *Handler) listAccessEvents(c echo.Context) error {
 	if oc := c.QueryParam("outcome"); oc != "" {
 		filter.Outcome = dm.AccessEventOutcome(oc)
 	}
-	list, err := h.svc.ListAccessEvents(filter)
+	list, err := h.service.ListAccessEvents(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -399,7 +399,7 @@ func (h *Handler) checkoutLoan(c echo.Context) error {
 	if err := c.Bind(&body); err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	loan, err := h.svc.CheckoutItem(principal, body)
+	loan, err := h.service.CheckoutItem(principal, body)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -415,7 +415,7 @@ func (h *Handler) returnLoan(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	loan, err := h.svc.ReturnItem(principal, id)
+	loan, err := h.service.ReturnItem(principal, id)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -439,7 +439,7 @@ func (h *Handler) listLoans(c echo.Context) error {
 		}
 		filter.TenantID = &id
 	}
-	list, err := h.svc.ListItemLoans(filter)
+	list, err := h.service.ListItemLoans(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
