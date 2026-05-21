@@ -1,0 +1,43 @@
+package doormanviews
+
+import adm "dorm-man/internal/models/administration"
+
+templ AccessForm(tenants []adm.Tenant) {
+	<form
+		hx-get="/doorman/access/tenant"
+		hx-target="#last-five"
+		hx-swap="outerHTML"
+		class="flex flex-wrap gap-4"
+	>
+		<select
+		    id="tenant"
+			name="id"
+			class="rounded-lg border border-dm-border bg-dm-surface px-4 py-2"
+		>
+			for _, tenant := range tenants {
+				<option value={ tenant.ID.String() }>
+					{ tenant.User.Name }
+				</option>
+			}
+		</select>
+		<select
+		    id="direction"
+			name="direction"
+			class="rounded-lg border border-dm-border bg-dm-surface px-4 py-2"
+		>
+			<option value="checked_in">
+				Checked In
+			</option>
+
+			<option value="checked_out">
+				Checked Out
+			</option>
+		</select>
+		<button
+			type="submit"
+			class="rounded-lg bg-dm-accent px-4 py-2 font-medium text-dm-on-accent hover:bg-dm-accent-hover"
+		>
+			Register
+		</button>
+	</form>
+}

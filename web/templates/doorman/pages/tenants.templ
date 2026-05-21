@@ -1,0 +1,26 @@
+package doormanviews
+
+import models "dorm-man/internal/models/doorman"
+
+templ TenantAccessPage(entries []models.TenantEntry) {
+	@Layout("Tenant Access") {
+		@Navigation()
+		<div class="space-y-6">
+			<div>
+				<h1 class="mb-2 text-3xl font-bold">
+					Tenant Access
+				</h1>
+				<p class="text-dm-muted">
+					View and filter tenant access history.
+				</p>
+			</div>
+			@TenantAccessFilters()
+			<div
+				id="tenant-access-table"
+				class="dm-card"
+			>
+				@TenantAccessTable(entries)
+			</div>
+		</div>
+	}
+}

@@ -1,0 +1,30 @@
+package doormanviews
+
+import models "dorm-man/internal/models/doorman"
+
+templ TenantAccessTable(entries []models.TenantEntry) {
+	<table class="dm-table">
+		<thead>
+			<tr>
+				<th>Tenant</th>
+				<th>Status</th>
+				<th>Time</th>
+			</tr>
+		</thead>
+		<tbody>
+			for _, entry := range entries {
+				<tr>
+					<td class="p-3">
+						{ entry.User.Name }
+					</td>
+					<td class="p-3">
+						{ string(entry.Status) }
+					</td>
+					<td class="p-3">
+						{ entry.TimeOfEntry.Format("2006-01-02 15:04") }
+					</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}

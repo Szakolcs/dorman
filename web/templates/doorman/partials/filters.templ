@@ -1,0 +1,83 @@
+package doormanviews
+
+templ TenantAccessFilters() {
+	<form
+		hx-get="/doorman/list/tenants"
+		hx-target="#tenant-access-table"
+		hx-swap="innerHTML"
+		class="dm-card mb-6 flex flex-wrap gap-4"
+	>
+		<input
+			type="date"
+			name="from"
+			class="dm-input"
+		/>
+		<input
+			type="date"
+			name="to"
+			class="dm-input"
+		/>
+		<select
+			name="status"
+			class="dm-input"
+		>
+			<option value="">
+				All Statuses
+			</option>
+
+			<option value="checked_in">
+				Checked In
+			</option>
+
+			<option value="checked_out">
+				Checked Out
+			</option>
+		</select>
+		<button
+			type="submit"
+			class="dm-button"
+		>
+			Filter
+		</button>
+	</form>
+}
+
+templ GuestFilters() {
+	<form
+		hx-get="/doorman/list/guests"
+		hx-target="#guest-table"
+		hx-swap="innerHTML"
+		class="dm-card mb-6 flex flex-wrap gap-4"
+	>
+		<input
+			type="date"
+			name="from"
+			class="dm-input"
+		/>
+		<input
+			type="date"
+			name="to"
+			class="dm-input"
+		/>
+		<select
+			name="status"
+			class="dm-input"
+		>
+			<option value="">
+				All Guests
+			</option>
+			<option value="checked_in">
+				Checked In
+			</option>
+			<option value="checked_out">
+				Checked Out
+			</option>
+		</select>
+		<button
+			type="submit"
+			class="dm-button"
+		>
+			Filter
+		</button>
+	</form>
+}

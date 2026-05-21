@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+@source "../../../web/templates/**/*.templ";
+
+/* Nord palette (raw) */
+:root {
+	--nord0: #2e3440;
+	--nord1: #3b4252;
+	--nord2: #434c5e;
+	--nord3: #4c566a;
+	--nord4: #d8dee9;
+	--nord5: #e5e9f0;
+	--nord6: #eceff4;
+	--nord7: #8fbcbb;
+	--nord8: #88c0d0;
+	--nord9: #81a1c1;
+	--nord10: #5e81ac;
+	--nord11: #bf616a;
+	--nord12: #d08770;
+	--nord13: #ebcb8b;
+	--nord14: #a3be8c;
+	--nord15: #b48ead;
+}
+
+/* Semantic tokens — toggled by data-theme / prefers-color-scheme (theme.js) */
+@media (prefers-color-scheme: light) {
+	:root:not([data-theme]) {
+		--color-bg: var(--nord6);
+		--color-bg-elevated: var(--nord5);
+		--color-surface: var(--nord4);
+		--color-foreground: var(--nord0);
+		--color-muted: var(--nord3);
+		--color-accent: var(--nord10);
+		--color-accent-hover: var(--nord9);
+		--color-border: var(--nord4);
+		--color-link: var(--nord10);
+		--color-focus: var(--nord8);
+		--color-success: var(--nord14);
+		--color-warning: var(--nord13);
+		--color-error: var(--nord11);
+		--color-info: var(--nord8);
+		--color-on-accent: var(--nord6);
+	}
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme]) {
+		--color-bg: var(--nord0);
+		--color-bg-elevated: var(--nord1);
+		--color-surface: var(--nord2);
+		--color-foreground: var(--nord4);
+		--color-muted: var(--nord3);
+		--color-accent: var(--nord8);
+		--color-accent-hover: var(--nord7);
+		--color-border: var(--nord2);
+		--color-link: var(--nord8);
+		--color-focus: var(--nord8);
+		--color-success: var(--nord14);
+		--color-warning: var(--nord13);
+		--color-error: var(--nord11);
+		--color-info: var(--nord9);
+		--color-on-accent: var(--nord0);
+	}
+}
+
+[data-theme="light"] {
+	--color-bg: var(--nord6);
+	--color-bg-elevated: var(--nord5);
+	--color-surface: var(--nord4);
+	--color-foreground: var(--nord0);
+	--color-muted: var(--nord3);
+	--color-accent: var(--nord10);
+	--color-accent-hover: var(--nord9);
+	--color-border: var(--nord4);
+	--color-link: var(--nord10);
+	--color-focus: var(--nord8);
+	--color-success: var(--nord14);
+	--color-warning: var(--nord13);
+	--color-error: var(--nord11);
+	--color-info: var(--nord8);
+	--color-on-accent: var(--nord6);
+}
+
+
+[data-theme="dark"] {
+	--color-bg: var(--nord0);
+	--color-bg-elevated: var(--nord1);
+	--color-surface: var(--nord2);
+	--color-foreground: var(--nord4);
+	--color-muted: var(--nord3);
+	--color-accent: var(--nord8);
+	--color-accent-hover: var(--nord7);
+	--color-border: var(--nord2);
+	--color-link: var(--nord8);
+	--color-focus: var(--nord8);
+	--color-success: var(--nord14);
+	--color-warning: var(--nord13);
+	--color-error: var(--nord11);
+	--color-info: var(--nord9);
+	--color-on-accent: var(--nord0);
+}
+
+@theme {
+	--font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+	--color-dm-bg: var(--color-bg);
+	--color-dm-elevated: var(--color-bg-elevated);
+	--color-dm-surface: var(--color-surface);
+	--color-dm-fg: var(--color-foreground);
+	--color-dm-muted: var(--color-muted);
+	--color-dm-accent: var(--color-accent);
+	--color-dm-accent-hover: var(--color-accent-hover);
+	--color-dm-border: var(--color-border);
+	--color-dm-link: var(--color-link);
+	--color-dm-focus: var(--color-focus);
+	--color-dm-success: var(--color-success);
+	--color-dm-warning: var(--color-warning);
+	--color-dm-error: var(--color-error);
+	--color-dm-info: var(--color-info);
+	--color-dm-on-accent: var(--color-on-accent);
+}
+
+@layer base {
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	html {
+		color-scheme: light dark;
+	}
+
+	body {
+		@apply m-0 font-sans text-base leading-normal text-dm-fg bg-dm-bg;
+	}
+
+	a {
+		@apply text-dm-link hover:text-dm-accent-hover;
+	}
+
+	code {
+		@apply rounded bg-dm-surface px-1 py-0.5 text-sm;
+	}
+
+	[role="status"] {
+		@apply text-dm-success;
+	}
+}
+@layer components {
+    .dm-card {
+        @apply rounded-xl border border-dm-border bg-dm-elevated p-6 shadow-sm;
+    }
+
+    .dm-input {
+        @apply rounded-lg border border-dm-border bg-dm-surface px-4 py-2;
+    }
+
+    .dm-button {
+        @apply rounded-lg bg-dm-accent px-4 py-2 font-medium text-dm-on-accent hover:bg-dm-accent-hover;
+    }
+}

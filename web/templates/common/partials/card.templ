@@ -1,0 +1,11 @@
+package partials
+
+templ Card(title string) {
+	<div class="rounded-xl border border-dm-border bg-dm-elevated p-6 shadow-sm">
+		<h2 class="mb-4 text-xl font-semibold">
+			{ title }
+		</h2>
+
+		{ children... }
+	</div>
+}
