@@ -7,7 +7,21 @@ Dormitory Manager is a modular web platform for dormitory operations, staff work
 - **Backend:** Go + Echo
 - **SSR UI Components:** Templ
 - **Frontend Interactivity:** HTMX
-- **Styling:** Tailwind CSS
+- **Styling:** Tailwind CSS v4 (CLI build → `web/static/css/app.css`)
+
+### CSS build (Tailwind)
+
+Source: `web/static/css/input.css` (Nord semantic tokens + `@source` scan of `web/templates/**/*.templ`).
+
+```bash
+npm install          # once
+npm run build:css    # production bundle → web/static/css/app.css
+npm run watch:css    # dev watch
+```
+
+Run `npm run build:css` after changing templ classes or `input.css`. Theme cycling (`dmCycleTheme()`) uses `web/static/css/theme.js` and `data-theme` on `<html>`.
+
+Then regenerate templates if needed: `templ generate ./...`
 - **Database:** PostgreSQL
 - **Testing:** Go's built-in `testing` package + `testify` for assertions and test suites
 

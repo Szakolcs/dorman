@@ -67,7 +67,7 @@ func HomeContent() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<ul><li><a href=\"/forum/view\" hx-boost=\"true\">Forum</a></li><li><a href=\"/chat/view\" hx-boost=\"true\">Chat</a></li><li><a href=\"/doorman\" hx-boost=\"true\">Doorman</a></li><li><a href=\"/administration\" hx-boost=\"true\">Administration</a></li><li><a href=\"/about\" hx-boost=\"true\">About</a></li></ul>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<ul class=\"list-disc space-y-1 pl-6\"><li><a href=\"/forum/view\" hx-boost=\"true\">Forum</a></li><li><a href=\"/chat/view\" hx-boost=\"true\">Chat</a></li><li><a href=\"/doorman\" hx-boost=\"true\">Doorman</a></li><li><a href=\"/administration\" hx-boost=\"true\">Administration</a></li><li><a href=\"/about\" hx-boost=\"true\">About</a></li></ul>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

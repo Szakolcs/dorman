@@ -1,6 +1,7 @@
 package models
 
 import (
+	"dorm-man/internal/models/cross-cutting"
 	"time"
 
 	adm "dorm-man/internal/models/administration"
@@ -42,7 +43,7 @@ const (
 // ForumPost author fields: AuthorUserID is always the authenticated user (staff or linked tenant user).
 // AuthorTenantID is set for tenant-authored community content (organizer identity in the dorm).
 type ForumPost struct {
-	platform.BaseModel
+	cross_cutting.BaseModel
 	AuthorUserID   uuid.UUID       `gorm:"type:uuid;not null;index"`
 	AuthorTenantID *uuid.UUID      `gorm:"type:uuid;index"`
 	ActivityID     *uuid.UUID      `gorm:"type:uuid;index"`
@@ -70,7 +71,7 @@ type ForumPost struct {
 }
 
 type ForumPostSchedule struct {
-	platform.BaseModel
+	cross_cutting.BaseModel
 	ForumPostID          uuid.UUID  `gorm:"type:uuid;not null;uniqueIndex"`
 	StartsAt             *time.Time `gorm:"index"`
 	EndsAt               *time.Time `gorm:"index"`
@@ -82,7 +83,7 @@ type ForumPostSchedule struct {
 }
 
 type ForumPostUpdate struct {
-	platform.BaseModel
+	cross_cutting.BaseModel
 	ParentPostID uuid.UUID `gorm:"type:uuid;not null;index"`
 	AuthorUserID uuid.UUID `gorm:"type:uuid;not null;index"`
 	Body         string    `gorm:"type:text;not null"`

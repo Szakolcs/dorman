@@ -1,10 +1,10 @@
 package models
 
 import (
+	platform "dorm-man/internal/models/cross-cutting"
 	"time"
 
 	adm "dorm-man/internal/models/administration"
-	platform "dorm-man/internal/models/platform"
 
 	"github.com/google/uuid"
 )

@@ -23,24 +23,24 @@ templ PublicationsContent(data PublicationsPageData) {
 templ NewsSection(data PublicationsPageData) {
 	@components.DataTable([]string{"Title", "State", "Publish Date", "Author"}, NewsRows(data))
 	@components.PaginationNavNamed("/administration/publications", data.NewsPagination, data.NewsPreserve, "news_page", "news_page_size")
-	<form method="post" action="/administration/publications/news">
-		<label for="news-title">Title</label>
-		<input id="news-title" name="title" type="text"/>
+	<form method="post" action="/administration/publications/news" class="mt-4 flex max-w-xl flex-col gap-2">
+		<label for="news-title" class="text-sm font-medium text-dm-fg">Title</label>
+		<input id="news-title" name="title" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
 
-		<label for="news-body">Body</label>
-		<textarea id="news-body" name="body"></textarea>
+		<label for="news-body" class="text-sm font-medium text-dm-fg">Body</label>
+		<textarea id="news-body" name="body" class="min-h-24 rounded border border-dm-border bg-dm-bg px-3 py-2"></textarea>
 
-		<label for="news-tags">Tags</label>
-		<input id="news-tags" name="tags" type="text"/>
+		<label for="news-tags" class="text-sm font-medium text-dm-fg">Tags</label>
+		<input id="news-tags" name="tags" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
 
-		<label for="news-state">State</label>
-		<select id="news-state" name="state">
+		<label for="news-state" class="text-sm font-medium text-dm-fg">State</label>
+		<select id="news-state" name="state" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
 			<option value="draft">draft</option>
 			<option value="published">published</option>
 			<option value="archived">archived</option>
 		</select>
 
-		<button type="submit">Create News</button>
+		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Create News</button>
 	</form>
 }
 
@@ -63,27 +63,27 @@ templ NewsRows(data PublicationsPageData) {
 templ ActivitiesSection(data PublicationsPageData) {
 	@components.DataTable([]string{"Title", "Location", "Capacity", "State"}, ActivityRows(data))
 	@components.PaginationNavNamed("/administration/publications", data.ActivitiesPagination, data.ActivitiesPreserve, "activities_page", "activities_page_size")
-	<form method="post" action="/administration/publications/activities">
-		<label for="activity-title">Title</label>
-		<input id="activity-title" name="title" type="text"/>
+	<form method="post" action="/administration/publications/activities" class="mt-4 flex max-w-xl flex-col gap-2">
+		<label for="activity-title" class="text-sm font-medium text-dm-fg">Title</label>
+		<input id="activity-title" name="title" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
 
-		<label for="activity-description">Description</label>
-		<textarea id="activity-description" name="description"></textarea>
+		<label for="activity-description" class="text-sm font-medium text-dm-fg">Description</label>
+		<textarea id="activity-description" name="description" class="min-h-24 rounded border border-dm-border bg-dm-bg px-3 py-2"></textarea>
 
-		<label for="activity-location">Location</label>
-		<input id="activity-location" name="location" type="text"/>
+		<label for="activity-location" class="text-sm font-medium text-dm-fg">Location</label>
+		<input id="activity-location" name="location" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
 
-		<label for="activity-capacity">Capacity</label>
-		<input id="activity-capacity" name="capacity" type="number"/>
+		<label for="activity-capacity" class="text-sm font-medium text-dm-fg">Capacity</label>
+		<input id="activity-capacity" name="capacity" type="number" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
 
-		<label for="activity-state">State</label>
-		<select id="activity-state" name="state">
+		<label for="activity-state" class="text-sm font-medium text-dm-fg">State</label>
+		<select id="activity-state" name="state" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
 			<option value="draft">draft</option>
 			<option value="published">published</option>
 			<option value="archived">archived</option>
 		</select>
 
-		<button type="submit">Create Activity</button>
+		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Create Activity</button>
 	</form>
 }
 
@@ -106,27 +106,27 @@ templ ActivityRows(data PublicationsPageData) {
 templ EventsSection(data PublicationsPageData) {
 	@components.DataTable([]string{"Title", "Location", "Starts", "Ends", "Capacity", "State"}, EventRows(data))
 	@components.PaginationNavNamed("/administration/publications", data.EventsPagination, data.EventsPreserve, "events_page", "events_page_size")
-	<form method="post" action="/administration/publications/events">
-		<label for="event-title">Title</label>
-		<input id="event-title" name="title" type="text"/>
+	<form method="post" action="/administration/publications/events" class="mt-4 flex max-w-xl flex-col gap-2">
+		<label for="event-title" class="text-sm font-medium text-dm-fg">Title</label>
+		<input id="event-title" name="title" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
 
-		<label for="event-description">Description</label>
-		<textarea id="event-description" name="description"></textarea>
+		<label for="event-description" class="text-sm font-medium text-dm-fg">Description</label>
+		<textarea id="event-description" name="description" class="min-h-24 rounded border border-dm-border bg-dm-bg px-3 py-2"></textarea>
 
-		<label for="event-location">Location</label>
-		<input id="event-location" name="location" type="text"/>
+		<label for="event-location" class="text-sm font-medium text-dm-fg">Location</label>
+		<input id="event-location" name="location" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
 
-		<label for="event-starts-at">Starts At</label>
-		<input id="event-starts-at" name="starts_at" type="datetime-local"/>
+		<label for="event-starts-at" class="text-sm font-medium text-dm-fg">Starts At</label>
+		<input id="event-starts-at" name="starts_at" type="datetime-local" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
 
-		<label for="event-ends-at">Ends At</label>
-		<input id="event-ends-at" name="ends_at" type="datetime-local"/>
+		<label for="event-ends-at" class="text-sm font-medium text-dm-fg">Ends At</label>
+		<input id="event-ends-at" name="ends_at" type="datetime-local" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
 
-		<label for="event-capacity">Capacity</label>
-		<input id="event-capacity" name="capacity" type="number"/>
+		<label for="event-capacity" class="text-sm font-medium text-dm-fg">Capacity</label>
+		<input id="event-capacity" name="capacity" type="number" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
 
-		<label for="event-state">State</label>
-		<select id="event-state" name="state">
+		<label for="event-state" class="text-sm font-medium text-dm-fg">State</label>
+		<select id="event-state" name="state" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
 			<option value="draft">draft</option>
 			<option value="published">published</option>
 			<option value="postponed">postponed</option>
@@ -134,7 +134,7 @@ templ EventsSection(data PublicationsPageData) {
 			<option value="archived">archived</option>
 		</select>
 
-		<button type="submit">Create Event</button>
+		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Create Event</button>
 	</form>
 }
 

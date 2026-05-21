@@ -25,7 +25,7 @@ templ AboutStudentLife(data AboutPageData) {
 }
 
 templ AboutUsefulInformation(data AboutPageData) {
-	<ul>
+	<ul class="list-disc space-y-1 pl-6">
 		for _, item := range data.UsefulInformation {
 			<li>{ item }</li>
 		}

@@ -4,9 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"dorm-man/internal/pagination"
-	models "dorm-man/internal/models/administration"
-
 	"github.com/google/uuid"
 )
 
@@ -19,93 +16,3 @@ var (
 	ErrConcurrencyConflict  = errors.New("concurrency conflict")
 	ErrStudentStatusInvalid = errors.New("student status invalid")
 )
-
-type Principal struct {
-	UserID uuid.UUID
-	Roles  []models.RoleName
-}
-
-type TenantListFilter struct {
-	Status string
-	Search string
-	pagination.Params
-}
-
-type RoomListFilter struct {
-	State  string
-	Search string
-	pagination.Params
-}
-
-type TicketListFilter struct {
-	ApprovalState string
-	Status        string
-	pagination.Params
-}
-
-type JobListFilter struct {
-	AssigneeUserID *uuid.UUID
-	Date           *time.Time
-	pagination.Params
-}
-
-type InventoryListFilter struct {
-	pagination.Params
-}
-
-type AuditListFilter struct {
-	pagination.Params
-}
-
-type PublicationListFilter struct {
-	pagination.Params
-}
-
-type NewsUpsertInput struct {
-	Title       string
-	Body        string
-	Tags        string
-	PublishDate *time.Time
-	State       models.PublicationState
-}
-
-type ActivityUpsertInput struct {
-	Title       string
-	Description string
-	BuildingID  *uuid.UUID
-	Location    string
-	Capacity    int
-	State       models.PublicationState
-}
-
-type EventUpsertInput struct {
-	Title           string
-	Description     string
-	BuildingID      *uuid.UUID
-	OrganizerUserID uuid.UUID
-	Location        string
-	StartsAt        time.Time
-	EndsAt          time.Time
-	Capacity        int
-	State           models.PublicationState
-}
-
-type AssignmentPlanItem struct {
-	TenantID uuid.UUID `json:"tenant_id"`
-	RoomID   uuid.UUID `json:"room_id"`
-}
-
-type AssignmentPlan struct {
-	Items []AssignmentPlanItem `json:"items"`
-}
-
-type JobConflict struct {
-	JobID    uuid.UUID `json:"job_id"`
-	StartsAt time.Time `json:"starts_at"`
-	EndsAt   time.Time `json:"ends_at"`
-}
-
-type CreateJobResult struct {
-	Job       models.OperationalJob `json:"job"`
-	Conflicts []JobConflict         `json:"conflicts"`
-}

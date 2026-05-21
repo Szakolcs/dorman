@@ -1,9 +1,7 @@
 package models
 
 import (
-	"time"
-
-	platform "dorm-man/internal/models/platform"
+	platform "dorm-man/internal/models/cross-cutting"
 
 	"github.com/google/uuid"
 )
@@ -13,10 +11,8 @@ type Building struct {
 	Name string `gorm:"not null;uniqueIndex"`
 	Code string `gorm:"not null;uniqueIndex"`
 
-	Flats      []Flat          `gorm:"foreignKey:BuildingID"`
-	Activities []Activity      `gorm:"foreignKey:BuildingID"`
-	Events     []Event         `gorm:"foreignKey:BuildingID"`
-	Inventory  []InventoryItem `gorm:"foreignKey:BuildingID"`
+	Flats       []Flat       `gorm:"foreignKey:BuildingID"`
+	SharedAreas []SharedArea `gorm:"foreignKey:BuildingID"`
 }
 
 type Flat struct {
@@ -25,73 +21,30 @@ type Flat struct {
 	Name       string     `gorm:"not null;index"`
 	Floor      int        `gorm:"not null;default:0"`
 
-	Building  *Building       `gorm:"foreignKey:BuildingID;references:ID"`
-	Rooms     []Room          `gorm:"foreignKey:FlatID"`
-	Inventory []InventoryItem `gorm:"foreignKey:FlatID"`
+	Building           *Building           `gorm:"foreignKey:BuildingID;references:ID"`
+	Rooms              []Room              `gorm:"foreignKey:FlatID"`
+	Inventory          []InventoryItem     `gorm:"foreignKey:FlatID"`
+	MaintenanceTickets []MaintenanceTicket `gorm:"foreignKey:FlatID"`
 }
 
 type Room struct {
 	platform.BaseModel
-	FlatID     uuid.UUID `gorm:"type:uuid;not null;index"`
-	Number     string    `gorm:"not null;index"`
-	Capacity   int       `gorm:"not null;default:1"`
-	IsArchived bool      `gorm:"not null;default:false"`
+	FlatID   uuid.UUID `gorm:"type:uuid;not null;index"`
+	Number   string    `gorm:"not null;index"`
+	Capacity int       `gorm:"not null;default:1"`
 
-	Flat               Flat                `gorm:"foreignKey:FlatID;references:ID"`
-	Assignments        []RoomAssignment    `gorm:"foreignKey:RoomID"`
-	InventoryItems     []InventoryItem     `gorm:"foreignKey:RoomID"`
-	MaintenanceTickets []MaintenanceTicket `gorm:"foreignKey:RoomID"`
-	OperationalJobs    []OperationalJob    `gorm:"foreignKey:RoomID"`
+	Flat        Flat             `gorm:"foreignKey:FlatID;references:ID"`
+	Assignments []RoomAssignment `gorm:"foreignKey:RoomID"`
 }
 
-type DegreeType string
-
-const (
-	DegreeBSc DegreeType = "bsc"
-	DegreeBA  DegreeType = "ba"
-	DegreeMSc DegreeType = "msc"
-	DegreeMA  DegreeType = "ma"
-	DegreePhD DegreeType = "phd"
-)
-
-type SexType string
-
-const (
-	SexFemale SexType = "female"
-	SexMale   SexType = "male"
-	SexOther  SexType = "other"
-)
-
-type NationalityType string
-
-const (
-	NationalityHungarian     NationalityType = "hungarian"
-	NationalityInternational NationalityType = "international"
-)
-
-type FacultyType string
-
-const (
-	FacultyScience     FacultyType = "science"
-	FacultyHumanities  FacultyType = "humanities"
-	FacultyEngineering FacultyType = "engineering"
-	FacultyMedicine    FacultyType = "medicine"
-)
-
-type Tenant struct {
+type SharedArea struct {
 	platform.BaseModel
-	UserID       *uuid.UUID       `gorm:"type:uuid;index"`
-	StudentCode  string           `gorm:"uniqueIndex;not null"`
-	Name         string           `gorm:"not null;index"`
-	Email        string           `gorm:"index"`
-	Degree       *DegreeType      `gorm:"type:varchar(10);index"`
-	Faculty      *FacultyType     `gorm:"index"`
-	Age          *int             `gorm:"index"`
-	Sex          *SexType         `gorm:"type:varchar(10);index"`
-	Nationality  *NationalityType `gorm:"index"` // required when IsActive (enforced in service)
-	IsActive     bool             `gorm:"not null;default:true;index"`
-	RegisteredAt time.Time        `gorm:"not null;default:CURRENT_TIMESTAMP"`
+	BuildingID *uuid.UUID `gorm:"type:uuid;"`
+	Name       string     `gorm:"not null;uniqueIndex"`
+	Code       string     `gorm:"not null;uniqueIndex"`
 
-	User            *User            `gorm:"foreignKey:UserID;references:ID"`
-	RoomAssignments []RoomAssignment `gorm:"foreignKey:TenantID"`
+	Building   *Building       `gorm:"foreignKey:BuildingID;references:ID"`
+	Activities []Activity      `gorm:"foreignKey:SharedAreaID"`
+	Events     []Event         `gorm:"foreignKey:SharedAreaID"`
+	Inventory  []InventoryItem `gorm:"foreignKey:SharedAreaID"`
 }

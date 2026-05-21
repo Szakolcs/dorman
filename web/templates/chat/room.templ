@@ -8,7 +8,7 @@ import (
 )
 
 templ RoomPanelPartial(actorTenantID string, detail chatvm.RoomDetail, messages []cm.ChatMessage, clientMessageID string) {
-	<section id="chat-room-panel" aria-live="polite">
+	<section id="chat-room-panel" class="min-h-48 rounded-lg border border-dm-border bg-dm-bg p-4" aria-live="polite">
 		@RoomPanelBody(actorTenantID, detail, messages, clientMessageID)
 	</section>
 }
@@ -29,15 +29,15 @@ templ RoomPanelBody(actorTenantID string, detail chatvm.RoomDetail, messages []c
 }
 
 templ RoomHeader(actorTenantID string, detail chatvm.RoomDetail) {
-	<header class="page-header">
-		<h2>{ detail.Room.Title }</h2>
-		<p>Kind: { string(detail.Room.Kind) }</p>
+	<header class="mb-4 border-b border-dm-border pb-4">
+		<h2 class="mb-2 text-2xl font-semibold text-dm-fg">{ detail.Room.Title }</h2>
+		<p class="text-dm-muted">Kind: { string(detail.Room.Kind) }</p>
 		@components.BackLink(chatHref("/chat/view", actorTenantID), "Back to conversations")
 	</header>
 }
 
 templ GroupMemberSection(actorTenantID string, detail chatvm.RoomDetail) {
-	<ul>
+	<ul class="mb-4 list-disc space-y-2 pl-6">
 		for _, m := range detail.Members {
 			<li>
 				{ m.DisplayName }
@@ -50,10 +50,11 @@ templ GroupMemberSection(actorTenantID string, detail chatvm.RoomDetail) {
 						hx-target="#chat-room-panel"
 						hx-swap="innerHTML"
 						hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+						class="mt-1 inline"
 					>
 						<input type="hidden" name="action" value="remove"/>
 						<input type="hidden" name="member_tenant_id" value={ m.Member.TenantID.String() }/>
-						<button type="submit">Remove</button>
+						<button type="submit" class="cursor-pointer rounded border border-dm-accent bg-dm-accent px-2 py-1 text-sm text-dm-on-accent hover:bg-dm-accent-hover">Remove</button>
 					</form>
 				}
 			</li>
@@ -65,11 +66,12 @@ templ GroupMemberSection(actorTenantID string, detail chatvm.RoomDetail) {
 			hx-target="#chat-room-panel"
 			hx-swap="innerHTML"
 			hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+			class="mb-4 flex max-w-xl flex-col gap-2"
 		>
 			<input type="hidden" name="action" value="add"/>
-			<label for="member_tenant_id">Add member (tenant ID)</label>
-			<input id="member_tenant_id" name="member_tenant_id" type="text" required/>
-			<button type="submit">Add member</button>
+			<label for="member_tenant_id" class="text-sm font-medium text-dm-fg">Add member (tenant ID)</label>
+			<input id="member_tenant_id" name="member_tenant_id" type="text" required class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
+			<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Add member</button>
 		</form>
 	}
 	<form
@@ -78,7 +80,8 @@ templ GroupMemberSection(actorTenantID string, detail chatvm.RoomDetail) {
 		hx-swap="innerHTML"
 		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
 		hx-confirm="Leave this group?"
+		class="inline"
 	>
-		<button type="submit">Leave group</button>
+		<button type="submit" class="cursor-pointer rounded border border-dm-error bg-dm-error/20 px-3 py-2 text-dm-error hover:bg-dm-error/30">Leave group</button>
 	</form>
 }

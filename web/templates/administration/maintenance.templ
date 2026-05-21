@@ -23,15 +23,15 @@ templ MaintenanceContent(data MaintenancePageData) {
 }
 
 templ MaintenanceFilterForm(data MaintenancePageData) {
-	<form method="get" action="/administration/maintenance">
-		<label for="ticket-approval-state">Approval State</label>
-		<select id="ticket-approval-state" name="approval_state">
+	<form method="get" action="/administration/maintenance" class="flex max-w-xl flex-col gap-2">
+		<label for="ticket-approval-state" class="text-sm font-medium text-dm-fg">Approval State</label>
+		<select id="ticket-approval-state" name="approval_state" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
 			<option value="" selected?={ data.ApprovalState == "" }>All</option>
 			<option value="pending" selected?={ data.ApprovalState == "pending" }>pending</option>
 		</select>
 
-		<label for="ticket-status">Status</label>
-		<select id="ticket-status" name="status">
+		<label for="ticket-status" class="text-sm font-medium text-dm-fg">Status</label>
+		<select id="ticket-status" name="status" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
 			<option value="" selected?={ data.Status == "" }>All</option>
 			<option value="reported" selected?={ data.Status == "reported" }>reported</option>
 			<option value="in_progress" selected?={ data.Status == "in_progress" }>in_progress</option>
@@ -40,7 +40,7 @@ templ MaintenanceFilterForm(data MaintenancePageData) {
 			<option value="closed" selected?={ data.Status == "closed" }>closed</option>
 		</select>
 
-		<button type="submit">Apply</button>
+		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Apply</button>
 	</form>
 }
 
@@ -68,70 +68,70 @@ templ MaintenanceRows(data MaintenancePageData) {
 }
 
 templ MaintenanceCreateForm() {
-	<form method="post" action="/administration/maintenance/tickets">
-		<label for="ticket-category">Category</label>
-		<select id="ticket-category" name="category">
+	<form method="post" action="/administration/maintenance/tickets" class="flex max-w-xl flex-col gap-2">
+		<label for="ticket-category" class="text-sm font-medium text-dm-fg">Category</label>
+		<select id="ticket-category" name="category" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
 			<option value="yearly">yearly</option>
 			<option value="monthly">monthly</option>
 			<option value="weekly">weekly</option>
 			<option value="incident">incident</option>
 		</select>
 
-		<label for="ticket-severity">Severity</label>
-		<select id="ticket-severity" name="severity">
+		<label for="ticket-severity" class="text-sm font-medium text-dm-fg">Severity</label>
+		<select id="ticket-severity" name="severity" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
 			<option value="high">high</option>
 			<option value="medium">medium</option>
 			<option value="low">low</option>
 		</select>
 
-		<label for="ticket-impact">Impact</label>
-		<select id="ticket-impact" name="impact">
+		<label for="ticket-impact" class="text-sm font-medium text-dm-fg">Impact</label>
+		<select id="ticket-impact" name="impact" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
 			<option value="life_threatening">life_threatening</option>
 			<option value="affects_daily_life">affects_daily_life</option>
 			<option value="inconvenience">inconvenience</option>
 			<option value="beauty_flaw">beauty_flaw</option>
 		</select>
 
-		<label for="ticket-description">Description</label>
-		<textarea id="ticket-description" name="description"></textarea>
+		<label for="ticket-description" class="text-sm font-medium text-dm-fg">Description</label>
+		<textarea id="ticket-description" name="description" class="min-h-24 rounded border border-dm-border bg-dm-bg px-3 py-2"></textarea>
 
-		<button type="submit">Create Ticket</button>
+		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Create Ticket</button>
 	</form>
 }
 
 templ MaintenanceApproveForm(data MaintenancePageData) {
 	for _, t := range data.Tickets {
-		<form method="post" action={ templ.SafeURL("/administration/maintenance/tickets/" + t.ID.String() + "/approve") } class="inline-form">
-			<p><strong>{ t.ID.String()[:8] }</strong> — { string(t.Category) } ({ string(t.Status) })</p>
-			<label>Assignee</label>
-			<select name="assignee_user_id">
+		<form method="post" action={ templ.SafeURL("/administration/maintenance/tickets/" + t.ID.String() + "/approve") } class="mb-4 flex max-w-none flex-wrap items-end gap-2 rounded border border-dm-border bg-dm-bg p-3">
+			<p class="w-full m-0"><strong>{ t.ID.String()[:8] }</strong> — { string(t.Category) } ({ string(t.Status) })</p>
+			<label class="text-sm font-medium">Assignee</label>
+			<select name="assignee_user_id" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
 				<option value="">—</option>
 				for _, u := range data.StaffUsers {
 					<option value={ u.ID.String() }>{ u.Name }</option>
 				}
 			</select>
-			<label>Due at</label>
-			<input name="due_at" type="datetime-local"/>
-			<button type="submit">Approve</button>
+			<label class="text-sm font-medium">Due at</label>
+			<input name="due_at" type="datetime-local" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
+			<button type="submit" class="cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-sm text-dm-on-accent hover:bg-dm-accent-hover">Approve</button>
 		</form>
 	}
 }
 
 templ MaintenanceTransitionForm(data MaintenancePageData) {
 	for _, t := range data.Tickets {
-		<form method="post" action={ templ.SafeURL("/administration/maintenance/tickets/" + t.ID.String() + "/transition") } class="inline-form">
-			<p><strong>{ t.ID.String()[:8] }</strong> — { string(t.Category) } ({ string(t.Status) })</p>
-			<label>To status</label>
-			<select name="to_status">
+		<form method="post" action={ templ.SafeURL("/administration/maintenance/tickets/" + t.ID.String() + "/transition") } class="mb-4 flex max-w-none flex-wrap items-end gap-2 rounded border border-dm-border bg-dm-bg p-3">
+			<p class="w-full m-0"><strong>{ t.ID.String()[:8] }</strong> — { string(t.Category) } ({ string(t.Status) })</p>
+			<label class="text-sm font-medium">To status</label>
+			<select name="to_status" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
 				<option value="in_progress">in_progress</option>
 				<option value="duplicate">duplicate</option>
 				<option value="halted">halted</option>
 				<option value="resolved">resolved</option>
 				<option value="closed">closed</option>
 			</select>
-			<label>Note</label>
-			<textarea name="note"></textarea>
-			<button type="submit">Apply transition</button>
+			<label class="text-sm font-medium">Note</label>
+			<textarea name="note" class="min-h-16 rounded border border-dm-border bg-dm-bg px-3 py-2"></textarea>
+			<button type="submit" class="cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-sm text-dm-on-accent hover:bg-dm-accent-hover">Apply transition</button>
 		</form>
 	}
 }

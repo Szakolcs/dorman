@@ -24,15 +24,18 @@ templ ConversationListBody(actorTenantID string, conversations []chatvm.Conversa
 		hx-target="#chat-room-panel"
 		hx-swap="innerHTML"
 		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+		class="mb-4 flex flex-col gap-2"
 	>
-		<label for="other_tenant_id">Open direct message (other tenant ID)</label>
-		<input id="other_tenant_id" name="other_tenant_id" type="text" required/>
-		<button type="submit">Open DM</button>
+		<label for="other_tenant_id" class="text-sm font-medium text-dm-fg">Open direct message (other tenant ID)</label>
+		<input id="other_tenant_id" name="other_tenant_id" type="text" required class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
+		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-sm text-dm-on-accent hover:bg-dm-accent-hover">
+			Open DM
+		</button>
 	</form>
 	if len(conversations) == 0 {
-		<p>No conversations yet.</p>
+		<p class="text-dm-muted">No conversations yet.</p>
 	} else {
-		<ul>
+		<ul class="list-none space-y-2 p-0">
 			for _, conv := range conversations {
 				@ConversationRow(actorTenantID, conv)
 			}
@@ -41,7 +44,12 @@ templ ConversationListBody(actorTenantID string, conversations []chatvm.Conversa
 }
 
 templ ConversationRow(actorTenantID string, conv chatvm.ConversationSummary) {
-	<li class={ templ.KV("conversation-row--unread", conv.UnreadCount > 0) }>
+	<li
+		class={
+			templ.KV("rounded border border-dm-border bg-dm-bg p-3 hover:border-dm-accent", true),
+			templ.KV("font-semibold text-dm-accent", conv.UnreadCount > 0),
+		}
+	>
 		<a
 			href={ templ.SafeURL(chatRoomHref(conv.Room.ID.String(), actorTenantID)) }
 			hx-get={ chatRoomHref(conv.Room.ID.String(), actorTenantID) }
@@ -49,6 +57,7 @@ templ ConversationRow(actorTenantID string, conv chatvm.ConversationSummary) {
 			hx-swap="innerHTML"
 			hx-push-url="true"
 			hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+			class="block no-underline hover:text-dm-accent-hover"
 		>
 			<strong>{ conv.DisplayTitle }</strong>
 			<span> [{ string(conv.Room.Kind) }] </span>
@@ -57,7 +66,7 @@ templ ConversationRow(actorTenantID string, conv chatvm.ConversationSummary) {
 			}
 			if conv.Room.LastMessagePreview != "" {
 				<br/>
-				<em>{ conv.Room.LastMessagePreview }</em>
+				<em class="text-sm text-dm-muted">{ conv.Room.LastMessagePreview }</em>
 			}
 		</a>
 	</li>

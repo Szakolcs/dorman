@@ -1,29 +1,19 @@
 package models
 
 import (
-	"time"
-
-	platform "dorm-man/internal/models/platform"
+	crosscutting "dorm-man/internal/models/cross-cutting"
 
 	"github.com/google/uuid"
 )
 
-type AuditOutcome string
+type Audit struct {
+	crosscutting.BaseModel
+	TableName string    `gorm:"not null"`
+	Operation string    `gorm:"not null"`
+	OldData   string    `gorm:"type:jsonb"`
+	NewData   string    `gorm:"type:jsonb"`
+	ChangedAt string    `gorm:"not null"`
+	ChangedBy uuid.UUID `gorm:"type: uuid;"`
 
-const (
-	AuditOutcomeSuccess AuditOutcome = "success"
-	AuditOutcomeFailure AuditOutcome = "failure"
-)
-
-type AuditEvent struct {
-	platform.BaseModel
-	ActorUserID *uuid.UUID   `gorm:"type:uuid;index"`
-	Action      string       `gorm:"not null;index"`
-	TargetType  string       `gorm:"not null;index"`
-	TargetID    uuid.UUID    `gorm:"type:uuid;index"`
-	Outcome     AuditOutcome `gorm:"type:varchar(20);not null;index"`
-	Metadata    string       `gorm:"type:text"`
-	OccurredAt  time.Time    `gorm:"not null;default:CURRENT_TIMESTAMP;index"`
-
-	ActorUser *User `gorm:"foreignKey:ActorUserID;references:ID"`
+	User crosscutting.User `gorm:"foreignKey:ChangedBy;references:ID"`
 }

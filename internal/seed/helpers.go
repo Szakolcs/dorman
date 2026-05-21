@@ -13,6 +13,12 @@ const batchSize = 500
 
 const seedPassword = "password"
 
+// DevPassword is the plaintext password for all development seed logins.
+const DevPassword = seedPassword
+
+// DevAdminEmail is the fixed local-development administrator login.
+const DevAdminEmail = "admin@dorm.local"
+
 func batchCreate[T any](db *gorm.DB, rows []T) error {
 	if len(rows) == 0 {
 		return nil

@@ -10,9 +10,8 @@ type Config struct {
 
 func Load() Config {
 	return Config{
-		Port:          envOrDefault("PORT", "8080"),
-		DatabaseURL:   envOrDefault("DATABASE_URL", "postgres://dev:dev@localhost:5432/dormatory_manager?sslmode=disable"),
-		SessionSecret: envOrDefault("SESSION_SECRET", "dev-session-secret-change-in-production"),
+		Port:        envOrDefault("PORT", "8080"),
+		DatabaseURL: envOrDefault("DATABASE_URL", "postgres://dev:dev@localhost:5432/dormatory_manager?sslmode=disable"),
 	}
 }
 

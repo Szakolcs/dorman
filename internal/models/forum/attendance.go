@@ -2,7 +2,7 @@ package models
 
 import (
 	adm "dorm-man/internal/models/administration"
-	platform "dorm-man/internal/models/platform"
+	platform "dorm-man/internal/models/cross-cutting"
 
 	"github.com/google/uuid"
 )

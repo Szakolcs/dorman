@@ -27,28 +27,33 @@ templ ProfileForm(actorTenantID string, view chatvm.TenantProfileView, bio strin
 		hx-target="#chat-profile-result"
 		hx-swap="innerHTML"
 		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+		class="flex max-w-xl flex-col gap-2"
 	>
-		<label for="nickname">Nickname (leave empty to use legal name)</label>
+		<label for="nickname" class="text-sm font-medium text-dm-fg">Nickname (leave empty to use legal name)</label>
 		<input
 			id="nickname"
 			name="nickname"
 			type="text"
+			class="rounded border border-dm-border bg-dm-bg px-3 py-2"
 			if view.Profile != nil && view.Profile.Nickname != nil {
 				value={ *view.Profile.Nickname }
 			}
 		/>
-		<label for="bio">Bio</label>
-		<textarea id="bio" name="bio" rows="4">{ bio }</textarea>
-		<label for="avatar_storage_key">Avatar storage key</label>
+		<label for="bio" class="text-sm font-medium text-dm-fg">Bio</label>
+		<textarea id="bio" name="bio" rows="4" class="rounded border border-dm-border bg-dm-bg px-3 py-2">{ bio }</textarea>
+		<label for="avatar_storage_key" class="text-sm font-medium text-dm-fg">Avatar storage key</label>
 		<input
 			id="avatar_storage_key"
 			name="avatar_storage_key"
 			type="text"
+			class="rounded border border-dm-border bg-dm-bg px-3 py-2"
 			if view.Profile != nil {
 				value={ view.Profile.AvatarStorageKey }
 			}
 		/>
-		<button type="submit">Save profile</button>
+		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">
+			Save profile
+		</button>
 	</form>
 	<div id="chat-profile-result"></div>
 }

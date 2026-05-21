@@ -29,7 +29,7 @@ func ThemeToggle() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<button type=\"button\" class=\"theme-toggle\" data-theme-toggle-label onclick=\"dmCycleTheme()\" aria-label=\"Cycle theme: system, light, dark\">Theme</button>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<button type=\"button\" class=\"cursor-pointer rounded border border-dm-border bg-dm-surface px-2 py-1 text-sm text-dm-muted hover:border-dm-accent hover:text-dm-fg\" data-theme-toggle-label onclick=\"dmCycleTheme()\" aria-label=\"Cycle theme: system, light, dark\">Theme</button>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -37,7 +37,7 @@ func ThemeToggle() templ.Component {
 	})
 }
 
-func MainNav() templ.Component {
+func BaseNav() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -58,7 +58,15 @@ func MainNav() templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<nav class=\"nav\"><a href=\"/\" hx-boost=\"true\">Login</a> <a href=\"/about\" hx-boost=\"true\">About</a> <a href=\"/forum/view\" hx-boost=\"true\">Forum</a> <a href=\"/chat/view\" hx-boost=\"true\">Chat</a> <a href=\"/doorman\" hx-boost=\"true\">Doorman</a> <a href=\"/administration\" hx-boost=\"true\">Administration</a> <span class=\"nav-toolbar\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<nav class=\"mb-6 flex flex-wrap items-center gap-2 gap-x-4 rounded-lg border border-dm-border bg-dm-elevated px-4 py-2\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templ_7745c5c3_Var2.Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<span class=\"ml-auto\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -66,7 +74,7 @@ func MainNav() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</span></nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</span></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -95,7 +103,7 @@ func DoormanNav() templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<nav class=\"nav nav--module\"><a href=\"/doorman\" hx-boost=\"true\">Doorman home</a> <a href=\"/doorman/packages\" hx-boost=\"true\">Packages</a> <a href=\"/doorman/guests\" hx-boost=\"true\">Guests</a> <a href=\"/doorman/access\" hx-boost=\"true\">Entry</a> <a href=\"/doorman/lending\" hx-boost=\"true\">Lending</a></nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<nav class=\"mb-4 -mt-2 flex flex-wrap items-center gap-2 gap-x-4 rounded-lg border border-dm-border bg-dm-surface px-4 py-2 pt-2\"><a href=\"/doorman\" class=\"text-dm-link no-underline hover:text-dm-accent-hover hover:underline\" hx-boost=\"true\">Entry</a> <a href=\"/doorman/packages\" class=\"text-dm-link no-underline hover:text-dm-accent-hover hover:underline\" hx-boost=\"true\">Packages</a> <a href=\"/doorman/guests\" class=\"text-dm-link no-underline hover:text-dm-accent-hover hover:underline\" hx-boost=\"true\">Guests & lending</a></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -124,7 +132,7 @@ func AdministrationNav() templ.Component {
 			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<nav class=\"nav nav--module\"><a href=\"/administration\" hx-boost=\"true\">Administration home</a> <a href=\"/administration/tenants\" hx-boost=\"true\">Tenants</a> <a href=\"/administration/rooms\" hx-boost=\"true\">Rooms</a> <a href=\"/administration/inventory\" hx-boost=\"true\">Inventory</a> <a href=\"/administration/maintenance\" hx-boost=\"true\">Maintenance</a> <a href=\"/administration/jobs\" hx-boost=\"true\">Jobs</a> <a href=\"/administration/publications\" hx-boost=\"true\">Publications</a> <a href=\"/administration/audit\" hx-boost=\"true\">Audit</a></nav>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<nav class=\"mb-4 -mt-2 flex flex-wrap items-center gap-2 gap-x-4 rounded-lg border border-dm-border bg-dm-surface px-4 py-2 pt-2\"><a href=\"/administration\" class=\"text-dm-link no-underline hover:text-dm-accent-hover hover:underline\" hx-boost=\"true\">Administration home</a> <a href=\"/administration/tenants\" class=\"text-dm-link no-underline hover:text-dm-accent-hover hover:underline\" hx-boost=\"true\">Tenants</a> <a href=\"/administration/rooms\" class=\"text-dm-link no-underline hover:text-dm-accent-hover hover:underline\" hx-boost=\"true\">Rooms</a> <a href=\"/administration/inventory\" class=\"text-dm-link no-underline hover:text-dm-accent-hover hover:underline\" hx-boost=\"true\">Inventory</a> <a href=\"/administration/maintenance\" class=\"text-dm-link no-underline hover:text-dm-accent-hover hover:underline\" hx-boost=\"true\">Maintenance</a> <a href=\"/administration/jobs\" class=\"text-dm-link no-underline hover:text-dm-accent-hover hover:underline\" hx-boost=\"true\">Jobs</a> <a href=\"/administration/publications\" class=\"text-dm-link no-underline hover:text-dm-accent-hover hover:underline\" hx-boost=\"true\">Publications</a> <a href=\"/administration/audit\" class=\"text-dm-link no-underline hover:text-dm-accent-hover hover:underline\" hx-boost=\"true\">Audit</a></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

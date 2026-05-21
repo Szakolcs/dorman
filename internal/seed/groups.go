@@ -1,12 +1,12 @@
 package seed
 
 import (
+	plat "dorm-man/internal/models/cross-cutting"
 	"fmt"
 	"time"
 
 	adm "dorm-man/internal/models/administration"
 	dm "dorm-man/internal/models/doorman"
-	plat "dorm-man/internal/models/platform"
 
 	"github.com/google/uuid"
 )
@@ -310,19 +310,19 @@ func (s *Seeder) seedDoorman() error {
 		return err
 	}
 
-	var visits []dm.GuestVisit
+	var visits []dm.GuestEntry
 	for i := 0; i < 800; i++ {
 		host := s.tenants[s.rng.IntN(len(s.tenants))].ID
 		from := randTime(s.rng, s.start, s.now)
 		to := from.Add(4 * time.Hour)
 		reg := s.staff[s.rng.IntN(len(s.staff))].ID
-		visits = append(visits, dm.GuestVisit{
+		visits = append(visits, dm.GuestEntry{
 			BaseModel:          plat.BaseModel{ID: uuid.New(), CreatedAt: from, UpdatedAt: s.now},
 			HostTenantID:       host,
 			GuestName:          fmt.Sprintf("Guest %d", i+1),
 			ValidFrom:          from,
 			ValidTo:            to,
-			Status:             dm.GuestVisitStatusCheckedOut,
+			Status:             dm.GuestCheckedOut,
 			RegisteredByUserID: &reg,
 		})
 	}

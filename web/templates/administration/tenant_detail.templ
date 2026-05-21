@@ -11,16 +11,16 @@ templ TenantDetailContent(data TenantDetailPageData) {
 	@partials.AdministrationNav()
 	@components.BackLink("/administration/tenants", "Back to tenants")
 	@components.PageHeader(data.Tenant.Name, "Tenant profile and room assignment.")
-	<dl>
-		<dt>Student code</dt>
-		<dd>{ data.Tenant.StudentCode }</dd>
-		<dt>Email</dt>
-		<dd>{ data.Tenant.Email }</dd>
-		<dt>Status</dt>
-		<dd>{ tenantStatus(data.Tenant.IsActive) }</dd>
+	<dl class="grid max-w-xl grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+		<dt class="font-semibold text-dm-muted">Student code</dt>
+		<dd class="m-0">{ data.Tenant.StudentCode }</dd>
+		<dt class="font-semibold text-dm-muted">Email</dt>
+		<dd class="m-0">{ data.Tenant.Email }</dd>
+		<dt class="font-semibold text-dm-muted">Status</dt>
+		<dd class="m-0">{ tenantStatus(data.Tenant.IsActive) }</dd>
 		if data.Tenant.Nationality != nil {
-			<dt>Nationality</dt>
-			<dd>{ string(*data.Tenant.Nationality) }</dd>
+			<dt class="font-semibold text-dm-muted">Nationality</dt>
+			<dd class="m-0">{ string(*data.Tenant.Nationality) }</dd>
 		}
 	</dl>
 	if len(data.Tenant.RoomAssignments) > 0 {
@@ -29,7 +29,7 @@ templ TenantDetailContent(data TenantDetailPageData) {
 }
 
 templ TenantRoomSection(data TenantDetailPageData) {
-	<ul>
+	<ul class="list-disc space-y-1 pl-6">
 		for _, a := range data.Tenant.RoomAssignments {
 			if a.Room.Number != "" {
 				<li>

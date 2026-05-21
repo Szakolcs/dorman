@@ -1,0 +1,69 @@
+package doormanviews
+
+import (
+	adm "dorm-man/internal/models/administration"
+	models "dorm-man/internal/models/doorman"
+)
+
+templ GuestsPage(guests []models.GuestEntry,tenants []adm.Tenant) {
+	@Layout("Guests") {
+		@Navigation()
+		<div class="space-y-6">
+			<div>
+				<h1 class="mb-2 text-3xl font-bold">
+					Guests
+				</h1>
+				<p class="text-dm-muted">
+					Register and manage guest access.
+				</p>
+			</div>
+			@GuestFilters()
+			<div
+				id="guest-table"
+				class="dm-card overflow-x-auto"
+			>
+				<table class="dm-table">
+					<thead>
+						<tr>
+							<th>Guest</th>
+							<th>ID Notes</th>
+							<th>Status</th>
+							<th>Host Tenant</th>
+							<th>Action</th>
+						</tr>
+					</thead>
+					<tbody>
+						@GuestRegisterForm(tenants)
+						for _, guest := range guests {
+							<tr>
+								<td class="p-3">
+									{ guest.GuestName }
+								</td>
+								<td class="p-3">
+									{ guest.IDNotes }
+								</td>
+								<td class="p-3">
+									{ string(guest.Status) }
+								</td>
+								<td class="p-3">
+									{ guest.HostTenant.User.FirstName }
+									{ guest.HostTenant.User.LastName }
+								</td>
+								<td class="p-3">
+									<button
+										hx-delete={ "/doorman/leave/guest/" + guest.ID.String() }
+										hx-target="#guest-table"
+										hx-swap="outerHTML"
+										class="rounded-lg bg-dm-error px-4 py-2 font-medium text-white hover:opacity-90"
+									>
+										Delete
+									</button>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	}
+}

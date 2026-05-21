@@ -15,7 +15,7 @@ templ PostPage(data PostPageData) {
 templ PostPageBody(data PostPageData) {
 	@components.BackLink("/forum/view", "Back to feed")
 	@PostArticle(data)
-	<section id="post-engagement">
+	<section id="post-engagement" class="my-6 flex flex-wrap gap-4">
 		@PostReaction(ReactionViewData{
 			PostID:      data.Post.ID,
 			Count:       data.Aggregates.ReactionCount,
@@ -35,13 +35,13 @@ templ PostPageBody(data PostPageData) {
 		}
 	</section>
 	if len(data.Updates) > 0 {
-		<section class="section">
-			<h2>Organizer updates</h2>
+		<section class="mb-8 rounded-lg border border-dm-border bg-dm-elevated p-4">
+			<h2 class="mb-4 text-lg font-semibold text-dm-fg">Organizer updates</h2>
 			@OrganizerUpdatesList(data.Updates)
 		</section>
 	}
-	<section class="section">
-		<h2>Comments</h2>
+	<section class="mb-8 rounded-lg border border-dm-border bg-dm-elevated p-4">
+		<h2 class="mb-4 text-lg font-semibold text-dm-fg">Comments</h2>
 		<div id="comments-list">
 			@CommentsList(data.Comments)
 			@components.PaginationNavNamed("/forum/view/posts/"+data.Post.ID.String(), data.CommentsPagination, data.CommentsPreserve, "comments_page", "comments_page_size")
@@ -68,18 +68,18 @@ templ PostArticle(data PostPageData) {
 			{ data.Post.Body }
 		</div>
 		if data.Schedule != nil {
-			<dl>
+			<dl class="grid max-w-xl grid-cols-[auto_1fr] gap-x-4 gap-y-1">
 				if data.Schedule.StartsAt != nil {
-					<dt>Starts</dt>
-					<dd>{ data.Schedule.StartsAt.Format("2006-01-02 15:04") }</dd>
+					<dt class="font-semibold text-dm-muted">Starts</dt>
+					<dd class="m-0">{ data.Schedule.StartsAt.Format("2006-01-02 15:04") }</dd>
 				}
 				if data.Schedule.EndsAt != nil {
-					<dt>Ends</dt>
-					<dd>{ data.Schedule.EndsAt.Format("2006-01-02 15:04") }</dd>
+					<dt class="font-semibold text-dm-muted">Ends</dt>
+					<dd class="m-0">{ data.Schedule.EndsAt.Format("2006-01-02 15:04") }</dd>
 				}
 				if data.Schedule.Location != "" {
-					<dt>Location</dt>
-					<dd>{ data.Schedule.Location }</dd>
+					<dt class="font-semibold text-dm-muted">Location</dt>
+					<dd class="m-0">{ data.Schedule.Location }</dd>
 				}
 			</dl>
 		}
@@ -92,14 +92,14 @@ templ PostArticle(data PostPageData) {
 }
 
 templ PostReaction(data ReactionViewData) {
-	<div id="post-reaction">
+	<div id="post-reaction" class="rounded bg-dm-surface p-4">
 		<form
 			hx-post={ "/forum/view/posts/" + data.PostID.String() + "/reactions" }
 			hx-target="#post-reaction"
 			hx-swap="outerHTML"
 			hx-include="#forum-actor-bar"
 		>
-			<button type="submit">
+			<button type="submit" class="cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">
 				if data.ViewerLiked {
 					Unlike
 				} else {
@@ -112,8 +112,8 @@ templ PostReaction(data ReactionViewData) {
 }
 
 templ PostAttendance(data AttendanceViewData) {
-	<div id="post-attendance">
-		<h3>Attendance intent</h3>
+	<div id="post-attendance" class="rounded bg-dm-surface p-4">
+		<h3 class="mb-2 font-semibold text-dm-fg">Attendance intent</h3>
 		<p>Going: { data.Aggregates.GoingCount } — Not going: { data.Aggregates.NotGoingCount }</p>
 		<form
 			hx-post={ "/forum/view/posts/" + data.PostID.String() + "/attendance" }
@@ -139,7 +139,7 @@ templ PostAttendance(data AttendanceViewData) {
 				/>
 				Not going
 			</label>
-			<button type="submit">Save intent</button>
+			<button type="submit" class="mt-2 cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Save intent</button>
 		</form>
 	</div>
 }
@@ -166,8 +166,8 @@ templ PollSection(data PostPageData) {
 			hx-swap="outerHTML"
 			hx-include="#forum-actor-bar"
 		>
-			<fieldset>
-				<legend>Your vote</legend>
+			<fieldset class="rounded border border-dm-border p-4">
+				<legend class="px-1 text-sm font-medium text-dm-fg">Your vote</legend>
 				for _, opt := range data.Poll.Options {
 					if data.Poll.ChoiceMode == fm.ForumPollChoiceModeSingle {
 						<label>
@@ -182,7 +182,7 @@ templ PollSection(data PostPageData) {
 					}
 				}
 			</fieldset>
-			<button type="submit">Submit vote</button>
+			<button type="submit" class="mt-2 cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Submit vote</button>
 		</form>
 	</section>
 }
@@ -235,9 +235,10 @@ templ CommentForm(postID uuid.UUID) {
 		hx-target="#comments-list"
 		hx-swap="innerHTML"
 		hx-include="#forum-actor-bar"
+		class="mt-4 flex max-w-xl flex-col gap-2"
 	>
-		<label for="comment-body">Add comment</label>
-		<textarea id="comment-body" name="body" required></textarea>
-		<button type="submit">Post comment</button>
+		<label for="comment-body" class="text-sm font-medium text-dm-fg">Add comment</label>
+		<textarea id="comment-body" name="body" required class="min-h-20 rounded border border-dm-border bg-dm-bg px-3 py-2"></textarea>
+		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Post comment</button>
 	</form>
 }

@@ -3,7 +3,7 @@ package partials
 templ ThemeToggle() {
 	<button
 		type="button"
-		class="theme-toggle"
+		class="cursor-pointer rounded border border-dm-border bg-dm-surface px-2 py-1 text-sm text-dm-muted hover:border-dm-accent hover:text-dm-fg"
 		data-theme-toggle-label
 		onclick="dmCycleTheme()"
 		aria-label="Cycle theme: system, light, dark"
@@ -12,39 +12,32 @@ templ ThemeToggle() {
 	</button>
 }
 
-templ MainNav() {
-	<nav class="nav">
-		<a href="/" hx-boost="true">Login</a>
-		<a href="/about" hx-boost="true">About</a>
-		<a href="/forum/view" hx-boost="true">Forum</a>
-		<a href="/chat/view" hx-boost="true">Chat</a>
-		<a href="/doorman" hx-boost="true">Doorman</a>
-		<a href="/administration" hx-boost="true">Administration</a>
-		<span class="nav-toolbar">
+templ BaseNav() {
+	<nav class="mb-6 flex flex-wrap items-center gap-2 gap-x-4 rounded-lg border border-dm-border bg-dm-elevated px-4 py-2">
+		{ children... }
+		<span class="ml-auto">
 			@ThemeToggle()
 		</span>
 	</nav>
 }
 
 templ DoormanNav() {
-	<nav class="nav nav--module">
-		<a href="/doorman" hx-boost="true">Doorman home</a>
-		<a href="/doorman/packages" hx-boost="true">Packages</a>
-		<a href="/doorman/guests" hx-boost="true">Guests</a>
-		<a href="/doorman/access" hx-boost="true">Entry</a>
-		<a href="/doorman/lending" hx-boost="true">Lending</a>
+	<nav class="mb-4 -mt-2 flex flex-wrap items-center gap-2 gap-x-4 rounded-lg border border-dm-border bg-dm-surface px-4 py-2 pt-2">
+		<a href="/doorman" class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Entry</a>
+		<a href="/doorman/packages" class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Packages</a>
+		<a href="/doorman/guests" class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Guests & lending</a>
 	</nav>
 }
 
 templ AdministrationNav() {
-	<nav class="nav nav--module">
-		<a href="/administration" hx-boost="true">Administration home</a>
-		<a href="/administration/tenants" hx-boost="true">Tenants</a>
-		<a href="/administration/rooms" hx-boost="true">Rooms</a>
-		<a href="/administration/inventory" hx-boost="true">Inventory</a>
-		<a href="/administration/maintenance" hx-boost="true">Maintenance</a>
-		<a href="/administration/jobs" hx-boost="true">Jobs</a>
-		<a href="/administration/publications" hx-boost="true">Publications</a>
-		<a href="/administration/audit" hx-boost="true">Audit</a>
+	<nav class="mb-4 -mt-2 flex flex-wrap items-center gap-2 gap-x-4 rounded-lg border border-dm-border bg-dm-surface px-4 py-2 pt-2">
+		<a href="/administration" class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Administration home</a>
+		<a href="/administration/tenants" class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Tenants</a>
+		<a href="/administration/rooms" class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Rooms</a>
+		<a href="/administration/inventory" class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Inventory</a>
+		<a href="/administration/maintenance" class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Maintenance</a>
+		<a href="/administration/jobs" class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Jobs</a>
+		<a href="/administration/publications" class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Publications</a>
+		<a href="/administration/audit" class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Audit</a>
 	</nav>
 }

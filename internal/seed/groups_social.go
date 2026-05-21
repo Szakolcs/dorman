@@ -1,13 +1,13 @@
 package seed
 
 import (
+	plat "dorm-man/internal/models/cross-cutting"
 	"fmt"
 	"time"
 
 	adm "dorm-man/internal/models/administration"
 	chatm "dorm-man/internal/models/chat"
 	fm "dorm-man/internal/models/forum"
-	plat "dorm-man/internal/models/platform"
 
 	"github.com/google/uuid"
 )
@@ -365,11 +365,11 @@ func (s *Seeder) seedForum() error {
 	for len(comments) < 3000 {
 		p := s.forumPosts[s.rng.IntN(len(s.forumPosts))]
 		comments = append(comments, fm.ForumComment{
-			BaseModel:        plat.BaseModel{ID: uuid.New(), CreatedAt: randTime(s.rng, s.start, s.now), UpdatedAt: s.now},
-			PostID:           p.ID,
-			AuthorUserID:     s.staff[s.rng.IntN(len(s.staff))].ID,
-			Body:             "Seed comment",
-			ModerationState:  fm.CommentModerationStateVisible,
+			BaseModel:       plat.BaseModel{ID: uuid.New(), CreatedAt: randTime(s.rng, s.start, s.now), UpdatedAt: s.now},
+			PostID:          p.ID,
+			AuthorUserID:    s.staff[s.rng.IntN(len(s.staff))].ID,
+			Body:            "Seed comment",
+			ModerationState: fm.CommentModerationStateVisible,
 		})
 	}
 	if err := batchCreate(s.db, comments); err != nil {
@@ -377,10 +377,10 @@ func (s *Seeder) seedForum() error {
 	}
 
 	type reactKey struct {
-		user                           uuid.UUID
-		tt                             fm.ReactionTargetType
-		tid                            uuid.UUID
-		rt                             fm.ReactionType
+		user uuid.UUID
+		tt   fm.ReactionTargetType
+		tid  uuid.UUID
+		rt   fm.ReactionType
 	}
 	seenReact := map[reactKey]struct{}{}
 	var reactions []fm.ForumReaction
@@ -459,13 +459,13 @@ func (s *Seeder) seedAudit() error {
 	for i := 0; i < 10000; i++ {
 		actor := s.staff[s.rng.IntN(len(s.staff))].ID
 		events = append(events, adm.AuditEvent{
-			BaseModel:  plat.BaseModel{ID: uuid.New(), CreatedAt: randTime(s.rng, s.start, s.now), UpdatedAt: s.now},
+			BaseModel:   plat.BaseModel{ID: uuid.New(), CreatedAt: randTime(s.rng, s.start, s.now), UpdatedAt: s.now},
 			ActorUserID: &actor,
-			Action:     pick(s.rng, actions),
-			TargetType: pick(s.rng, targets),
-			TargetID:   uuid.New(),
-			Outcome:    adm.AuditOutcomeSuccess,
-			OccurredAt: randTime(s.rng, s.start, s.now),
+			Action:      pick(s.rng, actions),
+			TargetType:  pick(s.rng, targets),
+			TargetID:    uuid.New(),
+			Outcome:     adm.AuditOutcomeSuccess,
+			OccurredAt:  randTime(s.rng, s.start, s.now),
 		})
 	}
 	return batchCreate(s.db, events)

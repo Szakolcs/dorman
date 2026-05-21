@@ -22,13 +22,16 @@ templ GroupCreateForm(actorTenantID string) {
 		hx-target="#chat-group-result"
 		hx-swap="innerHTML"
 		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
+		class="flex max-w-xl flex-col gap-2"
 	>
-		<label for="title">Group name</label>
-		<input id="title" name="title" type="text" required/>
-		<label for="avatar_storage_key">Avatar storage key (optional)</label>
-		<input id="avatar_storage_key" name="avatar_storage_key" type="text"/>
-		<label for="member_tenant_ids">Member tenant IDs (comma-separated, optional)</label>
-		<input id="member_tenant_ids" name="member_tenant_ids" type="text"/>
-		<button type="submit">Create group</button>
+		<label for="title" class="text-sm font-medium text-dm-fg">Group name</label>
+		<input id="title" name="title" type="text" required class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
+		<label for="avatar_storage_key" class="text-sm font-medium text-dm-fg">Avatar storage key (optional)</label>
+		<input id="avatar_storage_key" name="avatar_storage_key" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
+		<label for="member_tenant_ids" class="text-sm font-medium text-dm-fg">Member tenant IDs (comma-separated, optional)</label>
+		<input id="member_tenant_ids" name="member_tenant_ids" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
+		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">
+			Create group
+		</button>
 	</form>
 }

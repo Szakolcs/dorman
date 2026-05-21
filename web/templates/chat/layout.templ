@@ -27,10 +27,10 @@ templ ChatShellBody(actorTenantID string, body templ.Component) {
 }
 
 templ ChatNav(actorTenantID string) {
-	<nav class="nav nav--module">
-		<a href={ templ.SafeURL(chatHref("/chat/view", actorTenantID)) } hx-boost="true">Workspace</a>
-		<a href={ templ.SafeURL(chatHref("/chat/view/profile", actorTenantID)) } hx-boost="true">Profile</a>
-		<a href={ templ.SafeURL(chatHref("/chat/view/groups/new", actorTenantID)) } hx-boost="true">New group</a>
+	<nav class="mb-4 -mt-2 flex flex-wrap items-center gap-2 gap-x-4 rounded-lg border border-dm-border bg-dm-surface px-4 py-2 pt-2">
+		<a href={ templ.SafeURL(chatHref("/chat/view", actorTenantID)) } class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Workspace</a>
+		<a href={ templ.SafeURL(chatHref("/chat/view/profile", actorTenantID)) } class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">Profile</a>
+		<a href={ templ.SafeURL(chatHref("/chat/view/groups/new", actorTenantID)) } class="text-dm-link no-underline hover:text-dm-accent-hover hover:underline" hx-boost="true">New group</a>
 	</nav>
 }
 
@@ -39,10 +39,19 @@ templ ActorStubForm() {
 		"Chat",
 		"Select a tenant to act as. Paste a tenant UUID or your login user UUID; session login also works for tenant accounts.",
 	)
-	<form method="get" action="/chat/view">
-		<label for="tenant_id">Tenant or user ID</label>
-		<input id="tenant_id" name="tenant_id" type="text" required placeholder="Tenant UUID, or user UUID linked to a tenant"/>
-		<button type="submit">Open chat</button>
+	<form method="get" action="/chat/view" class="flex max-w-xl flex-col gap-2">
+		<label for="tenant_id" class="text-sm font-medium text-dm-fg">Tenant or user ID</label>
+		<input
+			id="tenant_id"
+			name="tenant_id"
+			type="text"
+			required
+			placeholder="Tenant UUID, or user UUID linked to a tenant"
+			class="rounded border border-dm-border bg-dm-bg px-3 py-2"
+		/>
+		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">
+			Open chat
+		</button>
 	</form>
 }
 

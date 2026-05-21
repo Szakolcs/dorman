@@ -1,12 +1,11 @@
 package doorman
 
 import (
+	adm "dorm-man/internal/models/administration"
+	crosscutting "dorm-man/internal/models/cross-cutting"
+	models "dorm-man/internal/models/doorman"
 	"errors"
 	"time"
-
-	"dorm-man/internal/pagination"
-	adm "dorm-man/internal/models/administration"
-	dm "dorm-man/internal/models/doorman"
 
 	"github.com/google/uuid"
 )
@@ -23,83 +22,48 @@ var (
 	ErrLoanAlreadyReturned       = errors.New("loan_already_returned")
 )
 
-type PackageRegisterInput struct {
-	RecipientLabel string     `json:"recipient_label"`
-	Description    string     `json:"description"`
-	TenantID       *uuid.UUID `json:"tenant_id"`
-	ReceivedAt     *time.Time `json:"received_at"`
+type GuestData struct {
+	GuestID    uuid.UUID          `json:"guest_id"`
+	HostTenant *crosscutting.User `json:"host_tenant_id"`
+	GuestName  string             `json:"guest_name"`
+	IDNotes    string             `json:"id_notes"`
 }
 
-type PackageNotifyInput struct {
-	Channel dm.PackageNotificationChannel `json:"channel"`
+type GuestRegisterRequest struct {
+	crosscutting.BaseModel
+	HostTenant *crosscutting.User `json:"host_tenant_id"`
+	GuestName  string             `json:"guest_name"`
+	IDNotes    string             `json:"id_notes"`
 }
 
-type TransitionPackageBody struct {
-	To dm.PackageStatus `json:"to"`
+type GuestRegisterResponse struct {
+	Success bool `json:"success"`
 }
 
-type GuestVisitCreateInput struct {
-	HostTenantID uuid.UUID `json:"host_tenant_id"`
-	GuestName    string    `json:"guest_name"`
-	IDNotes      string    `json:"id_notes"`
-	ValidFrom    time.Time `json:"valid_from"`
-	ValidTo      time.Time `json:"valid_to"`
+type TenantData struct {
+	Tenant     *adm.Tenant `json:"tenant"`
+	CheckedIn  time.Time   `json:"checked_in"`
+	CheckedOut time.Time   `json:"checked_out"`
+}
+type TenantAccessRequest struct {
+	TenantID     uuid.UUID           `json:"tenant_id"`
+	AccessStatus models.AccessStatus `json:"accessstatus"`
 }
 
-type QRValidateBody struct {
-	PublicRef string `json:"public_ref"`
-}
-
-type ManualAccessBody struct {
+type TenantAccessResponse struct {
 	TenantID uuid.UUID `json:"tenant_id"`
 }
 
-type TenantEntryTokenCreateInput struct {
-	TenantID  uuid.UUID  `json:"tenant_id"`
-	PublicRef string     `json:"public_ref"` // optional; server generates UUID string if empty
-	ExpiresAt *time.Time `json:"expires_at"`
+type GuestFilter struct {
+	TenantID uuid.UUID           `json:"tenant_id"`
+	From     time.Time           `json:"from"`
+	To       time.Time           `json:"to"`
+	Status   models.AccessStatus `json:"status"`
 }
 
-type CheckoutLoanBody struct {
-	TenantID         uuid.UUID  `json:"tenant_id"`
-	InventoryItemID  uuid.UUID  `json:"inventory_item_id"`
-	ExpectedReturnAt *time.Time `json:"expected_return_at"`
-	Notes            string     `json:"notes"`
-}
-
-type PackageListFilter struct {
-	Status   string // received|notified|picked_up|pending (queued = not picked up)
-	TenantID *uuid.UUID
-	pagination.Params
-}
-
-type GuestVisitListFilter struct {
-	OnDate *time.Time // local date compare in UTC midnight window
-	pagination.Params
-}
-
-type AccessEventListFilter struct {
-	TenantID *uuid.UUID
-	From     *time.Time
-	To       *time.Time
-	Outcome  dm.AccessEventOutcome
-	pagination.Params
-}
-
-type TokenListFilter struct {
-	pagination.Params
-}
-
-type ItemLoanListFilter struct {
-	OpenOnly    bool
-	OverdueOnly bool
-	TenantID    *uuid.UUID
-	pagination.Params
-}
-
-type QRValidationResult struct {
-	Outcome dm.AccessEventOutcome `json:"outcome"`
-	Reason  string                `json:"reason,omitempty"`
-	Tenant  *adm.Tenant           `json:"tenant,omitempty"`
-	Event   dm.AccessEvent        `json:"event"`
+type TenantAccessFilter struct {
+	TenantID uuid.UUID           `json:"tenant_id"`
+	From     time.Time           `json:"from"`
+	To       time.Time           `json:"to"`
+	Status   models.AccessStatus `json:"status"`
 }

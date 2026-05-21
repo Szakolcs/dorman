@@ -1,22 +1,18 @@
 package app
 
 import (
+	"dorm-man/internal/cross-cutting"
 	"fmt"
 	"net/http"
 
-	"dorm-man/internal/administration"
-	"dorm-man/internal/chat"
 	"dorm-man/internal/config"
-	"dorm-man/internal/doorman"
-	"dorm-man/internal/forum"
-	models "dorm-man/internal/models/administration"
-	doormanModels "dorm-man/internal/models/doorman"
+	administrationModels "dorm-man/internal/models/administration"
 	chatModels "dorm-man/internal/models/chat"
+	crosscuttingModels "dorm-man/internal/models/cross-cutting"
+	doormanModels "dorm-man/internal/models/doorman"
 	forumModels "dorm-man/internal/models/forum"
-	"dorm-man/internal/platform"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"gorm.io/gorm"
 )
 
@@ -35,8 +31,8 @@ func New() (*App, error) {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	// Order: administration (incl. User/Role) → forum → chat → doorman (FKs to administration).
-	toMigrate := append([]any(nil), models.All()...)
+	toMigrate := append([]any(nil), crosscuttingModels.All()...)
+	toMigrate = append(toMigrate, administrationModels.All()...)
 	toMigrate = append(toMigrate, forumModels.All()...)
 	toMigrate = append(toMigrate, chatModels.All()...)
 	toMigrate = append(toMigrate, doormanModels.All()...)
@@ -47,17 +43,13 @@ func New() (*App, error) {
 	e := echo.New()
 	e.HideBanner = true
 	e.Static("/static", "web/static")
-	e.Use(middleware.Recover())
-	e.Use(middleware.RequestID())
-	e.Use(middleware.Logger())
 
-	platform.ConfigureSession(cfg.SessionSecret)
-
-	administration.RegisterRoutes(e, db)
-	chat.RegisterRoutes(e, db)
-	doorman.RegisterRoutes(e, db)
-	forum.RegisterRoutes(e, db)
-	platform.RegisterRoutes(e, db)
+	cross_cutting.RegisterRoutes(e, db)
+	//administration.RegisterRoutes(e, db)
+	//chat.RegisterRoutes(e, db)
+	//doorman.RegisterRoutes(e, db)
+	//forum.RegisterRoutes(e, db)
+	//platform.RegisterRoutes(e, db)
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

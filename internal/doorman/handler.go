@@ -1,16 +1,12 @@
 package doorman
 
 import (
+	crosscutting "dorm-man/internal/models/cross-cutting"
+	models "dorm-man/internal/models/doorman"
+	doormanviews "dorm-man/web/templates/doorman/pages"
 	"errors"
 	"net/http"
-	"strconv"
 	"time"
-
-	"dorm-man/internal/administration"
-	"dorm-man/internal/pagination"
-	"dorm-man/internal/platform"
-	dm "dorm-man/internal/models/doorman"
-	doormanviews "dorm-man/web/templates/doorman"
 
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
@@ -25,420 +21,149 @@ func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
-func (h *Handler) actor(c echo.Context) (administration.Principal, error) {
-	id, ok := platform.ActorUserID(c)
-	if !ok {
-		return administration.Principal{}, ErrUnauthorized
-	}
-	return h.service.ResolvePrincipal(id)
-}
-
-func (h *Handler) staffActor(c echo.Context) (administration.Principal, error) {
-	p, err := h.actor(c)
+func (h *Handler) dashboardPage(c echo.Context) error {
+	entries, err := h.service.ListTenantAccess(TenantAccessFilter{})
 	if err != nil {
-		return p, err
+		return h.writeError(c, err)
 	}
-	return p, h.service.RequireStaffDoormanPrincipal(p)
+	if len(entries) > 5 {
+		entries = entries[:5]
+	}
+	tenants, err := h.service.GetTenants()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, doormanviews.DashboardPage(entries, tenants))
 }
 
-func (h *Handler) writeError(c echo.Context, err error) error {
-	category := classifyDoormanError(err)
-	status := http.StatusInternalServerError
-	switch category {
-	case "validation_error":
-		status = http.StatusBadRequest
-	case "outside_visit_window":
-		status = http.StatusForbidden
-	case "package_invalid_transition", "guest_visit_state_invalid", "loan_already_returned":
-		status = http.StatusConflict
-	case "loan_item_unavailable":
-		status = http.StatusConflict
-	case "authorization_denied":
-		status = http.StatusForbidden
-	case "not_found", "tenant_not_found":
-		status = http.StatusNotFound
+func (h *Handler) listGuest(c echo.Context) error {
+	filter := GuestFilter{}
+	tenantID := c.QueryParam("tenant_id")
+	if tenantID != "" {
+		id, err := uuid.Parse(tenantID)
+		if err == nil {
+			filter.TenantID = id
+		}
 	}
-	return c.JSON(status, map[string]any{
-		"error": map[string]string{
-			"category": category,
-			"message":  err.Error(),
+	status := c.QueryParam("status")
+	if status != "" {
+		filter.Status = models.AccessStatus(status)
+	}
+	from := c.QueryParam("from")
+	if from != "" {
+		t, err := time.Parse(time.DateOnly, from)
+		if err == nil {
+			filter.From = t
+		}
+	}
+	to := c.QueryParam("to")
+	if to != "" {
+		t, err := time.Parse(time.DateOnly, to)
+		if err == nil {
+			filter.To = t
+		}
+	}
+	c.Response().Header().Set("HX-Redirect", "/doorman/guests")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) registerGuest(
+	c echo.Context,
+) error {
+	hostTenantID, err := uuid.Parse(
+		c.FormValue("host_tenant_id"),
+	)
+	if err != nil {
+		return h.writeError(c, ErrValidation)
+	}
+	req := GuestRegisterRequest{
+		HostTenant: &crosscutting.User{
+			BaseModel: crosscutting.BaseModel{
+				ID: hostTenantID,
+			},
 		},
-	})
-}
-
-func classifyDoormanError(err error) string {
-	switch {
-	case err == nil:
-		return ""
-	case errors.Is(err, ErrValidation):
-		return "validation_error"
-	case errors.Is(err, ErrOutsideVisitWindow):
-		return "outside_visit_window"
-	case errors.Is(err, ErrPackageInvalidTransition):
-		return "package_invalid_transition"
-	case errors.Is(err, ErrLoanItemUnavailable):
-		return "loan_item_unavailable"
-	case errors.Is(err, ErrUnauthorized):
-		return "authorization_denied"
-	case errors.Is(err, ErrNotFound):
-		return "not_found"
-	case errors.Is(err, ErrTenantNotFound):
-		return "tenant_not_found"
-	case errors.Is(err, ErrGuestVisitStateTransition):
-		return "guest_visit_state_invalid"
-	case errors.Is(err, ErrLoanAlreadyReturned):
-		return "loan_already_returned"
-	default:
-		return "internal_error"
+		GuestName: c.FormValue("guest_name"),
+		IDNotes:   c.FormValue("id_notes"),
 	}
-}
-
-func queryPositiveInt(c echo.Context, name string, def int) int {
-	s := c.QueryParam(name)
-	if s == "" {
-		return def
-	}
-	n, err := strconv.Atoi(s)
-	if err != nil || n < 0 {
-		return def
-	}
-	return n
-}
-
-func (h *Handler) registerPackage(c echo.Context) error {
-	p, err := h.staffActor(c)
+	_, err = h.service.RegisterGuest(req)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	var body PackageRegisterInput
-	if err := c.Bind(&body); err != nil {
+	c.Response().Header().Set("HX-Redirect", "/doorman/guests")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) deleteGuest(c echo.Context) error {
+	guestID, err := uuid.Parse(
+		c.Param("guestID"),
+	)
+	if err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	pkg, err := h.service.RegisterPackage(p, body)
+	err = h.service.DeleteGuest(guestID)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": pkg})
+	c.Response().Header().Set("HX-Redirect", "/doorman/guests")
+	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) listPackages(c echo.Context) error {
-	if _, err := h.staffActor(c); err != nil {
-		return h.writeError(c, err)
-	}
-	params := pageParams(c)
-	filter := PackageListFilter{
-		Status: c.QueryParam("status"),
-		Params: params,
-	}
-	if tid := c.QueryParam("tenant_id"); tid != "" {
-		id, err := uuid.Parse(tid)
-		if err != nil {
-			return h.writeError(c, ErrValidation)
+func (h *Handler) listTenantAccess(c echo.Context) error {
+	filter := TenantAccessFilter{}
+	tenantID := c.QueryParam("tenant_id")
+	if tenantID != "" {
+		id, err := uuid.Parse(tenantID)
+		if err == nil {
+			filter.TenantID = id
 		}
-		filter.TenantID = &id
 	}
-	list, total, err := h.service.ListPackages(filter)
-	if err != nil {
-		return h.writeError(c, err)
+	status := c.QueryParam("status")
+	if status != "" {
+		filter.Status = models.AccessStatus(status)
 	}
-	return writeListJSON(c, list, pagination.NewMeta(params, total))
-}
-
-func (h *Handler) getPackage(c echo.Context) error {
-	if _, err := h.staffActor(c); err != nil {
-		return h.writeError(c, err)
-	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	pkg, err := h.service.GetPackage(id)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": pkg})
-}
-
-func (h *Handler) transitionPackage(c echo.Context) error {
-	principal, err := h.staffActor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	var body struct {
-		To dm.PackageStatus `json:"to"`
-	}
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	pkg, err := h.service.TransitionPackage(principal, id, body.To)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": pkg})
-}
-
-func (h *Handler) pickupPackage(c echo.Context) error {
-	principal, err := h.staffActor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	pkg, err := h.service.ConfirmPackagePickup(principal, id)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": pkg})
-}
-
-func (h *Handler) notifyPackage(c echo.Context) error {
-	principal, err := h.staffActor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	var body PackageNotifyInput
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	n, err := h.service.NotifyPackageTenant(principal, id, body)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": n})
-}
-
-func (h *Handler) createGuestVisit(c echo.Context) error {
-	principal, err := h.staffActor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	var body GuestVisitCreateInput
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	v, err := h.service.RegisterGuestVisit(principal, body)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": v})
-}
-
-func (h *Handler) listGuestVisits(c echo.Context) error {
-	if _, err := h.staffActor(c); err != nil {
-		return h.writeError(c, err)
-	}
-	params := pageParams(c)
-	filter := GuestVisitListFilter{Params: params}
-	if on := c.QueryParam("on"); on != "" {
-		t, err := time.Parse("2006-01-02", on)
-		if err != nil {
-			return h.writeError(c, ErrValidation)
+	from := c.QueryParam("from")
+	if from != "" {
+		t, err := time.Parse(time.DateOnly, from)
+		if err == nil {
+			filter.From = t
 		}
-		filter.OnDate = &t
 	}
-	list, total, err := h.service.ListGuestVisits(filter)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return writeListJSON(c, list, pagination.NewMeta(params, total))
-}
-
-func (h *Handler) getGuestVisit(c echo.Context) error {
-	if _, err := h.staffActor(c); err != nil {
-		return h.writeError(c, err)
-	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	v, err := h.service.GetGuestVisit(id)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": v})
-}
-
-func (h *Handler) guestCheckIn(c echo.Context) error {
-	principal, err := h.staffActor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	v, err := h.service.GuestCheckIn(principal, id)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": v})
-}
-
-func (h *Handler) guestCheckOut(c echo.Context) error {
-	principal, err := h.staffActor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	v, err := h.service.GuestCheckOut(principal, id)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": v})
-}
-
-func (h *Handler) issueTenantEntryToken(c echo.Context) error {
-	principal, err := h.staffActor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	var body TenantEntryTokenCreateInput
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	t, err := h.service.IssueTenantEntryToken(principal, body)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": t})
-}
-
-func (h *Handler) validateEntryQR(c echo.Context) error {
-	principal, err := h.staffActor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	var body QRValidateBody
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	out, err := h.service.ValidateEntryByQR(principal, body.PublicRef)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": out})
-}
-
-func (h *Handler) validateEntryManual(c echo.Context) error {
-	principal, err := h.staffActor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	var body ManualAccessBody
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	out, err := h.service.ValidateEntryManual(principal, body.TenantID)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": out})
-}
-
-func (h *Handler) listAccessEvents(c echo.Context) error {
-	if _, err := h.staffActor(c); err != nil {
-		return h.writeError(c, err)
-	}
-	params := pageParams(c)
-	filter := AccessEventListFilter{Params: params}
-	if tid := c.QueryParam("tenant_id"); tid != "" {
-		id, err := uuid.Parse(tid)
-		if err != nil {
-			return h.writeError(c, ErrValidation)
+	to := c.QueryParam("to")
+	if to != "" {
+		t, err := time.Parse(time.DateOnly, to)
+		if err == nil {
+			filter.To = t
 		}
-		filter.TenantID = &id
 	}
-	if from := c.QueryParam("from"); from != "" {
-		t, err := time.Parse(time.RFC3339, from)
-		if err != nil {
-			return h.writeError(c, ErrValidation)
-		}
-		filter.From = &t
-	}
-	if to := c.QueryParam("to"); to != "" {
-		t, err := time.Parse(time.RFC3339, to)
-		if err != nil {
-			return h.writeError(c, ErrValidation)
-		}
-		filter.To = &t
-	}
-	if oc := c.QueryParam("outcome"); oc != "" {
-		filter.Outcome = dm.AccessEventOutcome(oc)
-	}
-	list, total, err := h.service.ListAccessEvents(filter)
+	entries, err := h.service.ListTenantAccess(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return writeListJSON(c, list, pagination.NewMeta(params, total))
+	return renderComponent(c, doormanviews.TenantAccessPage(entries))
 }
 
-func (h *Handler) checkoutLoan(c echo.Context) error {
-	principal, err := h.staffActor(c)
+func (h *Handler) createTenantAccess(c echo.Context) error {
+	id, err := uuid.Parse(c.QueryParam("id"))
+	direction := c.QueryParam("direction")
+	req := TenantAccessRequest{
+		TenantID:     id,
+		AccessStatus: models.AccessStatus(direction),
+	}
+	_, err = h.service.RegisterTenantAccess(req)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	var body CheckoutLoanBody
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	loan, err := h.service.CheckoutItem(principal, body)
+	entries, err := h.service.ListTenantAccess(
+		TenantAccessFilter{},
+	)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": loan})
-}
-
-func (h *Handler) returnLoan(c echo.Context) error {
-	principal, err := h.staffActor(c)
-	if err != nil {
-		return h.writeError(c, err)
+	if len(entries) > 5 {
+		entries = entries[:5]
 	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	loan, err := h.service.ReturnItem(principal, id)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": loan})
-}
-
-func (h *Handler) listLoans(c echo.Context) error {
-	if _, err := h.staffActor(c); err != nil {
-		return h.writeError(c, err)
-	}
-	params := pageParams(c)
-	filter := ItemLoanListFilter{
-		OpenOnly:    c.QueryParam("open_only") == "true",
-		OverdueOnly: c.QueryParam("overdue_only") == "true",
-		Params:      params,
-	}
-	if tid := c.QueryParam("tenant_id"); tid != "" {
-		id, err := uuid.Parse(tid)
-		if err != nil {
-			return h.writeError(c, ErrValidation)
-		}
-		filter.TenantID = &id
-	}
-	list, total, err := h.service.ListItemLoans(filter)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return writeListJSON(c, list, pagination.NewMeta(params, total))
+	c.Response().Header().Set("HX-Redirect", "/doorman")
+	return c.NoContent(http.StatusOK)
 }
 
 func renderComponent(c echo.Context, component templ.Component) error {
@@ -446,7 +171,45 @@ func renderComponent(c echo.Context, component templ.Component) error {
 	return component.Render(c.Request().Context(), c.Response().Writer)
 }
 
-func (h *Handler) dashboardPage(c echo.Context) error {
-	return renderComponent(c, doormanviews.DashboardPage())
+func (h *Handler) writeError(c echo.Context, err error) error {
+	category := "internal_error"
+	status := http.StatusInternalServerError
+	switch {
+	case errors.Is(err, ErrValidation):
+		category = "validation_error"
+		status = http.StatusBadRequest
+	case errors.Is(err, ErrOutsideVisitWindow):
+		category = "outside_visit_window"
+		status = http.StatusForbidden
+	case errors.Is(err, ErrPackageInvalidTransition):
+		category = "package_invalid_transition"
+		status = http.StatusConflict
+	case errors.Is(err, ErrGuestVisitStateTransition):
+		category = "guest_visit_state_invalid"
+		status = http.StatusConflict
+	case errors.Is(err, ErrLoanAlreadyReturned):
+		category = "loan_already_returned"
+		status = http.StatusConflict
+	case errors.Is(err, ErrLoanItemUnavailable):
+		category = "loan_item_unavailable"
+		status = http.StatusConflict
+	case errors.Is(err, ErrUnauthorized):
+		category = "authorization_denied"
+		status = http.StatusForbidden
+	case errors.Is(err, ErrNotFound):
+		category = "not_found"
+		status = http.StatusNotFound
+	case errors.Is(err, ErrTenantNotFound):
+		category = "tenant_not_found"
+		status = http.StatusNotFound
+	}
+	return c.JSON(
+		status,
+		map[string]any{
+			"error": map[string]string{
+				"category": category,
+				"message":  err.Error(),
+			},
+		},
+	)
 }
-

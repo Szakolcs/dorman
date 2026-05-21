@@ -1,6 +1,7 @@
 package seed
 
 import (
+	plat "dorm-man/internal/models/cross-cutting"
 	"fmt"
 	"log"
 	"math/rand/v2"
@@ -9,7 +10,6 @@ import (
 	adm "dorm-man/internal/models/administration"
 	chatm "dorm-man/internal/models/chat"
 	fm "dorm-man/internal/models/forum"
-	plat "dorm-man/internal/models/platform"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -22,16 +22,16 @@ type Seeder struct {
 	now   time.Time
 	start time.Time
 
-	buildings []adm.Building
-	flats     []adm.Flat
-	rooms     []adm.Room
-	roles     []adm.Role
-	users     []adm.User
-	staff     []adm.User
-	tenants   []adm.Tenant
+	buildings  []adm.Building
+	flats      []adm.Flat
+	rooms      []adm.Room
+	roles      []adm.Role
+	users      []adm.User
+	staff      []adm.User
+	tenants    []adm.Tenant
 	activities []adm.Activity
-	events    []adm.Event
-	inventory []adm.InventoryItem
+	events     []adm.Event
+	inventory  []adm.InventoryItem
 
 	flatRooms   []chatm.ChatRoom
 	directRooms []chatm.ChatRoom
@@ -136,6 +136,19 @@ func (s *Seeder) seedFoundation() error {
 		roleByName[r.Name] = r.ID
 	}
 
+	// Fixed dev admin (administration + doorman); password matches seedPassword.
+	adminUser := adm.User{
+		BaseModel:     plat.BaseModel{ID: uuid.New(), CreatedAt: s.start, UpdatedAt: s.now},
+		UniCode:       "ADMIN001",
+		Email:         DevAdminEmail,
+		PasswordHash:  seedPassword,
+		Name:          "Admin User",
+		PrincipalType: adm.PrincipalTypeStaff,
+		IsActive:      true,
+	}
+	s.staff = append(s.staff, adminUser)
+	s.users = append(s.users, adminUser)
+
 	// 25 staff
 	staffRoles := []adm.RoleName{
 		adm.RoleAdministrator, adm.RoleDirector, adm.RoleOfficeWorker, adm.RoleDoorman,
@@ -192,6 +205,13 @@ func (s *Seeder) seedFoundation() error {
 		})
 	}
 	for i, u := range s.staff {
+		if u.Email == DevAdminEmail {
+			addRole(u.ID, roleByName[adm.RoleAdministrator])
+			addRole(u.ID, roleByName[adm.RoleDoorman])
+			addRole(u.ID, roleByName[adm.RoleOfficeWorker])
+			addRole(u.ID, roleByName[adm.RoleDirector])
+			continue
+		}
 		addRole(u.ID, roleByName[staffRoles[i%len(staffRoles)]])
 		if i < 5 {
 			addRole(u.ID, roleByName[adm.RoleOfficeWorker])

@@ -10,15 +10,16 @@ templ PaginationNavNamed(basePath string, meta pagination.Meta, preserveQuery ma
 	if meta.TotalPages <= 1 {
 		return
 	}
-	<nav class="pagination" aria-label="Pagination">
-		<p class="pagination-summary">
+	<nav class="mt-4 flex flex-wrap items-center justify-between gap-2" aria-label="Pagination">
+		<p class="m-0 text-sm text-dm-muted">
 			Page { fmtPage(meta.Page) } of { fmtPage(meta.TotalPages) }
 			<span> ({ fmtTotal(meta.Total) } items)</span>
 		</p>
-		<div class="pagination-links">
+		<div class="flex gap-2">
 			if meta.HasPrev {
 				<a
 					href={ templ.SafeURL(pageLinkNamed(basePath, meta.Page-1, meta.PageSize, pageKey, pageSizeKey, preserveQuery)) }
+					class="rounded border border-dm-border px-2 py-1 no-underline hover:bg-dm-surface"
 					hx-boost="true"
 				>
 					Previous
@@ -27,6 +28,7 @@ templ PaginationNavNamed(basePath string, meta pagination.Meta, preserveQuery ma
 			if meta.HasNext {
 				<a
 					href={ templ.SafeURL(pageLinkNamed(basePath, meta.Page+1, meta.PageSize, pageKey, pageSizeKey, preserveQuery)) }
+					class="rounded border border-dm-border px-2 py-1 no-underline hover:bg-dm-surface"
 					hx-boost="true"
 				>
 					Next
@@ -35,4 +37,3 @@ templ PaginationNavNamed(basePath string, meta pagination.Meta, preserveQuery ma
 		</div>
 	</nav>
 }
-

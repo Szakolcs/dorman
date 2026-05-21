@@ -11,13 +11,13 @@ templ WorkspaceBody(actorTenantID string) {
 		"Chat workspace",
 		"Flat, direct, and group conversations with near real-time message updates.",
 	)
-	<div id="chat-workspace">
-		<div id="chat-sidebar">
+	<div id="chat-workspace" class="grid items-start gap-6 md:grid-cols-[minmax(12rem,22rem)_1fr]">
+		<div id="chat-sidebar" class="min-w-0">
 			@components.Section("Conversations", ConversationListLoader(actorTenantID))
 		</div>
-		<section id="chat-room-panel" aria-live="polite">
-			<h2>Room</h2>
-			<p>Select a conversation or open a direct message.</p>
+		<section id="chat-room-panel" class="min-h-48 rounded-lg border border-dm-border bg-dm-bg p-4" aria-live="polite">
+			<h2 class="mb-2 text-lg font-semibold text-dm-fg">Room</h2>
+			<p class="text-dm-muted">Select a conversation or open a direct message.</p>
 		</section>
 	</div>
 }
@@ -34,6 +34,6 @@ templ ConversationListLoader(actorTenantID string) {
 		hx-swap="outerHTML"
 		hx-include="#chat-actor-bar, #chat-actor-tenant-id"
 	>
-		<p>Loading conversations…</p>
+		<p class="text-dm-muted">Loading conversations…</p>
 	</div>
 }
