@@ -1,7 +1,7 @@
 package doorman
 
 import (
-	models "dorm-man/internal/models/doorman"
+	"dorm-man/internal/models"
 	doormanviews "dorm-man/web/templates/doorman/pages"
 	"errors"
 	"net/http"

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	models "dorm-man/internal/models/maintenance"
+	"dorm-man/internal/models"
 	maintenanceviews "dorm-man/web/templates/maintenance"
 
 	"github.com/a-h/templ"

@@ -1,7 +1,7 @@
 package doorman
 
 import (
-	adm "dorm-man/internal/models"
+	"dorm-man/internal/models"
 
 	"github.com/google/uuid"
 )
@@ -15,15 +15,15 @@ func NewService(store Store) *Service {
 		store: store,
 	}
 }
-func (s *Service) GetTenants() ([]adm.Tenant, error) {
+func (s *Service) GetTenants() ([]models.Tenant, error) {
 	return s.store.getTenants()
 }
 
-func (s *Service) ListTenantAccess(filter TenantAccessFilter) ([]adm.TenantEntry, error) {
+func (s *Service) ListTenantAccess(filter TenantAccessFilter) ([]models.TenantEntry, error) {
 	return s.store.ListTenantAccess(filter)
 }
 
-func (s *Service) ListGuests(filter GuestFilter) ([]adm.GuestEntry, error) {
+func (s *Service) ListGuests(filter GuestFilter) ([]models.GuestEntry, error) {
 	return s.store.ListGuests(filter)
 }
 
@@ -35,8 +35,8 @@ func (s *Service) RegisterGuest(req GuestRegisterRequest) (*GuestRegisterRespons
 		return nil, ErrValidation
 	}
 	guest := GuestData{
-		HostTenant: &adm.User{
-			BaseModel: adm.BaseModel{ID: req.HostTenantID},
+		HostTenant: &models.User{
+			BaseModel: models.BaseModel{ID: req.HostTenantID},
 		},
 		GuestName: req.GuestName,
 		IDNotes:   req.IDNotes,

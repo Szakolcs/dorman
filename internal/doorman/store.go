@@ -1,8 +1,7 @@
 package doorman
 
 import (
-	adm "dorm-man/internal/models"
-	models "dorm-man/internal/models/doorman"
+	"dorm-man/internal/models"
 	"time"
 
 	"github.com/google/uuid"
@@ -10,12 +9,12 @@ import (
 )
 
 type Store interface {
-	ListTenantAccess(filter TenantAccessFilter) ([]adm.TenantEntry, error)
-	ListGuests(filter GuestFilter) ([]adm.GuestEntry, error)
+	ListTenantAccess(filter TenantAccessFilter) ([]models.TenantEntry, error)
+	ListGuests(filter GuestFilter) ([]models.GuestEntry, error)
 	RegisterGuest(guest GuestData) error
 	DeleteGuest(guestID uuid.UUID) error
 	RegisterTenantAccess(tenantID uuid.UUID, direction models.AccessStatus) error
-	getTenants() ([]adm.Tenant, error)
+	getTenants() ([]models.Tenant, error)
 }
 
 type GormStore struct {
@@ -26,8 +25,8 @@ func NewStore(db *gorm.DB) *GormStore {
 	return &GormStore{db: db}
 }
 
-func (s *GormStore) getTenants() ([]adm.Tenant, error) {
-	var tenants []adm.Tenant
+func (s *GormStore) getTenants() ([]models.Tenant, error) {
+	var tenants []models.Tenant
 	err := s.db.Find(&tenants).Error
 	if err != nil {
 		return nil, err
@@ -35,8 +34,8 @@ func (s *GormStore) getTenants() ([]adm.Tenant, error) {
 	return tenants, nil
 }
 
-func (s *GormStore) ListTenantAccess(filter TenantAccessFilter) ([]adm.TenantEntry, error) {
-	query := s.db.Model(&adm.TenantEntry{})
+func (s *GormStore) ListTenantAccess(filter TenantAccessFilter) ([]models.TenantEntry, error) {
+	query := s.db.Model(&models.TenantEntry{})
 	if filter.TenantID != uuid.Nil {
 		query = query.Where(
 			"user_id = ?",
@@ -61,7 +60,7 @@ func (s *GormStore) ListTenantAccess(filter TenantAccessFilter) ([]adm.TenantEnt
 			filter.Status,
 		)
 	}
-	var entries []adm.TenantEntry
+	var entries []models.TenantEntry
 	err := query.
 		Preload("User").
 		Order("time_of_entry DESC").
@@ -73,8 +72,8 @@ func (s *GormStore) ListTenantAccess(filter TenantAccessFilter) ([]adm.TenantEnt
 	return entries, nil
 }
 
-func (s *GormStore) ListGuests(filter GuestFilter) ([]adm.GuestEntry, error) {
-	query := s.db.Model(&adm.GuestEntry{})
+func (s *GormStore) ListGuests(filter GuestFilter) ([]models.GuestEntry, error) {
+	query := s.db.Model(&models.GuestEntry{})
 	if filter.TenantID != uuid.Nil {
 		query = query.Where(
 			"host_tenant_id = ?",
@@ -99,7 +98,7 @@ func (s *GormStore) ListGuests(filter GuestFilter) ([]adm.GuestEntry, error) {
 			filter.Status,
 		)
 	}
-	var guests []adm.GuestEntry
+	var guests []models.GuestEntry
 	err := query.
 		Preload("HostTenant").
 		Order("created_at DESC").
@@ -112,7 +111,7 @@ func (s *GormStore) ListGuests(filter GuestFilter) ([]adm.GuestEntry, error) {
 }
 
 func (s *GormStore) RegisterGuest(guest GuestData) error {
-	entry := adm.GuestEntry{
+	entry := models.GuestEntry{
 		HostTenantID: guest.HostTenant.ID,
 		GuestName:    guest.GuestName,
 		IDNotes:      guest.IDNotes,
@@ -122,7 +121,7 @@ func (s *GormStore) RegisterGuest(guest GuestData) error {
 }
 
 func (s *GormStore) DeleteGuest(guestID uuid.UUID) error {
-	result := s.db.Delete(&adm.GuestEntry{}, "id = ?", guestID)
+	result := s.db.Delete(&models.GuestEntry{}, "id = ?", guestID)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -133,7 +132,7 @@ func (s *GormStore) DeleteGuest(guestID uuid.UUID) error {
 }
 
 func (s *GormStore) RegisterTenantAccess(tenantID uuid.UUID, accessStatus models.AccessStatus) error {
-	entry := adm.TenantEntry{
+	entry := models.TenantEntry{
 		UserID:      tenantID,
 		Status:      accessStatus,
 		TimeOfEntry: time.Now(),
