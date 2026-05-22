@@ -1,8 +1,7 @@
 package doorman
 
 import (
-	adm "dorm-man/internal/models"
-	models "dorm-man/internal/models/doorman"
+	"dorm-man/internal/models"
 	"errors"
 	"time"
 
@@ -22,10 +21,10 @@ var (
 )
 
 type GuestData struct {
-	GuestID    uuid.UUID `json:"guest_id"`
-	HostTenant *adm.User `json:"host_tenant"`
-	GuestName  string    `json:"guest_name"`
-	IDNotes    string    `json:"id_notes"`
+	GuestID    uuid.UUID    `json:"guest_id"`
+	HostTenant *models.User `json:"host_tenant"`
+	GuestName  string       `json:"guest_name"`
+	IDNotes    string       `json:"id_notes"`
 }
 
 type GuestRegisterRequest struct {
@@ -39,9 +38,9 @@ type GuestRegisterResponse struct {
 }
 
 type TenantData struct {
-	Tenant     *adm.Tenant `json:"tenant"`
-	CheckedIn  time.Time   `json:"checked_in"`
-	CheckedOut time.Time   `json:"checked_out"`
+	Tenant     *models.Tenant `json:"tenant"`
+	CheckedIn  time.Time      `json:"checked_in"`
+	CheckedOut time.Time      `json:"checked_out"`
 }
 
 type TenantAccessRequest struct {

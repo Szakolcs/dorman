@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	models "dorm-man/internal/models/maintenance"
+	"dorm-man/internal/models"
 
 	"github.com/google/uuid"
 )

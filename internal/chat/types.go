@@ -3,8 +3,6 @@ package chat
 import (
 	"errors"
 
-	"dorm-man/internal/pagination"
-
 	"github.com/google/uuid"
 )
 
@@ -31,9 +29,9 @@ type SendMessageInput struct {
 }
 
 type CreateGroupInput struct {
-	Title           string      `json:"title"`
-	AvatarStorageKey string     `json:"avatar_storage_key"`
-	MemberTenantIDs []uuid.UUID `json:"member_tenant_ids"`
+	Title            string      `json:"title"`
+	AvatarStorageKey string      `json:"avatar_storage_key"`
+	MemberTenantIDs  []uuid.UUID `json:"member_tenant_ids"`
 }
 
 type GroupMemberInput struct {
@@ -56,5 +54,4 @@ type MarkReadInput struct {
 
 type MessageListFilter struct {
 	BeforeMessageID *uuid.UUID
-	pagination.Params
 }

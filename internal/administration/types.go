@@ -5,8 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"dorm-man/internal/models/forum"
-
 	"github.com/google/uuid"
 )
 
@@ -71,11 +69,11 @@ const (
 )
 
 type PublicationFilter struct {
-	Search string                  `json:"search" query:"search"`
-	Kind   PublicationKind         `json:"kind"   query:"kind"`
-	State  *forum.PublicationState `json:"state"  query:"state"`
-	From   *time.Time              `json:"from"   query:"from"`
-	To     *time.Time              `json:"to"     query:"to"`
+	Search string                   `json:"search" query:"search"`
+	Kind   PublicationKind          `json:"kind"   query:"kind"`
+	State  *models.PublicationState `json:"state"  query:"state"`
+	From   *time.Time               `json:"from"   query:"from"`
+	To     *time.Time               `json:"to"     query:"to"`
 	Pagination
 }
 
@@ -165,26 +163,26 @@ type DeleteJobRequest struct {
 }
 
 type CreateNewsRequest struct {
-	Title       string                 `json:"title"       form:"title"`
-	Description string                 `json:"description" form:"description"`
-	State       forum.PublicationState `json:"state"       form:"state"`
+	Title       string                  `json:"title"       form:"title"`
+	Description string                  `json:"description" form:"description"`
+	State       models.PublicationState `json:"state"       form:"state"`
 }
 
 type CreateActivityRequest struct {
-	Title        string                 `json:"title"          form:"title"`
-	Description  string                 `json:"description"    form:"description"`
-	State        forum.PublicationState `json:"state"          form:"state"`
-	SharedAreaID *uuid.UUID             `json:"shared_area_id" form:"shared_area_id"`
-	Capacity     int                    `json:"capacity"       form:"capacity"`
+	Title        string                  `json:"title"          form:"title"`
+	Description  string                  `json:"description"    form:"description"`
+	State        models.PublicationState `json:"state"          form:"state"`
+	SharedAreaID *uuid.UUID              `json:"shared_area_id" form:"shared_area_id"`
+	Capacity     int                     `json:"capacity"       form:"capacity"`
 }
 
 type CreateEventRequest struct {
-	Title        string                 `json:"title"          form:"title"`
-	Description  string                 `json:"description"    form:"description"`
-	State        forum.PublicationState `json:"state"          form:"state"`
-	SharedAreaID *uuid.UUID             `json:"shared_area_id" form:"shared_area_id"`
-	StartsAt     time.Time              `json:"starts_at"      form:"starts_at"`
-	EndsAt       time.Time              `json:"ends_at"        form:"ends_at"`
+	Title        string                  `json:"title"          form:"title"`
+	Description  string                  `json:"description"    form:"description"`
+	State        models.PublicationState `json:"state"          form:"state"`
+	SharedAreaID *uuid.UUID              `json:"shared_area_id" form:"shared_area_id"`
+	StartsAt     time.Time               `json:"starts_at"      form:"starts_at"`
+	EndsAt       time.Time               `json:"ends_at"        form:"ends_at"`
 }
 
 type AssignRoomRequest struct {
