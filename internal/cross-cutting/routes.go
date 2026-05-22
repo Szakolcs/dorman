@@ -1,17 +1,18 @@
 package cross_cutting
 
 import (
+	"dorm-man/internal/config"
+
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
+func RegisterRoutes(e *echo.Echo, db *gorm.DB, cfg config.Config) {
 	store := NewStore(db)
-	service := NewService(store)
-	handler := NewHandler(service)
+	service := NewService(store, cfg.SessionSecret)
+	handler := NewHandler(service, cfg.CookieSecure)
 
-	api := e.Group("/home")
 	e.GET("/", handler.loginPage)
-	api.POST("/login", handler.login)
-
+	home := e.Group("/home")
+	home.POST("/login", handler.login)
 }

@@ -1,8 +1,8 @@
 package doormanviews
 
-import adm "dorm-man/internal/models/administration"
+import "dorm-man/internal/models"
 
-templ GuestRegisterForm(tenants []adm.Tenant) {
+templ GuestRegisterForm(tenants []models.Tenant) {
 	<tr>
 		<form
 			hx-post="/doorman/register/guest"

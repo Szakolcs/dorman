@@ -16,7 +16,7 @@ type Event struct {
 	EndsAt       time.Time  `gorm:"not null;index"`
 	ChatRoomID   *uuid.UUID `gorm:"type:uuid;uniqueIndex"`
 
-	ChatRoom    *Room             `gorm:"foreignKey:ChatRoomID;references:ID"`
+	ChatRoom    *ChatRoom         `gorm:"foreignKey:ChatRoomID;references:ID"`
 	Attendances []EventAttendance `gorm:"foreignKey:EventID"`
 	Comments    []EventComment    `gorm:"foreignKey:EventID"`
 }

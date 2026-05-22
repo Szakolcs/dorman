@@ -1,13 +1,17 @@
 package app
 
 import (
+	administrationModule "dorm-man/internal/administration"
 	cross_cutting "dorm-man/internal/cross-cutting"
+	doormanModule "dorm-man/internal/doorman"
 	maintenanceModule "dorm-man/internal/maintenance"
 	"dorm-man/internal/models"
 	"fmt"
 	"net/http"
 
 	"dorm-man/internal/config"
+
+	"dorm-man/internal/middleware"
 
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
@@ -42,13 +46,14 @@ func New() (*App, error) {
 	e.HideBanner = true
 	e.Static("/static", "web/static")
 
-	cross_cutting.RegisterRoutes(e, db)
-	maintenanceModule.RegisterRoutes(e, db)
-	//administration.RegisterRoutes(e, db)
-	//chat.RegisterRoutes(e, db)
-	//doorman.RegisterRoutes(e, db)
-	//forum.RegisterRoutes(e, db)
-	//platform.RegisterRoutes(e, db)
+	auth := middleware.Authenticate(cfg.SessionSecret)
+
+	cross_cutting.RegisterRoutes(e, db, cfg)
+	maintenanceModule.RegisterRoutes(e, db, auth)
+	administrationModule.RegisterRoutes(e, db, auth)
+	doormanModule.RegisterRoutes(e, db, auth)
+	// forumModule.RegisterRoutes(e, db)
+	// chatModule.RegisterRoutes(e, db)
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

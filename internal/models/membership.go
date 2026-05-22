@@ -17,6 +17,6 @@ type Membership struct {
 	JoinedAt   time.Time      `gorm:"not null;default:CURRENT_TIMESTAMP"`
 	LastReadAt *time.Time     `gorm:"index"`
 
-	Room   *Room   `gorm:"foreignKey:RoomID;references:ID"`
-	Tenant *Tenant `gorm:"foreignKey:TenantID;references:ID"`
+	ChatRoom *ChatRoom `gorm:"foreignKey:RoomID;references:ID"`
+	Tenant   *Tenant   `gorm:"foreignKey:TenantID;references:ID"`
 }

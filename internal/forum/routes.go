@@ -7,13 +7,13 @@ import (
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
+func RegisterRoutes(e *echo.Echo, db *gorm.DB, auth echo.MiddlewareFunc) {
 	store := NewStore(db)
 	svc := NewService(store)
 	h := NewHandler(svc)
 
 	forum := e.Group("/api/forum")
-	forum.Use(middleware.RequireRole("admin", "dev"))
+	forum.Use(auth, middleware.RequireRole("admin", "dev"))
 	forum.GET("", h.feedPage)
 	forum.GET("/feed", h.feedListFragment)
 	forum.POST("/posts", h.createCommunityPostView)

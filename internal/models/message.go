@@ -13,6 +13,6 @@ type Message struct {
 	SenderTenantID uuid.UUID `gorm:"type:uuid;not null;index"`
 	Body           string    `gorm:"type:text;not null"`
 
-	Room   *Room   `gorm:"foreignKey:RoomID;references:ID"`
-	Sender *Tenant `gorm:"foreignKey:SenderTenantID;references:ID"`
+	ChatRoom *ChatRoom `gorm:"foreignKey:RoomID;references:ID"`
+	Sender   *Tenant   `gorm:"foreignKey:SenderTenantID;references:ID"`
 }

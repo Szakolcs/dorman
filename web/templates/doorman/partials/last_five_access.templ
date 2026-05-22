@@ -1,7 +1,9 @@
 package doormanviews
 
-import models "dorm-man/internal/models/doorman"
-import "dorm-man/web/templates/common/partials"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
 
 templ LastFiveTenantAccess(entries []models.TenantEntry) {
 	<div id="last-five">
@@ -18,8 +20,7 @@ templ LastFiveTenantAccess(entries []models.TenantEntry) {
 					for _, entry := range entries {
 						<tr class="border-b border-dm-border/40">
 							<td class="p-3">
-								{ entry.User.FirstName }
-								{ entry.User.LastName }
+								{ entry.User.Name }
 							</td>
 							<td class="p-3">
 								{ string(entry.Status) }

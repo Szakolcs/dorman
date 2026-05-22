@@ -1,8 +1,8 @@
 package doormanviews
 
-import adm "dorm-man/internal/models/administration"
+import "dorm-man/internal/models"
 
-templ AccessForm(tenants []adm.Tenant) {
+templ AccessForm(tenants []models.Tenant) {
 	<form
 		hx-get="/doorman/access/tenant"
 		hx-target="#last-five"

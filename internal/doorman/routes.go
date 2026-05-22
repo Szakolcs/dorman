@@ -7,13 +7,13 @@ import (
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
+func RegisterRoutes(e *echo.Echo, db *gorm.DB, auth echo.MiddlewareFunc) {
 	store := NewStore(db)
 	svc := NewService(store)
 	h := NewHandler(svc)
 
 	doorman := e.Group("/doorman")
-	doorman.Use(middleware.RequireRole("doorman", "admin", "dev"))
+	doorman.Use(auth, middleware.RequireRole("doorman", "admin", "dev"))
 	doorman.GET("/", h.dashboardPage)
 	doorman.GET("/list/tenants", h.listTenantAccess)
 	doorman.GET("/access/tenant/", h.createTenantAccess)

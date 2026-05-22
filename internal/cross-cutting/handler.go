@@ -11,11 +11,12 @@ import (
 )
 
 type Handler struct {
-	service *Service
+	service      *Service
+	cookieSecure bool
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, cookieSecure bool) *Handler {
+	return &Handler{service: service, cookieSecure: cookieSecure}
 }
 
 func (h *Handler) login(c echo.Context) error {
@@ -34,16 +35,16 @@ func (h *Handler) login(c echo.Context) error {
 	cookie.Value = res.Token
 	cookie.Expires = time.Now().Add(24 * time.Hour)
 	cookie.HttpOnly = true
-	cookie.Secure = true
+	cookie.Secure = h.cookieSecure
 	cookie.Path = "/"
 	cookie.SameSite = http.SameSiteLaxMode
 
 	c.SetCookie(cookie)
 	switch res.RedirectTo {
 	case "dev":
-		c.Response().Header().Set("HX-Redirect", "/dev")
-	case "administrator":
-		c.Response().Header().Set("HX-Redirect", "/admin/dashboard")
+		c.Response().Header().Set("HX-Redirect", "/administration")
+	case "administrator", "admin":
+		c.Response().Header().Set("HX-Redirect", "/administration")
 
 	case "doorman":
 		c.Response().Header().Set("HX-Redirect", "/doorman")

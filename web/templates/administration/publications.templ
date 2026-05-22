@@ -1,26 +1,26 @@
 package adminviews
 
-import "dorm-man/internal/models/forum"
+import "dorm-man/internal/models"
 
-templ PublicationsPage(publications []forum.Publication) {
+templ PublicationsPage(publications []models.Publication) {
 	@Layout("Publications") {
 		@Navigation()
 	}
 }
 
-templ NewsDetailPage(news forum.Publication) {
+templ NewsDetailPage(news models.Publication) {
 	@Layout("News") {
 		@Navigation()
 	}
 }
 
-templ ActivityDetailPage(activity forum.Activity) {
+templ ActivityDetailPage(activity models.Activity) {
 	@Layout("Activity") {
 		@Navigation()
 	}
 }
 
-templ EventDetailPage(event forum.Event) {
+templ EventDetailPage(event models.Event) {
 	@Layout("Event") {
 		@Navigation()
 	}

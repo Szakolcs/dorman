@@ -1,6 +1,6 @@
 package maintenanceviews
 
-import models "dorm-man/internal/models/maintenance"
+import "dorm-man/internal/models"
 
 templ TicketStatusHistory(changes []models.StatusChange) {
 	if len(changes) == 0 {

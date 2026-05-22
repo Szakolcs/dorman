@@ -1,10 +1,13 @@
 package doormanviews
 
-import models "dorm-man/internal/models/doorman"
+import (
+	"dorm-man/internal/models"
+	dv "dorm-man/web/templates/doorman/partials"
+)
 
 templ TenantAccessPage(entries []models.TenantEntry) {
-	@Layout("Tenant Access") {
-		@Navigation()
+	@dv.Layout("Tenant Access") {
+		@dv.Navigation()
 		<div class="space-y-6">
 			<div>
 				<h1 class="mb-2 text-3xl font-bold">
@@ -14,12 +17,12 @@ templ TenantAccessPage(entries []models.TenantEntry) {
 					View and filter tenant access history.
 				</p>
 			</div>
-			@TenantAccessFilters()
+			@dv.TenantAccessFilters()
 			<div
 				id="tenant-access-table"
 				class="dm-card"
 			>
-				@TenantAccessTable(entries)
+				@dv.TenantAccessTable(entries)
 			</div>
 		</div>
 	}

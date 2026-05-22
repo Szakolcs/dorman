@@ -4,7 +4,9 @@ import "dorm-man/web/templates/common/components"
 
 // BaseLayout is a legacy shell; prefer components.Document or AppDocument.
 templ BaseLayout(title string, content string) {
-	@components.Document(title, BaseLayoutBody(content))
+	@components.Document(title) {
+		@BaseLayoutBody(content)
+	}
 }
 
 templ BaseLayoutBody(content string) {

@@ -1,15 +1,20 @@
 package models
 
+import "time"
+
 type User struct {
 	BaseModel
-	Name         string `gorm:"type:varchar(255);not null"`
-	Email        string `gorm:"type:varchar(255);uniqueIndex;not null"`
-	Nickname     string `gorm:"type:varchar(255);uniqueIndex;not null"`
-	PasswordHash string `gorm:"not null"`
-	AvatarURL    string `gorm:"type:text"`
-	PhotoUrl     string `gorm:"type:text"`
-	RoleID       string `gorm:"type:uuid"`
-	Role         Role   `gorm:"foreignKey:RoleID;references:ID"`
+	UniCode      string     `gorm:"type:text;uniqueIndex;not null"`
+	Name         string     `gorm:"type:varchar(255);not null"`
+	Email        string     `gorm:"type:varchar(255);uniqueIndex;not null"`
+	Nickname     string     `gorm:"type:varchar(255);uniqueIndex;not null"`
+	PasswordHash string     `gorm:"not null"`
+	IsActive     bool       `gorm:"not null;default:true"`
+	LastLoginAt  *time.Time `gorm:"index"`
+	AvatarURL    string     `gorm:"type:text"`
+	PhotoUrl     string     `gorm:"type:text"`
+	RoleID       string     `gorm:"type:uuid"`
+	Role         Role       `gorm:"foreignKey:RoleID;references:ID"`
 }
 
 type Role struct {

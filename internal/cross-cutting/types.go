@@ -14,7 +14,7 @@ var (
 )
 
 type LoginRequest struct {
-	Nickname string `json:"nickname" form:"string"`
+	Nickname string `json:"nickname" form:"nickname"`
 	Password string `json:"password" form:"password"`
 }
 

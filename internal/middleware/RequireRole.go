@@ -10,9 +10,15 @@ import (
 func RequireRole(roles ...string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			user := c.Get("user").(*jwt.Token)
+			raw, ok := c.Get("user").(*jwt.Token)
+			if !ok || raw == nil {
+				return echo.NewHTTPError(http.StatusUnauthorized, "authentication required")
+			}
 
-			claims := user.Claims.(jwt.MapClaims)
+			claims, ok := raw.Claims.(jwt.MapClaims)
+			if !ok {
+				return echo.NewHTTPError(http.StatusUnauthorized, "invalid token claims")
+			}
 
 			role, ok := claims["role"].(string)
 			if !ok {

@@ -1,6 +1,6 @@
 package adminviews
 
-import models "dorm-man/internal/models/administration"
+import "dorm-man/internal/models"
 
 templ DashboardPage(activeTenants int, openJobs int, buildings int, recentAudits []models.Audit) {
 	@Layout("Administration") {

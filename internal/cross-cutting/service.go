@@ -8,14 +8,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var secretKey = []byte("secret-key")
-
 type Service struct {
-	store Store
+	store         Store
+	sessionSecret []byte
 }
 
-func NewService(store Store) *Service {
-	return &Service{store: store}
+func NewService(store Store, sessionSecret string) *Service {
+	return &Service{
+		store:         store,
+		sessionSecret: []byte(sessionSecret),
+	}
 }
 
 func (s *Service) Login(userCred LoginRequest) (LoginResponse, error) {
@@ -32,7 +34,10 @@ func (s *Service) Login(userCred LoginRequest) (LoginResponse, error) {
 	if err := s.store.UpdateLastLogin(u.ID, time.Now()); err != nil {
 		return LoginResponse{}, ErrLoginUpdateFailed
 	}
-	JWTToken, err := createToken(u)
+	JWTToken, err := s.createToken(u)
+	if err != nil {
+		return LoginResponse{}, err
+	}
 	return LoginResponse{
 		UserID:      u.ID.String(),
 		Token:       JWTToken,
@@ -43,7 +48,7 @@ func (s *Service) Login(userCred LoginRequest) (LoginResponse, error) {
 	}, nil
 }
 
-func createToken(user models.User) (string, error) {
+func (s *Service) createToken(user models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"id":       user.ID.String(),
@@ -52,7 +57,7 @@ func createToken(user models.User) (string, error) {
 			"role":     user.Role.Name,
 		})
 
-	tokenString, err := token.SignedString(secretKey)
+	tokenString, err := token.SignedString(s.sessionSecret)
 	if err != nil {
 		return "", err
 	}

@@ -17,8 +17,6 @@ templ LoginContent(errorMessage string) {
 		@components.ErrorAlert(errorMessage)
 	}
 	<form
-		method="post"
-		action="/home/login"
 		class="flex max-w-xl flex-col gap-2"
 		hx-post="/home/login"
 		hx-swap="none"

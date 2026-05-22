@@ -1,13 +1,13 @@
 package doormanviews
 
 import (
-	adm "dorm-man/internal/models/administration"
-	models "dorm-man/internal/models/doorman"
+	"dorm-man/internal/models"
+	dv "dorm-man/web/templates/doorman/partials"
 )
 
-templ GuestsPage(guests []models.GuestEntry,tenants []adm.Tenant) {
-	@Layout("Guests") {
-		@Navigation()
+templ GuestsPage(guests []models.GuestEntry,tenants []models.Tenant) {
+	@dv.Layout("Guests") {
+		@dv.Navigation()
 		<div class="space-y-6">
 			<div>
 				<h1 class="mb-2 text-3xl font-bold">
@@ -17,7 +17,7 @@ templ GuestsPage(guests []models.GuestEntry,tenants []adm.Tenant) {
 					Register and manage guest access.
 				</p>
 			</div>
-			@GuestFilters()
+			@dv.GuestFilters()
 			<div
 				id="guest-table"
 				class="dm-card overflow-x-auto"
@@ -33,7 +33,7 @@ templ GuestsPage(guests []models.GuestEntry,tenants []adm.Tenant) {
 						</tr>
 					</thead>
 					<tbody>
-						@GuestRegisterForm(tenants)
+						@dv.GuestRegisterForm(tenants)
 						for _, guest := range guests {
 							<tr>
 								<td class="p-3">
@@ -43,11 +43,10 @@ templ GuestsPage(guests []models.GuestEntry,tenants []adm.Tenant) {
 									{ guest.IDNotes }
 								</td>
 								<td class="p-3">
-									{ string(guest.Status) }
+									registered
 								</td>
 								<td class="p-3">
-									{ guest.HostTenant.User.FirstName }
-									{ guest.HostTenant.User.LastName }
+									{ guest.HostTenant.User.Name }
 								</td>
 								<td class="p-3">
 									<button

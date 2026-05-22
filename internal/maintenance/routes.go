@@ -7,13 +7,13 @@ import (
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
+func RegisterRoutes(e *echo.Echo, db *gorm.DB, auth echo.MiddlewareFunc) {
 	store := NewStore(db)
 	svc := NewService(store)
 	h := NewHandler(svc)
 
 	staff := e.Group("/maintenance")
-	staff.Use(middleware.RequireRole("maintainer", "admin", "dev"))
+	staff.Use(auth, middleware.RequireRole("maintainer", "admin", "dev"))
 	staff.GET("", h.dashboardPage)
 	staff.GET("/tickets", h.ticketsPage)
 	staff.GET("/tickets/:id", h.ticketDetailPage)
@@ -21,7 +21,7 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 	staff.DELETE("/tickets/:id", h.deleteTicket)
 
 	tenant := e.Group("/tenant")
-	tenant.Use(middleware.RequireRole("tenant", "dev"))
+	tenant.Use(auth, middleware.RequireRole("tenant", "dev"))
 	tenant.GET("", h.tenantDashboardPage)
 	tenant.GET("/tickets", h.tenantTicketsPage)
 	tenant.POST("/tickets", h.createTicket)
