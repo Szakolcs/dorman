@@ -3,16 +3,11 @@ package app
 import (
 	cross_cutting "dorm-man/internal/cross-cutting"
 	maintenanceModule "dorm-man/internal/maintenance"
-	administrationModels "dorm-man/internal/models"
+	"dorm-man/internal/models"
 	"fmt"
 	"net/http"
 
 	"dorm-man/internal/config"
-	chatModels "dorm-man/internal/models/chat"
-	crosscuttingModels "dorm-man/internal/models/crosscutting"
-	doormanModels "dorm-man/internal/models/doorman"
-	forumModels "dorm-man/internal/models/forum"
-	maintenanceModels "dorm-man/internal/models/maintenance"
 
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
@@ -33,12 +28,12 @@ func New() (*App, error) {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	toMigrate := append([]any(nil), crosscuttingModels.All()...)
-	toMigrate = append(toMigrate, administrationModels.All()...)
-	toMigrate = append(toMigrate, forumModels.All()...)
-	toMigrate = append(toMigrate, chatModels.All()...)
-	toMigrate = append(toMigrate, doormanModels.All()...)
-	toMigrate = append(toMigrate, maintenanceModels.All()...)
+	toMigrate := append([]any(nil), models.All()...)
+	toMigrate = append(toMigrate, models.All()...)
+	toMigrate = append(toMigrate, models.All()...)
+	toMigrate = append(toMigrate, models.All()...)
+	toMigrate = append(toMigrate, models.All()...)
+	toMigrate = append(toMigrate, models.All()...)
 	if err := db.AutoMigrate(toMigrate...); err != nil {
 		return nil, fmt.Errorf("auto migrate models: %w", err)
 	}

@@ -2,8 +2,6 @@ package chat
 
 import (
 	"errors"
-
-	"github.com/google/uuid"
 )
 
 var (
@@ -16,42 +14,3 @@ var (
 	ErrTenantNotFound   = errors.New("tenant_not_found")
 	ErrRoomKindMismatch = errors.New("room_kind_mismatch")
 )
-
-// TenantPrincipal is the chat actor (tenant session or dev stub via headers).
-type TenantPrincipal struct {
-	TenantID uuid.UUID
-	UserID   *uuid.UUID
-}
-
-type SendMessageInput struct {
-	Body            string     `json:"body"`
-	ClientMessageID *uuid.UUID `json:"client_message_id"`
-}
-
-type CreateGroupInput struct {
-	Title            string      `json:"title"`
-	AvatarStorageKey string      `json:"avatar_storage_key"`
-	MemberTenantIDs  []uuid.UUID `json:"member_tenant_ids"`
-}
-
-type GroupMemberInput struct {
-	TenantID uuid.UUID `json:"tenant_id"`
-}
-
-type OpenDirectInput struct {
-	OtherTenantID uuid.UUID `json:"other_tenant_id"`
-}
-
-type UpdateProfileInput struct {
-	Nickname         *string `json:"nickname"`
-	Bio              *string `json:"bio"`
-	AvatarStorageKey *string `json:"avatar_storage_key"`
-}
-
-type MarkReadInput struct {
-	MessageID *uuid.UUID `json:"message_id"`
-}
-
-type MessageListFilter struct {
-	BeforeMessageID *uuid.UUID
-}
