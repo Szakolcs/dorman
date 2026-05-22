@@ -1,11 +1,9 @@
 package administration
 
 import (
-	models2 "dorm-man/internal/models"
+	"dorm-man/internal/models"
 	"errors"
 	"strings"
-
-	"dorm-man/internal/models/forum"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -24,76 +22,76 @@ func AuditedTransaction(db *gorm.DB, userID uuid.UUID, fn func(tx *gorm.DB) erro
 }
 
 type Store interface {
-	getTenantsAll() ([]models2.Tenant, error)
-	getTenants(filter TenantFilter) ([]models2.Tenant, error)
-	getTenantByID(id uuid.UUID) (models2.Tenant, error)
+	getTenantsAll() ([]models.Tenant, error)
+	getTenants(filter TenantFilter) ([]models.Tenant, error)
+	getTenantByID(id uuid.UUID) (models.Tenant, error)
 
-	getInventory(filter InventoryFilter) ([]models2.InventoryItem, error)
-	getInventoryByID(id uuid.UUID) (models2.InventoryItem, error)
-	getInventoryByFlatID(flatID uuid.UUID) ([]models2.InventoryItem, error)
-	getInventoryByBuildingID(buildingID uuid.UUID) ([]models2.InventoryItem, error)
-	getInventoryBySharedAreaID(sharedAreaID uuid.UUID) ([]models2.InventoryItem, error)
-	createInventoryItem(actorID uuid.UUID, item models2.InventoryItem) error
-	updateInventoryItem(actorID uuid.UUID, item models2.InventoryItem) error
+	getInventory(filter InventoryFilter) ([]models.InventoryItem, error)
+	getInventoryByID(id uuid.UUID) (models.InventoryItem, error)
+	getInventoryByFlatID(flatID uuid.UUID) ([]models.InventoryItem, error)
+	getInventoryByBuildingID(buildingID uuid.UUID) ([]models.InventoryItem, error)
+	getInventoryBySharedAreaID(sharedAreaID uuid.UUID) ([]models.InventoryItem, error)
+	createInventoryItem(actorID uuid.UUID, item models.InventoryItem) error
+	updateInventoryItem(actorID uuid.UUID, item models.InventoryItem) error
 	deleteInventoryItem(actorID, id uuid.UUID) error
 
-	getJobs(filter JobsFilter) ([]models2.OperationalJob, error)
-	getJobByID(id uuid.UUID) (models2.OperationalJob, error)
-	createJob(actorID uuid.UUID, job models2.OperationalJob) error
-	updateJob(actorID uuid.UUID, job models2.OperationalJob) error
+	getJobs(filter JobsFilter) ([]models.OperationalJob, error)
+	getJobByID(id uuid.UUID) (models.OperationalJob, error)
+	createJob(actorID uuid.UUID, job models.OperationalJob) error
+	updateJob(actorID uuid.UUID, job models.OperationalJob) error
 	deleteJob(actorID, id uuid.UUID) error
 
-	getPublications(filter PublicationFilter) ([]models2.Publication, error)
-	getNewsByID(id uuid.UUID) (models2.Publication, error)
-	createPublication(actorID uuid.UUID, pub models2.Publication) error
-	updatePublication(actorID uuid.UUID, pub models2.Publication) error
+	getPublications(filter PublicationFilter) ([]models.Publication, error)
+	getNewsByID(id uuid.UUID) (models.Publication, error)
+	createPublication(actorID uuid.UUID, pub models.Publication) error
+	updatePublication(actorID uuid.UUID, pub models.Publication) error
 	deletePublication(actorID, id uuid.UUID) error
 	archiveNews(actorID, id uuid.UUID) error
 
-	getActivityByID(id uuid.UUID) (models2.Activity, error)
-	createActivity(actorID uuid.UUID, a models2.Activity) error
-	updateActivity(actorID uuid.UUID, a models2.Activity) error
+	getActivityByID(id uuid.UUID) (models.Activity, error)
+	createActivity(actorID uuid.UUID, a models.Activity) error
+	updateActivity(actorID uuid.UUID, a models.Activity) error
 	archiveActivity(actorID, id uuid.UUID) error
 
-	getEventByID(id uuid.UUID) (models2.Event, error)
-	createEvent(actorID uuid.UUID, e models2.Event) error
-	updateEvent(actorID uuid.UUID, e models2.Event) error
+	getEventByID(id uuid.UUID) (models.Event, error)
+	createEvent(actorID uuid.UUID, e models.Event) error
+	updateEvent(actorID uuid.UUID, e models.Event) error
 	archiveEvent(actorID, id uuid.UUID) error
 
-	getBuilding(filter BuildingFilter) ([]models2.Building, error)
-	getBuildingByID(id uuid.UUID) (models2.Building, error)
-	createBuilding(actorID uuid.UUID, building models2.Building) error
-	updateBuilding(actorID uuid.UUID, building models2.Building) error
+	getBuilding(filter BuildingFilter) ([]models.Building, error)
+	getBuildingByID(id uuid.UUID) (models.Building, error)
+	createBuilding(actorID uuid.UUID, building models.Building) error
+	updateBuilding(actorID uuid.UUID, building models.Building) error
 	deleteBuilding(actorID, id uuid.UUID) error
 
-	getFlat(filter FlatFilter) ([]models2.Flat, error)
-	getFlatByID(id uuid.UUID) (models2.Flat, error)
-	createFlat(actorID uuid.UUID, flat models2.Flat) error
-	updateFlat(actorID uuid.UUID, flat models2.Flat) error
+	getFlat(filter FlatFilter) ([]models.Flat, error)
+	getFlatByID(id uuid.UUID) (models.Flat, error)
+	createFlat(actorID uuid.UUID, flat models.Flat) error
+	updateFlat(actorID uuid.UUID, flat models.Flat) error
 	deleteFlat(actorID, id uuid.UUID) error
 
-	getSharedArea(filter SharedAreaFilter) ([]models2.SharedArea, error)
-	getSharedAreaByID(id uuid.UUID) (models2.SharedArea, error)
-	createSharedArea(actorID uuid.UUID, sharedArea models2.SharedArea) error
-	updateSharedArea(actorID uuid.UUID, sharedArea models2.SharedArea) error
+	getSharedArea(filter SharedAreaFilter) ([]models.SharedArea, error)
+	getSharedAreaByID(id uuid.UUID) (models.SharedArea, error)
+	createSharedArea(actorID uuid.UUID, sharedArea models.SharedArea) error
+	updateSharedArea(actorID uuid.UUID, sharedArea models.SharedArea) error
 	deleteSharedArea(actorID, id uuid.UUID) error
 
-	getRoom(filter RoomFilter) ([]models2.Room, error)
-	getRoomByID(id uuid.UUID) (models2.Room, error)
-	createRoom(actorID uuid.UUID, room models2.Room) error
-	updateRoom(actorID uuid.UUID, room models2.Room) error
+	getRoom(filter RoomFilter) ([]models.Room, error)
+	getRoomByID(id uuid.UUID) (models.Room, error)
+	createRoom(actorID uuid.UUID, room models.Room) error
+	updateRoom(actorID uuid.UUID, room models.Room) error
 	deleteRoom(actorID, id uuid.UUID) error
 
-	getRoomAssigment(filter RoomAssignmentFilter) ([]models2.RoomAssignment, error)
-	getRoomAssignmentByID(id uuid.UUID) (models2.RoomAssignment, error)
-	createRoomAssignment(actorID uuid.UUID, assignment models2.RoomAssignment) error
-	updateRoomAssignment(actorID uuid.UUID, assignment models2.RoomAssignment) error
+	getRoomAssigment(filter RoomAssignmentFilter) ([]models.RoomAssignment, error)
+	getRoomAssignmentByID(id uuid.UUID) (models.RoomAssignment, error)
+	createRoomAssignment(actorID uuid.UUID, assignment models.RoomAssignment) error
+	updateRoomAssignment(actorID uuid.UUID, assignment models.RoomAssignment) error
 	deleteRoomAssignment(actorID, id uuid.UUID) error
 
-	registerUser(actorID uuid.UUID, user models2.User) error
-	updateUser(actorID uuid.UUID, user models2.User) error
+	registerUser(actorID uuid.UUID, user models.User) error
+	updateUser(actorID uuid.UUID, user models.User) error
 
-	getAuditLogs(filter AuditLogFilter) ([]models2.Audit, error)
+	getAuditLogs(filter AuditLogFilter) ([]models.Audit, error)
 }
 
 type GormStore struct {
@@ -145,8 +143,8 @@ func applyOrder(q *gorm.DB, p Pagination, defaultCol string) *gorm.DB {
 // tenants
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getTenantsAll() ([]models2.Tenant, error) {
-	var tenants []models2.Tenant
+func (s *GormStore) getTenantsAll() ([]models.Tenant, error) {
+	var tenants []models.Tenant
 	err := s.db.
 		Preload("User").
 		Preload("RoomAssignments").
@@ -155,8 +153,8 @@ func (s *GormStore) getTenantsAll() ([]models2.Tenant, error) {
 	return tenants, err
 }
 
-func (s *GormStore) getTenants(filter TenantFilter) ([]models2.Tenant, error) {
-	q := s.db.Model(&models2.Tenant{}).
+func (s *GormStore) getTenants(filter TenantFilter) ([]models.Tenant, error) {
+	q := s.db.Model(&models.Tenant{}).
 		Preload("User").
 		Preload("RoomAssignments")
 
@@ -202,7 +200,7 @@ func (s *GormStore) getTenants(filter TenantFilter) ([]models2.Tenant, error) {
 	q = applyOrder(q, filter.Pagination, "tenants.registered_at")
 	q = applyPagination(q, filter.Pagination)
 
-	var tenants []models2.Tenant
+	var tenants []models.Tenant
 	err := q.Find(&tenants).Error
 	return tenants, err
 }
@@ -211,8 +209,8 @@ func (s *GormStore) getTenants(filter TenantFilter) ([]models2.Tenant, error) {
 // inventory
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getInventory(filter InventoryFilter) ([]models2.InventoryItem, error) {
-	q := s.db.Model(&models2.InventoryItem{}).
+func (s *GormStore) getInventory(filter InventoryFilter) ([]models.InventoryItem, error) {
+	q := s.db.Model(&models.InventoryItem{}).
 		Preload("Room").
 		Preload("Flat").
 		Preload("Building").
@@ -250,13 +248,13 @@ func (s *GormStore) getInventory(filter InventoryFilter) ([]models2.InventoryIte
 	q = applyOrder(q, filter.Pagination, "purchase_date")
 	q = applyPagination(q, filter.Pagination)
 
-	var items []models2.InventoryItem
+	var items []models.InventoryItem
 	err := q.Find(&items).Error
 	return items, err
 }
 
-func (s *GormStore) getInventoryByID(id uuid.UUID) (models2.InventoryItem, error) {
-	var item models2.InventoryItem
+func (s *GormStore) getInventoryByID(id uuid.UUID) (models.InventoryItem, error) {
+	var item models.InventoryItem
 	err := s.db.
 		Preload("Room").
 		Preload("Flat").
@@ -264,36 +262,36 @@ func (s *GormStore) getInventoryByID(id uuid.UUID) (models2.InventoryItem, error
 		Preload("SharedArea").
 		First(&item, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models2.InventoryItem{}, ErrNotFound
+		return models.InventoryItem{}, ErrNotFound
 	}
 	return item, err
 }
 
-func (s *GormStore) getInventoryByFlatID(flatID uuid.UUID) ([]models2.InventoryItem, error) {
-	var items []models2.InventoryItem
+func (s *GormStore) getInventoryByFlatID(flatID uuid.UUID) ([]models.InventoryItem, error) {
+	var items []models.InventoryItem
 	err := s.db.Where("flat_id = ?", flatID).Find(&items).Error
 	return items, err
 }
 
-func (s *GormStore) getInventoryByBuildingID(buildingID uuid.UUID) ([]models2.InventoryItem, error) {
-	var items []models2.InventoryItem
+func (s *GormStore) getInventoryByBuildingID(buildingID uuid.UUID) ([]models.InventoryItem, error) {
+	var items []models.InventoryItem
 	err := s.db.Where("building_id = ?", buildingID).Find(&items).Error
 	return items, err
 }
 
-func (s *GormStore) getInventoryBySharedAreaID(sharedAreaID uuid.UUID) ([]models2.InventoryItem, error) {
-	var items []models2.InventoryItem
+func (s *GormStore) getInventoryBySharedAreaID(sharedAreaID uuid.UUID) ([]models.InventoryItem, error) {
+	var items []models.InventoryItem
 	err := s.db.Where("shared_area_id = ?", sharedAreaID).Find(&items).Error
 	return items, err
 }
 
-func (s *GormStore) createInventoryItem(actorID uuid.UUID, item models2.InventoryItem) error {
+func (s *GormStore) createInventoryItem(actorID uuid.UUID, item models.InventoryItem) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Create(&item).Error
 	})
 }
 
-func (s *GormStore) updateInventoryItem(actorID uuid.UUID, item models2.InventoryItem) error {
+func (s *GormStore) updateInventoryItem(actorID uuid.UUID, item models.InventoryItem) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&item).Error
 	})
@@ -301,7 +299,7 @@ func (s *GormStore) updateInventoryItem(actorID uuid.UUID, item models2.Inventor
 
 func (s *GormStore) deleteInventoryItem(actorID, id uuid.UUID) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		return tx.Delete(&models2.InventoryItem{}, "id = ?", id).Error
+		return tx.Delete(&models.InventoryItem{}, "id = ?", id).Error
 	})
 }
 
@@ -309,8 +307,8 @@ func (s *GormStore) deleteInventoryItem(actorID, id uuid.UUID) error {
 // operational jobs
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getJobs(filter JobsFilter) ([]models2.OperationalJob, error) {
-	q := s.db.Model(&models2.OperationalJob{})
+func (s *GormStore) getJobs(filter JobsFilter) ([]models.OperationalJob, error) {
+	q := s.db.Model(&models.OperationalJob{})
 
 	if filter.Search != "" {
 		like := likePattern(filter.Search)
@@ -332,18 +330,18 @@ func (s *GormStore) getJobs(filter JobsFilter) ([]models2.OperationalJob, error)
 	q = applyOrder(q, filter.Pagination, "starts_at")
 	q = applyPagination(q, filter.Pagination)
 
-	var jobs []models2.OperationalJob
+	var jobs []models.OperationalJob
 	err := q.Find(&jobs).Error
 	return jobs, err
 }
 
-func (s *GormStore) createJob(actorID uuid.UUID, job models2.OperationalJob) error {
+func (s *GormStore) createJob(actorID uuid.UUID, job models.OperationalJob) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Create(&job).Error
 	})
 }
 
-func (s *GormStore) updateJob(actorID uuid.UUID, job models2.OperationalJob) error {
+func (s *GormStore) updateJob(actorID uuid.UUID, job models.OperationalJob) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&job).Error
 	})
@@ -351,26 +349,26 @@ func (s *GormStore) updateJob(actorID uuid.UUID, job models2.OperationalJob) err
 
 func (s *GormStore) deleteJob(actorID, id uuid.UUID) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		return tx.Delete(&models2.OperationalJob{}, "id = ?", id).Error
+		return tx.Delete(&models.OperationalJob{}, "id = ?", id).Error
 	})
 }
 
 // ---------------------------------------------------------------------------
 // publications
 //
-// forum.Activity and forum.Event each embed forum.Publication as a base.
+// models.Activity and models.Event each embed models.Publication as a base.
 // There is no unified `publications` table in the current migration set, so
 // getPublications queries the `activities` / `events` tables directly and
 // projects only the shared base columns (id/title/state/timestamps) into
-// forum.Publication.
+// models.Publication.
 //
 // createPublication / updatePublication / deletePublication operate on the
 // hypothetical `publications` table; if/when a stand-alone Publication model
 // gets migrated they will work as-is.
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getPublications(filter PublicationFilter) ([]models2.Publication, error) {
-	fetch := func(table string) ([]models2.Publication, error) {
+func (s *GormStore) getPublications(filter PublicationFilter) ([]models.Publication, error) {
+	fetch := func(table string) ([]models.Publication, error) {
 		q := s.db.Table(table).
 			Select("id, created_at, updated_at, deleted_at, title, description, state")
 
@@ -389,12 +387,12 @@ func (s *GormStore) getPublications(filter PublicationFilter) ([]models2.Publica
 
 		q = applyOrder(q, filter.Pagination, "created_at")
 
-		var rows []models2.Publication
+		var rows []models.Publication
 		err := q.Scan(&rows).Error
 		return rows, err
 	}
 
-	var out []models2.Publication
+	var out []models.Publication
 	switch filter.Kind {
 	case PublicationKindActivity:
 		rows, err := fetch("activities")
@@ -411,7 +409,7 @@ func (s *GormStore) getPublications(filter PublicationFilter) ([]models2.Publica
 	case PublicationKindNews:
 		// no News model is migrated yet; return an empty slice so callers
 		// can still distinguish "kind known, none found" from an error.
-		return []models2.Publication{}, nil
+		return []models.Publication{}, nil
 	default:
 		acts, err := fetch("activities")
 		if err != nil {
@@ -438,7 +436,7 @@ func (s *GormStore) getPublications(filter PublicationFilter) ([]models2.Publica
 	}
 	start := (page - 1) * per
 	if start >= len(out) {
-		return []models2.Publication{}, nil
+		return []models.Publication{}, nil
 	}
 	end := start + per
 	if end > len(out) {
@@ -447,13 +445,13 @@ func (s *GormStore) getPublications(filter PublicationFilter) ([]models2.Publica
 	return out[start:end], nil
 }
 
-func (s *GormStore) createPublication(actorID uuid.UUID, pub models2.Publication) error {
+func (s *GormStore) createPublication(actorID uuid.UUID, pub models.Publication) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Create(&pub).Error
 	})
 }
 
-func (s *GormStore) updatePublication(actorID uuid.UUID, pub models2.Publication) error {
+func (s *GormStore) updatePublication(actorID uuid.UUID, pub models.Publication) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&pub).Error
 	})
@@ -461,7 +459,7 @@ func (s *GormStore) updatePublication(actorID uuid.UUID, pub models2.Publication
 
 func (s *GormStore) deletePublication(actorID, id uuid.UUID) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		return tx.Delete(&models2.Publication{}, "id = ?", id).Error
+		return tx.Delete(&models.Publication{}, "id = ?", id).Error
 	})
 }
 
@@ -469,8 +467,8 @@ func (s *GormStore) deletePublication(actorID, id uuid.UUID) error {
 // buildings
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getBuilding(filter BuildingFilter) ([]models2.Building, error) {
-	q := s.db.Model(&models2.Building{}).
+func (s *GormStore) getBuilding(filter BuildingFilter) ([]models.Building, error) {
+	q := s.db.Model(&models.Building{}).
 		Preload("Flats").
 		Preload("SharedAreas")
 
@@ -482,18 +480,18 @@ func (s *GormStore) getBuilding(filter BuildingFilter) ([]models2.Building, erro
 	q = applyOrder(q, filter.Pagination, "name")
 	q = applyPagination(q, filter.Pagination)
 
-	var bs []models2.Building
+	var bs []models.Building
 	err := q.Find(&bs).Error
 	return bs, err
 }
 
-func (s *GormStore) createBuilding(actorID uuid.UUID, b models2.Building) error {
+func (s *GormStore) createBuilding(actorID uuid.UUID, b models.Building) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Create(&b).Error
 	})
 }
 
-func (s *GormStore) updateBuilding(actorID uuid.UUID, b models2.Building) error {
+func (s *GormStore) updateBuilding(actorID uuid.UUID, b models.Building) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&b).Error
 	})
@@ -501,7 +499,7 @@ func (s *GormStore) updateBuilding(actorID uuid.UUID, b models2.Building) error 
 
 func (s *GormStore) deleteBuilding(actorID, id uuid.UUID) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		return tx.Delete(&models2.Building{}, "id = ?", id).Error
+		return tx.Delete(&models.Building{}, "id = ?", id).Error
 	})
 }
 
@@ -509,8 +507,8 @@ func (s *GormStore) deleteBuilding(actorID, id uuid.UUID) error {
 // flats
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getFlat(filter FlatFilter) ([]models2.Flat, error) {
-	q := s.db.Model(&models2.Flat{}).
+func (s *GormStore) getFlat(filter FlatFilter) ([]models.Flat, error) {
+	q := s.db.Model(&models.Flat{}).
 		Preload("Building").
 		Preload("Rooms").
 		Preload("Inventory")
@@ -528,18 +526,18 @@ func (s *GormStore) getFlat(filter FlatFilter) ([]models2.Flat, error) {
 	q = applyOrder(q, filter.Pagination, "name")
 	q = applyPagination(q, filter.Pagination)
 
-	var flats []models2.Flat
+	var flats []models.Flat
 	err := q.Find(&flats).Error
 	return flats, err
 }
 
-func (s *GormStore) createFlat(actorID uuid.UUID, f models2.Flat) error {
+func (s *GormStore) createFlat(actorID uuid.UUID, f models.Flat) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Create(&f).Error
 	})
 }
 
-func (s *GormStore) updateFlat(actorID uuid.UUID, f models2.Flat) error {
+func (s *GormStore) updateFlat(actorID uuid.UUID, f models.Flat) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&f).Error
 	})
@@ -547,7 +545,7 @@ func (s *GormStore) updateFlat(actorID uuid.UUID, f models2.Flat) error {
 
 func (s *GormStore) deleteFlat(actorID, id uuid.UUID) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		return tx.Delete(&models2.Flat{}, "id = ?", id).Error
+		return tx.Delete(&models.Flat{}, "id = ?", id).Error
 	})
 }
 
@@ -555,8 +553,8 @@ func (s *GormStore) deleteFlat(actorID, id uuid.UUID) error {
 // shared areas
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getSharedArea(filter SharedAreaFilter) ([]models2.SharedArea, error) {
-	q := s.db.Model(&models2.SharedArea{}).
+func (s *GormStore) getSharedArea(filter SharedAreaFilter) ([]models.SharedArea, error) {
+	q := s.db.Model(&models.SharedArea{}).
 		Preload("Building").
 		Preload("Inventory")
 
@@ -571,18 +569,18 @@ func (s *GormStore) getSharedArea(filter SharedAreaFilter) ([]models2.SharedArea
 	q = applyOrder(q, filter.Pagination, "name")
 	q = applyPagination(q, filter.Pagination)
 
-	var sas []models2.SharedArea
+	var sas []models.SharedArea
 	err := q.Find(&sas).Error
 	return sas, err
 }
 
-func (s *GormStore) createSharedArea(actorID uuid.UUID, sa models2.SharedArea) error {
+func (s *GormStore) createSharedArea(actorID uuid.UUID, sa models.SharedArea) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Create(&sa).Error
 	})
 }
 
-func (s *GormStore) updateSharedArea(actorID uuid.UUID, sa models2.SharedArea) error {
+func (s *GormStore) updateSharedArea(actorID uuid.UUID, sa models.SharedArea) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&sa).Error
 	})
@@ -590,7 +588,7 @@ func (s *GormStore) updateSharedArea(actorID uuid.UUID, sa models2.SharedArea) e
 
 func (s *GormStore) deleteSharedArea(actorID, id uuid.UUID) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		return tx.Delete(&models2.SharedArea{}, "id = ?", id).Error
+		return tx.Delete(&models.SharedArea{}, "id = ?", id).Error
 	})
 }
 
@@ -598,8 +596,8 @@ func (s *GormStore) deleteSharedArea(actorID, id uuid.UUID) error {
 // rooms
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getRoom(filter RoomFilter) ([]models2.Room, error) {
-	q := s.db.Model(&models2.Room{}).
+func (s *GormStore) getRoom(filter RoomFilter) ([]models.Room, error) {
+	q := s.db.Model(&models.Room{}).
 		Preload("Flat").
 		Preload("Flat.Building").
 		Preload("Assignments", "ended_at IS NULL")
@@ -624,18 +622,18 @@ func (s *GormStore) getRoom(filter RoomFilter) ([]models2.Room, error) {
 	q = applyOrder(q, filter.Pagination, "rooms.number")
 	q = applyPagination(q, filter.Pagination)
 
-	var rooms []models2.Room
+	var rooms []models.Room
 	err := q.Find(&rooms).Error
 	return rooms, err
 }
 
-func (s *GormStore) createRoom(actorID uuid.UUID, r models2.Room) error {
+func (s *GormStore) createRoom(actorID uuid.UUID, r models.Room) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Create(&r).Error
 	})
 }
 
-func (s *GormStore) updateRoom(actorID uuid.UUID, r models2.Room) error {
+func (s *GormStore) updateRoom(actorID uuid.UUID, r models.Room) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&r).Error
 	})
@@ -643,7 +641,7 @@ func (s *GormStore) updateRoom(actorID uuid.UUID, r models2.Room) error {
 
 func (s *GormStore) deleteRoom(actorID, id uuid.UUID) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		return tx.Delete(&models2.Room{}, "id = ?", id).Error
+		return tx.Delete(&models.Room{}, "id = ?", id).Error
 	})
 }
 
@@ -651,8 +649,8 @@ func (s *GormStore) deleteRoom(actorID, id uuid.UUID) error {
 // room assignments
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getRoomAssigment(filter RoomAssignmentFilter) ([]models2.RoomAssignment, error) {
-	q := s.db.Model(&models2.RoomAssignment{}).
+func (s *GormStore) getRoomAssigment(filter RoomAssignmentFilter) ([]models.RoomAssignment, error) {
+	q := s.db.Model(&models.RoomAssignment{}).
 		Preload("Tenant").
 		Preload("Tenant.User").
 		Preload("Room").
@@ -677,18 +675,18 @@ func (s *GormStore) getRoomAssigment(filter RoomAssignmentFilter) ([]models2.Roo
 	q = applyOrder(q, filter.Pagination, "effective_at")
 	q = applyPagination(q, filter.Pagination)
 
-	var as []models2.RoomAssignment
+	var as []models.RoomAssignment
 	err := q.Find(&as).Error
 	return as, err
 }
 
-func (s *GormStore) createRoomAssignment(actorID uuid.UUID, a models2.RoomAssignment) error {
+func (s *GormStore) createRoomAssignment(actorID uuid.UUID, a models.RoomAssignment) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Create(&a).Error
 	})
 }
 
-func (s *GormStore) updateRoomAssignment(actorID uuid.UUID, a models2.RoomAssignment) error {
+func (s *GormStore) updateRoomAssignment(actorID uuid.UUID, a models.RoomAssignment) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&a).Error
 	})
@@ -696,7 +694,7 @@ func (s *GormStore) updateRoomAssignment(actorID uuid.UUID, a models2.RoomAssign
 
 func (s *GormStore) deleteRoomAssignment(actorID, id uuid.UUID) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		return tx.Delete(&models2.RoomAssignment{}, "id = ?", id).Error
+		return tx.Delete(&models.RoomAssignment{}, "id = ?", id).Error
 	})
 }
 
@@ -704,13 +702,13 @@ func (s *GormStore) deleteRoomAssignment(actorID, id uuid.UUID) error {
 // users
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) registerUser(actorID uuid.UUID, user models2.User) error {
+func (s *GormStore) registerUser(actorID uuid.UUID, user models.User) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Create(&user).Error
 	})
 }
 
-func (s *GormStore) updateUser(actorID uuid.UUID, user models2.User) error {
+func (s *GormStore) updateUser(actorID uuid.UUID, user models.User) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&user).Error
 	})
@@ -720,8 +718,8 @@ func (s *GormStore) updateUser(actorID uuid.UUID, user models2.User) error {
 // by-id helpers
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getTenantByID(id uuid.UUID) (models2.Tenant, error) {
-	var tenant models2.Tenant
+func (s *GormStore) getTenantByID(id uuid.UUID) (models.Tenant, error) {
+	var tenant models.Tenant
 	err := s.db.
 		Preload("User").
 		Preload("RoomAssignments").
@@ -729,34 +727,34 @@ func (s *GormStore) getTenantByID(id uuid.UUID) (models2.Tenant, error) {
 		Preload("RoomAssignments.Room.Flat").
 		First(&tenant, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models2.Tenant{}, ErrNotFound
+		return models.Tenant{}, ErrNotFound
 	}
 	return tenant, err
 }
 
-func (s *GormStore) getJobByID(id uuid.UUID) (models2.OperationalJob, error) {
-	var job models2.OperationalJob
+func (s *GormStore) getJobByID(id uuid.UUID) (models.OperationalJob, error) {
+	var job models.OperationalJob
 	err := s.db.First(&job, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models2.OperationalJob{}, ErrNotFound
+		return models.OperationalJob{}, ErrNotFound
 	}
 	return job, err
 }
 
-func (s *GormStore) getBuildingByID(id uuid.UUID) (models2.Building, error) {
-	var b models2.Building
+func (s *GormStore) getBuildingByID(id uuid.UUID) (models.Building, error) {
+	var b models.Building
 	err := s.db.
 		Preload("Flats").
 		Preload("SharedAreas").
 		First(&b, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models2.Building{}, ErrNotFound
+		return models.Building{}, ErrNotFound
 	}
 	return b, err
 }
 
-func (s *GormStore) getFlatByID(id uuid.UUID) (models2.Flat, error) {
-	var f models2.Flat
+func (s *GormStore) getFlatByID(id uuid.UUID) (models.Flat, error) {
+	var f models.Flat
 	err := s.db.
 		Preload("Building").
 		Preload("Rooms").
@@ -764,25 +762,25 @@ func (s *GormStore) getFlatByID(id uuid.UUID) (models2.Flat, error) {
 		Preload("Inventory").
 		First(&f, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models2.Flat{}, ErrNotFound
+		return models.Flat{}, ErrNotFound
 	}
 	return f, err
 }
 
-func (s *GormStore) getSharedAreaByID(id uuid.UUID) (models2.SharedArea, error) {
-	var sa models2.SharedArea
+func (s *GormStore) getSharedAreaByID(id uuid.UUID) (models.SharedArea, error) {
+	var sa models.SharedArea
 	err := s.db.
 		Preload("Building").
 		Preload("Inventory").
 		First(&sa, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models2.SharedArea{}, ErrNotFound
+		return models.SharedArea{}, ErrNotFound
 	}
 	return sa, err
 }
 
-func (s *GormStore) getRoomByID(id uuid.UUID) (models2.Room, error) {
-	var r models2.Room
+func (s *GormStore) getRoomByID(id uuid.UUID) (models.Room, error) {
+	var r models.Room
 	err := s.db.
 		Preload("Flat").
 		Preload("Flat.Building").
@@ -791,13 +789,13 @@ func (s *GormStore) getRoomByID(id uuid.UUID) (models2.Room, error) {
 		Preload("Assignments.Tenant.User").
 		First(&r, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models2.Room{}, ErrNotFound
+		return models.Room{}, ErrNotFound
 	}
 	return r, err
 }
 
-func (s *GormStore) getRoomAssignmentByID(id uuid.UUID) (models2.RoomAssignment, error) {
-	var a models2.RoomAssignment
+func (s *GormStore) getRoomAssignmentByID(id uuid.UUID) (models.RoomAssignment, error) {
+	var a models.RoomAssignment
 	err := s.db.
 		Preload("Tenant").
 		Preload("Tenant.User").
@@ -805,29 +803,29 @@ func (s *GormStore) getRoomAssignmentByID(id uuid.UUID) (models2.RoomAssignment,
 		Preload("Room.Flat").
 		First(&a, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models2.RoomAssignment{}, ErrNotFound
+		return models.RoomAssignment{}, ErrNotFound
 	}
 	return a, err
 }
 
 // ---------------------------------------------------------------------------
-// news (forum.Publication) detail + archive
+// news (models.Publication) detail + archive
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getNewsByID(id uuid.UUID) (models2.Publication, error) {
-	var p models2.Publication
+func (s *GormStore) getNewsByID(id uuid.UUID) (models.Publication, error) {
+	var p models.Publication
 	err := s.db.Preload("Author").First(&p, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models2.Publication{}, ErrNotFound
+		return models.Publication{}, ErrNotFound
 	}
 	return p, err
 }
 
 func (s *GormStore) archiveNews(actorID, id uuid.UUID) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		res := tx.Model(&models2.Publication{}).
+		res := tx.Model(&models.Publication{}).
 			Where("id = ?", id).
-			Update("state", forum.PublicationStateArchived)
+			Update("state", models.PublicationStateArchived)
 		if res.Error != nil {
 			return res.Error
 		}
@@ -842,25 +840,25 @@ func (s *GormStore) archiveNews(actorID, id uuid.UUID) error {
 // activities
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getActivityByID(id uuid.UUID) (models2.Activity, error) {
-	var a models2.Activity
+func (s *GormStore) getActivityByID(id uuid.UUID) (models.Activity, error) {
+	var a models.Activity
 	err := s.db.
 		Preload("Author").
 		Preload("Bookings").
 		First(&a, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models2.Activity{}, ErrNotFound
+		return models.Activity{}, ErrNotFound
 	}
 	return a, err
 }
 
-func (s *GormStore) createActivity(actorID uuid.UUID, a models2.Activity) error {
+func (s *GormStore) createActivity(actorID uuid.UUID, a models.Activity) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Create(&a).Error
 	})
 }
 
-func (s *GormStore) updateActivity(actorID uuid.UUID, a models2.Activity) error {
+func (s *GormStore) updateActivity(actorID uuid.UUID, a models.Activity) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&a).Error
 	})
@@ -868,9 +866,9 @@ func (s *GormStore) updateActivity(actorID uuid.UUID, a models2.Activity) error 
 
 func (s *GormStore) archiveActivity(actorID, id uuid.UUID) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		res := tx.Model(&models2.Activity{}).
+		res := tx.Model(&models.Activity{}).
 			Where("id = ?", id).
-			Update("state", forum.PublicationStateArchived)
+			Update("state", models.PublicationStateArchived)
 		if res.Error != nil {
 			return res.Error
 		}
@@ -885,25 +883,25 @@ func (s *GormStore) archiveActivity(actorID, id uuid.UUID) error {
 // events
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getEventByID(id uuid.UUID) (models2.Event, error) {
-	var e models2.Event
+func (s *GormStore) getEventByID(id uuid.UUID) (models.Event, error) {
+	var e models.Event
 	err := s.db.
 		Preload("Author").
 		Preload("Attendances").
 		First(&e, "id = ?", id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return models2.Event{}, ErrNotFound
+		return models.Event{}, ErrNotFound
 	}
 	return e, err
 }
 
-func (s *GormStore) createEvent(actorID uuid.UUID, e models2.Event) error {
+func (s *GormStore) createEvent(actorID uuid.UUID, e models.Event) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Create(&e).Error
 	})
 }
 
-func (s *GormStore) updateEvent(actorID uuid.UUID, e models2.Event) error {
+func (s *GormStore) updateEvent(actorID uuid.UUID, e models.Event) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&e).Error
 	})
@@ -911,9 +909,9 @@ func (s *GormStore) updateEvent(actorID uuid.UUID, e models2.Event) error {
 
 func (s *GormStore) archiveEvent(actorID, id uuid.UUID) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		res := tx.Model(&models2.Event{}).
+		res := tx.Model(&models.Event{}).
 			Where("id = ?", id).
-			Update("state", forum.PublicationStateArchived)
+			Update("state", models.PublicationStateArchived)
 		if res.Error != nil {
 			return res.Error
 		}
@@ -928,8 +926,8 @@ func (s *GormStore) archiveEvent(actorID, id uuid.UUID) error {
 // audit
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getAuditLogs(filter AuditLogFilter) ([]models2.Audit, error) {
-	q := s.db.Model(&models2.Audit{}).Preload("User")
+func (s *GormStore) getAuditLogs(filter AuditLogFilter) ([]models.Audit, error) {
+	q := s.db.Model(&models.Audit{}).Preload("User")
 
 	if filter.TableName != "" {
 		q = q.Where("table_name = ?", filter.TableName)
@@ -950,7 +948,7 @@ func (s *GormStore) getAuditLogs(filter AuditLogFilter) ([]models2.Audit, error)
 	q = applyOrder(q, filter.Pagination, "changed_at")
 	q = applyPagination(q, filter.Pagination)
 
-	var as []models2.Audit
+	var as []models.Audit
 	err := q.Find(&as).Error
 	return as, err
 }

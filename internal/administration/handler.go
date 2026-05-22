@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"dorm-man/internal/models/forum"
 	adminviews "dorm-man/web/templates/administration"
 
 	"github.com/a-h/templ"
@@ -459,7 +458,7 @@ func (h *Handler) publicationsPage(c echo.Context) error {
 		Pagination: parsePagination(c),
 	}
 	if v := c.QueryParam("state"); v != "" {
-		st := forum.PublicationState(v)
+		st := models.PublicationState(v)
 		filter.State = &st
 	}
 	pubs, err := h.service.ListPublications(filter)
@@ -498,7 +497,7 @@ func (h *Handler) createNews(c echo.Context) error {
 	req := CreateNewsRequest{
 		Title:       c.FormValue("title"),
 		Description: c.FormValue("description"),
-		State:       forum.PublicationState(c.FormValue("state")),
+		State:       models.PublicationState(c.FormValue("state")),
 	}
 	if _, err := h.service.CreateNews(actor, req); err != nil {
 		return h.writeError(c, err)
@@ -532,7 +531,7 @@ func (h *Handler) createActivity(c echo.Context) error {
 	req := CreateActivityRequest{
 		Title:       c.FormValue("title"),
 		Description: c.FormValue("description"),
-		State:       forum.PublicationState(c.FormValue("state")),
+		State:       models.PublicationState(c.FormValue("state")),
 		Capacity:    capacity,
 	}
 	if v := c.FormValue("shared_area_id"); v != "" {
@@ -571,7 +570,7 @@ func (h *Handler) createEvent(c echo.Context) error {
 	req := CreateEventRequest{
 		Title:       c.FormValue("title"),
 		Description: c.FormValue("description"),
-		State:       forum.PublicationState(c.FormValue("state")),
+		State:       models.PublicationState(c.FormValue("state")),
 		StartsAt:    derefTime(parseDate(c.FormValue("starts_at"))),
 		EndsAt:      derefTime(parseDate(c.FormValue("ends_at"))),
 	}

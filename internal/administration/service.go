@@ -1,11 +1,9 @@
 package administration
 
 import (
-	models2 "dorm-man/internal/models"
+	"dorm-man/internal/models"
 	"strings"
 	"time"
-
-	"dorm-man/internal/models/forum"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -29,7 +27,7 @@ type DashboardSummary struct {
 	ActiveTenants int
 	OpenJobs      int
 	Buildings     int
-	RecentAudits  []models2.Audit
+	RecentAudits  []models.Audit
 }
 
 func (s *Service) GetDashboardSummary() (DashboardSummary, error) {
@@ -45,7 +43,7 @@ func (s *Service) GetDashboardSummary() (DashboardSummary, error) {
 	}
 
 	plannedFilter := JobsFilter{}
-	planned := models2.JobStatusPlanned
+	planned := models.JobStatusPlanned
 	plannedFilter.Status = &planned
 	jobs, err := s.store.getJobs(plannedFilter)
 	if err != nil {
@@ -76,13 +74,13 @@ func (s *Service) GetDashboardSummary() (DashboardSummary, error) {
 // tenants
 // ---------------------------------------------------------------------------
 
-func (s *Service) ListTenants(filter TenantFilter) ([]models2.Tenant, error) {
+func (s *Service) ListTenants(filter TenantFilter) ([]models.Tenant, error) {
 	return s.store.getTenants(filter)
 }
 
-func (s *Service) GetTenant(id uuid.UUID) (models2.Tenant, error) {
+func (s *Service) GetTenant(id uuid.UUID) (models.Tenant, error) {
 	if id == uuid.Nil {
-		return models2.Tenant{}, ErrValidation
+		return models.Tenant{}, ErrValidation
 	}
 	return s.store.getTenantByID(id)
 }
@@ -91,34 +89,34 @@ func (s *Service) GetTenant(id uuid.UUID) (models2.Tenant, error) {
 // inventory
 // ---------------------------------------------------------------------------
 
-func (s *Service) ListInventory(filter InventoryFilter) ([]models2.InventoryItem, error) {
+func (s *Service) ListInventory(filter InventoryFilter) ([]models.InventoryItem, error) {
 	return s.store.getInventory(filter)
 }
 
-func (s *Service) GetInventoryItem(id uuid.UUID) (models2.InventoryItem, error) {
+func (s *Service) GetInventoryItem(id uuid.UUID) (models.InventoryItem, error) {
 	if id == uuid.Nil {
-		return models2.InventoryItem{}, ErrValidation
+		return models.InventoryItem{}, ErrValidation
 	}
 	return s.store.getInventoryByID(id)
 }
 
-func (s *Service) CreateInventoryItem(actorID uuid.UUID, req CreateInventoryItemRequest) (models2.InventoryItem, error) {
+func (s *Service) CreateInventoryItem(actorID uuid.UUID, req CreateInventoryItemRequest) (models.InventoryItem, error) {
 	if actorID == uuid.Nil {
-		return models2.InventoryItem{}, ErrUnauthorized
+		return models.InventoryItem{}, ErrUnauthorized
 	}
 	if strings.TrimSpace(req.Name) == "" {
-		return models2.InventoryItem{}, ErrValidation
+		return models.InventoryItem{}, ErrValidation
 	}
 	if req.PurchaseDate.IsZero() {
 		req.PurchaseDate = time.Now()
 	}
 	if req.Condition == "" {
-		req.Condition = models2.InventoryConditionGood
+		req.Condition = models.InventoryConditionGood
 	}
 	if req.Status == "" {
-		req.Status = models2.InventoryStatusInUse
+		req.Status = models.InventoryStatusInUse
 	}
-	item := models2.InventoryItem{
+	item := models.InventoryItem{
 		Name:         req.Name,
 		Description:  req.Description,
 		RoomID:       req.RoomID,
@@ -130,24 +128,24 @@ func (s *Service) CreateInventoryItem(actorID uuid.UUID, req CreateInventoryItem
 		PurchaseDate: req.PurchaseDate,
 	}
 	if err := s.store.createInventoryItem(actorID, item); err != nil {
-		return models2.InventoryItem{}, err
+		return models.InventoryItem{}, err
 	}
 	return item, nil
 }
 
-func (s *Service) UpdateInventoryItemStatus(actorID uuid.UUID, req UpdateInventoryStatusRequest) (models2.InventoryItem, error) {
+func (s *Service) UpdateInventoryItemStatus(actorID uuid.UUID, req UpdateInventoryStatusRequest) (models.InventoryItem, error) {
 	if actorID == uuid.Nil {
-		return models2.InventoryItem{}, ErrUnauthorized
+		return models.InventoryItem{}, ErrUnauthorized
 	}
 	if req.ID == uuid.Nil {
-		return models2.InventoryItem{}, ErrValidation
+		return models.InventoryItem{}, ErrValidation
 	}
 	item, err := s.store.getInventoryByID(req.ID)
 	if err != nil {
-		return models2.InventoryItem{}, err
+		return models.InventoryItem{}, err
 	}
 	if !isInventoryStatusTransitionValid(item.Status, req.Status) {
-		return models2.InventoryItem{}, ErrStateTransition
+		return models.InventoryItem{}, ErrStateTransition
 	}
 	now := time.Now()
 	item.Status = req.Status
@@ -155,15 +153,15 @@ func (s *Service) UpdateInventoryItemStatus(actorID uuid.UUID, req UpdateInvento
 		item.Condition = *req.Condition
 	}
 	switch req.Status {
-	case models2.InventoryStatusInUse:
+	case models.InventoryStatusInUse:
 		if item.InUseDate == nil {
 			item.InUseDate = &now
 		}
-	case models2.InventoryStatusWithdrawn, models2.InventoryStatusDestroyed:
+	case models.InventoryStatusWithdrawn, models.InventoryStatusDestroyed:
 		item.WithdrawDate = &now
 	}
 	if err := s.store.updateInventoryItem(actorID, item); err != nil {
-		return models2.InventoryItem{}, err
+		return models.InventoryItem{}, err
 	}
 	return item, nil
 }
@@ -171,19 +169,19 @@ func (s *Service) UpdateInventoryItemStatus(actorID uuid.UUID, req UpdateInvento
 // isInventoryStatusTransitionValid encodes the lifecycle: in_stock -> in_use,
 // in_stock|in_use -> withdrawn, anything -> destroyed. Withdrawn/destroyed are
 // terminal.
-func isInventoryStatusTransitionValid(from, to models2.InventoryStatus) bool {
+func isInventoryStatusTransitionValid(from, to models.InventoryStatus) bool {
 	if from == to {
 		return true
 	}
 	switch from {
-	case models2.InventoryStatusInStock:
-		return to == models2.InventoryStatusInUse ||
-			to == models2.InventoryStatusWithdrawn ||
-			to == models2.InventoryStatusDestroyed
-	case models2.InventoryStatusInUse:
-		return to == models2.InventoryStatusInStock ||
-			to == models2.InventoryStatusWithdrawn ||
-			to == models2.InventoryStatusDestroyed
+	case models.InventoryStatusInStock:
+		return to == models.InventoryStatusInUse ||
+			to == models.InventoryStatusWithdrawn ||
+			to == models.InventoryStatusDestroyed
+	case models.InventoryStatusInUse:
+		return to == models.InventoryStatusInStock ||
+			to == models.InventoryStatusWithdrawn ||
+			to == models.InventoryStatusDestroyed
 	default:
 		return false
 	}
@@ -203,34 +201,34 @@ func (s *Service) DeleteInventoryItem(actorID, id uuid.UUID) error {
 // operational jobs
 // ---------------------------------------------------------------------------
 
-func (s *Service) ListJobs(filter JobsFilter) ([]models2.OperationalJob, error) {
+func (s *Service) ListJobs(filter JobsFilter) ([]models.OperationalJob, error) {
 	return s.store.getJobs(filter)
 }
 
-func (s *Service) GetJob(id uuid.UUID) (models2.OperationalJob, error) {
+func (s *Service) GetJob(id uuid.UUID) (models.OperationalJob, error) {
 	if id == uuid.Nil {
-		return models2.OperationalJob{}, ErrValidation
+		return models.OperationalJob{}, ErrValidation
 	}
 	return s.store.getJobByID(id)
 }
 
-func (s *Service) CreateJob(actorID uuid.UUID, req CreateJobRequest) (models2.OperationalJob, error) {
+func (s *Service) CreateJob(actorID uuid.UUID, req CreateJobRequest) (models.OperationalJob, error) {
 	if actorID == uuid.Nil {
-		return models2.OperationalJob{}, ErrUnauthorized
+		return models.OperationalJob{}, ErrUnauthorized
 	}
 	if strings.TrimSpace(req.Title) == "" {
-		return models2.OperationalJob{}, ErrValidation
+		return models.OperationalJob{}, ErrValidation
 	}
 	if !req.StartsAt.IsZero() && !req.EndsAt.IsZero() && req.EndsAt.Before(req.StartsAt) {
-		return models2.OperationalJob{}, ErrValidation
+		return models.OperationalJob{}, ErrValidation
 	}
 	if req.Priority == "" {
-		req.Priority = models2.JobPriorityMedium
+		req.Priority = models.JobPriorityMedium
 	}
 	if req.Status == "" {
-		req.Status = models2.JobStatusPlanned
+		req.Status = models.JobStatusPlanned
 	}
-	job := models2.OperationalJob{
+	job := models.OperationalJob{
 		Title:       req.Title,
 		Description: req.Description,
 		StartsAt:    req.StartsAt,
@@ -239,21 +237,21 @@ func (s *Service) CreateJob(actorID uuid.UUID, req CreateJobRequest) (models2.Op
 		Status:      req.Status,
 	}
 	if err := s.store.createJob(actorID, job); err != nil {
-		return models2.OperationalJob{}, err
+		return models.OperationalJob{}, err
 	}
 	return job, nil
 }
 
-func (s *Service) UpdateJob(actorID uuid.UUID, req UpdateJobRequest) (models2.OperationalJob, error) {
+func (s *Service) UpdateJob(actorID uuid.UUID, req UpdateJobRequest) (models.OperationalJob, error) {
 	if actorID == uuid.Nil {
-		return models2.OperationalJob{}, ErrUnauthorized
+		return models.OperationalJob{}, ErrUnauthorized
 	}
 	if req.ID == uuid.Nil {
-		return models2.OperationalJob{}, ErrValidation
+		return models.OperationalJob{}, ErrValidation
 	}
 	job, err := s.store.getJobByID(req.ID)
 	if err != nil {
-		return models2.OperationalJob{}, err
+		return models.OperationalJob{}, err
 	}
 	if req.Title != nil {
 		job.Title = *req.Title
@@ -272,15 +270,15 @@ func (s *Service) UpdateJob(actorID uuid.UUID, req UpdateJobRequest) (models2.Op
 	}
 	if req.Status != nil {
 		if !isJobStatusTransitionValid(job.Status, *req.Status) {
-			return models2.OperationalJob{}, ErrStateTransition
+			return models.OperationalJob{}, ErrStateTransition
 		}
 		job.Status = *req.Status
 	}
 	if !job.StartsAt.IsZero() && !job.EndsAt.IsZero() && job.EndsAt.Before(job.StartsAt) {
-		return models2.OperationalJob{}, ErrValidation
+		return models.OperationalJob{}, ErrValidation
 	}
 	if err := s.store.updateJob(actorID, job); err != nil {
-		return models2.OperationalJob{}, err
+		return models.OperationalJob{}, err
 	}
 	return job, nil
 }
@@ -288,22 +286,22 @@ func (s *Service) UpdateJob(actorID uuid.UUID, req UpdateJobRequest) (models2.Op
 // isJobStatusTransitionValid mirrors a typical scheduling lifecycle:
 // planned <-> scheduled -> in_progress -> finished, plus canceled from any
 // non-terminal state.
-func isJobStatusTransitionValid(from, to models2.JobStatus) bool {
+func isJobStatusTransitionValid(from, to models.JobStatus) bool {
 	if from == to {
 		return true
 	}
-	if to == models2.JobStatusCanceled &&
-		from != models2.JobStatusFinished &&
-		from != models2.JobStatusCanceled {
+	if to == models.JobStatusCanceled &&
+		from != models.JobStatusFinished &&
+		from != models.JobStatusCanceled {
 		return true
 	}
 	switch from {
-	case models2.JobStatusPlanned:
-		return to == models2.JobStatusScheduled || to == models2.JobStatusInProgress
-	case models2.JobStatusScheduled:
-		return to == models2.JobStatusPlanned || to == models2.JobStatusInProgress
-	case models2.JobStatusInProgress:
-		return to == models2.JobStatusFinished
+	case models.JobStatusPlanned:
+		return to == models.JobStatusScheduled || to == models.JobStatusInProgress
+	case models.JobStatusScheduled:
+		return to == models.JobStatusPlanned || to == models.JobStatusInProgress
+	case models.JobStatusInProgress:
+		return to == models.JobStatusFinished
 	default:
 		return false
 	}
@@ -323,7 +321,7 @@ func (s *Service) DeleteJob(actorID, id uuid.UUID) error {
 // publications (news / activities / events)
 // ---------------------------------------------------------------------------
 
-func (s *Service) ListPublications(filter PublicationFilter) ([]models2.Publication, error) {
+func (s *Service) ListPublications(filter PublicationFilter) ([]models.Publication, error) {
 	return s.store.getPublications(filter)
 }
 
@@ -331,9 +329,9 @@ func (s *Service) ListPublications(filter PublicationFilter) ([]models2.Publicat
 // Exactly one of News/Activity/Event is non-nil based on Kind.
 type PublicationDetail struct {
 	Kind     PublicationKind
-	News     *models2.Publication
-	Activity *models2.Activity
-	Event    *models2.Event
+	News     *models.Publication
+	Activity *models.Activity
+	Event    *models.Event
 }
 
 // GetPublication tries each typed table until one matches the id.
@@ -353,18 +351,18 @@ func (s *Service) GetPublication(id uuid.UUID) (PublicationDetail, error) {
 	return PublicationDetail{}, ErrNotFound
 }
 
-func (s *Service) CreateNews(actorID uuid.UUID, req CreateNewsRequest) (models2.Publication, error) {
+func (s *Service) CreateNews(actorID uuid.UUID, req CreateNewsRequest) (models.Publication, error) {
 	if actorID == uuid.Nil {
-		return models2.Publication{}, ErrUnauthorized
+		return models.Publication{}, ErrUnauthorized
 	}
 	if strings.TrimSpace(req.Title) == "" {
-		return models2.Publication{}, ErrValidation
+		return models.Publication{}, ErrValidation
 	}
 	if req.State == "" {
-		req.State = forum.PublicationStateDraft
+		req.State = models.PublicationStateDraft
 	}
-	pub := models2.Publication{
-		Post: models2.Post{
+	pub := models.Publication{
+		Post: models.Post{
 			Title:       req.Title,
 			Description: req.Description,
 			State:       req.State,
@@ -372,7 +370,7 @@ func (s *Service) CreateNews(actorID uuid.UUID, req CreateNewsRequest) (models2.
 		},
 	}
 	if err := s.store.createPublication(actorID, pub); err != nil {
-		return models2.Publication{}, err
+		return models.Publication{}, err
 	}
 	return pub, nil
 }
@@ -387,21 +385,21 @@ func (s *Service) ArchiveNews(actorID, id uuid.UUID) error {
 	return s.store.archiveNews(actorID, id)
 }
 
-func (s *Service) CreateActivity(actorID uuid.UUID, req CreateActivityRequest) (models2.Activity, error) {
+func (s *Service) CreateActivity(actorID uuid.UUID, req CreateActivityRequest) (models.Activity, error) {
 	if actorID == uuid.Nil {
-		return models2.Activity{}, ErrUnauthorized
+		return models.Activity{}, ErrUnauthorized
 	}
 	if strings.TrimSpace(req.Title) == "" {
-		return models2.Activity{}, ErrValidation
+		return models.Activity{}, ErrValidation
 	}
 	if req.Capacity < 1 {
-		return models2.Activity{}, ErrValidation
+		return models.Activity{}, ErrValidation
 	}
 	if req.State == "" {
-		req.State = forum.PublicationStateDraft
+		req.State = models.PublicationStateDraft
 	}
-	act := models2.Activity{
-		Post: models2.Post{
+	act := models.Activity{
+		Post: models.Post{
 			Title:       req.Title,
 			Description: req.Description,
 			State:       req.State,
@@ -411,7 +409,7 @@ func (s *Service) CreateActivity(actorID uuid.UUID, req CreateActivityRequest) (
 		Capacity:     req.Capacity,
 	}
 	if err := s.store.createActivity(actorID, act); err != nil {
-		return models2.Activity{}, err
+		return models.Activity{}, err
 	}
 	return act, nil
 }
@@ -426,21 +424,21 @@ func (s *Service) ArchiveActivity(actorID, id uuid.UUID) error {
 	return s.store.archiveActivity(actorID, id)
 }
 
-func (s *Service) CreateEvent(actorID uuid.UUID, req CreateEventRequest) (models2.Event, error) {
+func (s *Service) CreateEvent(actorID uuid.UUID, req CreateEventRequest) (models.Event, error) {
 	if actorID == uuid.Nil {
-		return models2.Event{}, ErrUnauthorized
+		return models.Event{}, ErrUnauthorized
 	}
 	if strings.TrimSpace(req.Title) == "" {
-		return models2.Event{}, ErrValidation
+		return models.Event{}, ErrValidation
 	}
 	if req.StartsAt.IsZero() || req.EndsAt.IsZero() || req.EndsAt.Before(req.StartsAt) {
-		return models2.Event{}, ErrValidation
+		return models.Event{}, ErrValidation
 	}
 	if req.State == "" {
-		req.State = forum.PublicationStateDraft
+		req.State = models.PublicationStateDraft
 	}
-	evt := models2.Event{
-		Post: models2.Post{
+	evt := models.Event{
+		Post: models.Post{
 			Title:       req.Title,
 			Description: req.Description,
 			State:       req.State,
@@ -451,7 +449,7 @@ func (s *Service) CreateEvent(actorID uuid.UUID, req CreateEventRequest) (models
 		EndsAt:       req.EndsAt,
 	}
 	if err := s.store.createEvent(actorID, evt); err != nil {
-		return models2.Event{}, err
+		return models.Event{}, err
 	}
 	return evt, nil
 }
@@ -472,10 +470,10 @@ func (s *Service) ArchiveEvent(actorID, id uuid.UUID) error {
 
 // HousingOverview bundles every top-level housing entity for the housing index page.
 type HousingOverview struct {
-	Buildings   []models2.Building
-	Flats       []models2.Flat
-	SharedAreas []models2.SharedArea
-	Rooms       []models2.Room
+	Buildings   []models.Building
+	Flats       []models.Flat
+	SharedAreas []models.SharedArea
+	Rooms       []models.Room
 }
 
 func (s *Service) GetHousingOverview() (HousingOverview, error) {
@@ -503,30 +501,30 @@ func (s *Service) GetHousingOverview() (HousingOverview, error) {
 	}, nil
 }
 
-func (s *Service) GetBuilding(id uuid.UUID) (models2.Building, error) {
+func (s *Service) GetBuilding(id uuid.UUID) (models.Building, error) {
 	if id == uuid.Nil {
-		return models2.Building{}, ErrValidation
+		return models.Building{}, ErrValidation
 	}
 	return s.store.getBuildingByID(id)
 }
 
-func (s *Service) GetFlat(id uuid.UUID) (models2.Flat, error) {
+func (s *Service) GetFlat(id uuid.UUID) (models.Flat, error) {
 	if id == uuid.Nil {
-		return models2.Flat{}, ErrValidation
+		return models.Flat{}, ErrValidation
 	}
 	return s.store.getFlatByID(id)
 }
 
-func (s *Service) GetSharedArea(id uuid.UUID) (models2.SharedArea, error) {
+func (s *Service) GetSharedArea(id uuid.UUID) (models.SharedArea, error) {
 	if id == uuid.Nil {
-		return models2.SharedArea{}, ErrValidation
+		return models.SharedArea{}, ErrValidation
 	}
 	return s.store.getSharedAreaByID(id)
 }
 
-func (s *Service) GetRoom(id uuid.UUID) (models2.Room, error) {
+func (s *Service) GetRoom(id uuid.UUID) (models.Room, error) {
 	if id == uuid.Nil {
-		return models2.Room{}, ErrValidation
+		return models.Room{}, ErrValidation
 	}
 	return s.store.getRoomByID(id)
 }
@@ -535,23 +533,23 @@ func (s *Service) GetRoom(id uuid.UUID) (models2.Room, error) {
 // room assignments
 // ---------------------------------------------------------------------------
 
-func (s *Service) AssignRoom(actorID uuid.UUID, req AssignRoomRequest) (models2.RoomAssignment, error) {
+func (s *Service) AssignRoom(actorID uuid.UUID, req AssignRoomRequest) (models.RoomAssignment, error) {
 	if actorID == uuid.Nil {
-		return models2.RoomAssignment{}, ErrUnauthorized
+		return models.RoomAssignment{}, ErrUnauthorized
 	}
 	if req.TenantID == uuid.Nil || req.RoomID == uuid.Nil {
-		return models2.RoomAssignment{}, ErrValidation
+		return models.RoomAssignment{}, ErrValidation
 	}
 	tenant, err := s.store.getTenantByID(req.TenantID)
 	if err != nil {
-		return models2.RoomAssignment{}, err
+		return models.RoomAssignment{}, err
 	}
 	if !tenant.IsActive {
-		return models2.RoomAssignment{}, ErrStudentStatusInvalid
+		return models.RoomAssignment{}, ErrStudentStatusInvalid
 	}
 	room, err := s.store.getRoomByID(req.RoomID)
 	if err != nil {
-		return models2.RoomAssignment{}, err
+		return models.RoomAssignment{}, err
 	}
 	active := 0
 	for _, a := range room.Assignments {
@@ -560,31 +558,31 @@ func (s *Service) AssignRoom(actorID uuid.UUID, req AssignRoomRequest) (models2.
 		}
 	}
 	if active >= room.Capacity {
-		return models2.RoomAssignment{}, ErrCapacityConflict
+		return models.RoomAssignment{}, ErrCapacityConflict
 	}
 	effectiveAt := time.Now()
 	if req.EffectiveAt != nil {
 		effectiveAt = *req.EffectiveAt
 	}
-	assignment := models2.RoomAssignment{
+	assignment := models.RoomAssignment{
 		TenantID:    req.TenantID,
 		RoomID:      req.RoomID,
 		EffectiveAt: effectiveAt,
 	}
 	if err := s.store.createRoomAssignment(actorID, assignment); err != nil {
-		return models2.RoomAssignment{}, err
+		return models.RoomAssignment{}, err
 	}
 	return assignment, nil
 }
 
-func (s *Service) MassAssignRooms(actorID uuid.UUID, req MassAssignRequest) ([]models2.RoomAssignment, error) {
+func (s *Service) MassAssignRooms(actorID uuid.UUID, req MassAssignRequest) ([]models.RoomAssignment, error) {
 	if actorID == uuid.Nil {
 		return nil, ErrUnauthorized
 	}
 	if len(req.Assignments) == 0 {
 		return nil, ErrValidation
 	}
-	out := make([]models2.RoomAssignment, 0, len(req.Assignments))
+	out := make([]models.RoomAssignment, 0, len(req.Assignments))
 	for _, a := range req.Assignments {
 		assignment, err := s.AssignRoom(actorID, a)
 		if err != nil {
@@ -595,16 +593,16 @@ func (s *Service) MassAssignRooms(actorID uuid.UUID, req MassAssignRequest) ([]m
 	return out, nil
 }
 
-func (s *Service) UpdateAssignment(actorID uuid.UUID, req UpdateAssignmentRequest) (models2.RoomAssignment, error) {
+func (s *Service) UpdateAssignment(actorID uuid.UUID, req UpdateAssignmentRequest) (models.RoomAssignment, error) {
 	if actorID == uuid.Nil {
-		return models2.RoomAssignment{}, ErrUnauthorized
+		return models.RoomAssignment{}, ErrUnauthorized
 	}
 	if req.ID == uuid.Nil {
-		return models2.RoomAssignment{}, ErrValidation
+		return models.RoomAssignment{}, ErrValidation
 	}
 	a, err := s.store.getRoomAssignmentByID(req.ID)
 	if err != nil {
-		return models2.RoomAssignment{}, err
+		return models.RoomAssignment{}, err
 	}
 	if req.RoomID != nil {
 		a.RoomID = *req.RoomID
@@ -616,7 +614,7 @@ func (s *Service) UpdateAssignment(actorID uuid.UUID, req UpdateAssignmentReques
 		a.EndedAt = req.EndedAt
 	}
 	if err := s.store.updateRoomAssignment(actorID, a); err != nil {
-		return models2.RoomAssignment{}, err
+		return models.RoomAssignment{}, err
 	}
 	return a, nil
 }
@@ -635,20 +633,20 @@ func (s *Service) DeleteAssignment(actorID, id uuid.UUID) error {
 // users (registration / update)
 // ---------------------------------------------------------------------------
 
-func (s *Service) RegisterUser(actorID uuid.UUID, req RegisterUserRequest) (models2.User, error) {
+func (s *Service) RegisterUser(actorID uuid.UUID, req RegisterUserRequest) (models.User, error) {
 	if actorID == uuid.Nil {
-		return models2.User{}, ErrUnauthorized
+		return models.User{}, ErrUnauthorized
 	}
 	if strings.TrimSpace(req.Email) == "" ||
 		strings.TrimSpace(req.Nickname) == "" ||
 		strings.TrimSpace(req.Password) == "" {
-		return models2.User{}, ErrValidation
+		return models.User{}, ErrValidation
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return models2.User{}, err
+		return models.User{}, err
 	}
-	user := models2.User{
+	user := models.User{
 		Name:         req.Name,
 		Email:        strings.ToLower(strings.TrimSpace(req.Email)),
 		Nickname:     strings.TrimSpace(req.Nickname),
@@ -658,20 +656,20 @@ func (s *Service) RegisterUser(actorID uuid.UUID, req RegisterUserRequest) (mode
 		RoleID:       req.RoleID.String(),
 	}
 	if err := s.store.registerUser(actorID, user); err != nil {
-		return models2.User{}, err
+		return models.User{}, err
 	}
 	return user, nil
 }
 
-func (s *Service) UpdateUser(actorID uuid.UUID, req UpdateUserRequest) (models2.User, error) {
+func (s *Service) UpdateUser(actorID uuid.UUID, req UpdateUserRequest) (models.User, error) {
 	if actorID == uuid.Nil {
-		return models2.User{}, ErrUnauthorized
+		return models.User{}, ErrUnauthorized
 	}
 	if req.ID == uuid.Nil {
-		return models2.User{}, ErrValidation
+		return models.User{}, ErrValidation
 	}
-	user := models2.User{
-		BaseModel: models2.BaseModel{ID: req.ID},
+	user := models.User{
+		BaseModel: models.BaseModel{ID: req.ID},
 	}
 	if req.Name != nil {
 		user.Name = *req.Name
@@ -685,7 +683,7 @@ func (s *Service) UpdateUser(actorID uuid.UUID, req UpdateUserRequest) (models2.
 	if req.Password != nil && *req.Password != "" {
 		hash, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
 		if err != nil {
-			return models2.User{}, err
+			return models.User{}, err
 		}
 		user.PasswordHash = string(hash)
 	}
@@ -699,7 +697,7 @@ func (s *Service) UpdateUser(actorID uuid.UUID, req UpdateUserRequest) (models2.
 		user.RoleID = req.RoleID.String()
 	}
 	if err := s.store.updateUser(actorID, user); err != nil {
-		return models2.User{}, err
+		return models.User{}, err
 	}
 	return user, nil
 }
@@ -708,6 +706,6 @@ func (s *Service) UpdateUser(actorID uuid.UUID, req UpdateUserRequest) (models2.
 // audit
 // ---------------------------------------------------------------------------
 
-func (s *Service) ListAuditLogs(filter AuditLogFilter) ([]models2.Audit, error) {
+func (s *Service) ListAuditLogs(filter AuditLogFilter) ([]models.Audit, error) {
 	return s.store.getAuditLogs(filter)
 }
