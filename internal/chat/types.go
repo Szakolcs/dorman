@@ -4,6 +4,8 @@ import (
 	"errors"
 
 	"dorm-man/internal/models"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -18,12 +20,21 @@ var (
 )
 
 type SearchResult struct {
-	Rooms   []models.Membership
-	Tenants []models.Tenant
-	Query   string
+	Rooms      []models.Membership
+	Tenants    []models.Tenant
+	Query      string
+	RoomTitles map[uuid.UUID]string
+}
+
+func (r SearchResult) RoomTitle(roomID uuid.UUID) string {
+	if r.RoomTitles == nil {
+		return ""
+	}
+	return r.RoomTitles[roomID]
 }
 
 type CreateGroupRequest struct {
-	Title string
-	Topic string
+	Title     string
+	Topic     string
+	MemberIDs []uuid.UUID
 }

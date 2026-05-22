@@ -1071,7 +1071,7 @@ func (s *GormStore) cancelActivityBooking(userID, activityID uuid.UUID) error {
 		if err != nil {
 			return err
 		}
-		if err := tx.Delete(&booking).Error; err != nil {
+		if err := tx.Unscoped().Delete(&booking).Error; err != nil {
 			return err
 		}
 		res := tx.Model(&models.Activity{}).

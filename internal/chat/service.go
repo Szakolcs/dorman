@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"sort"
 	"strings"
 
 	"dorm-man/internal/models"
@@ -51,7 +52,11 @@ func (s *Service) SearchChats(viewerTenantID uuid.UUID, query string) (SearchRes
 	if err != nil {
 		return SearchResult{}, err
 	}
-	result := SearchResult{Query: query}
+	titles, err := s.roomTitles(viewerTenantID, memberships)
+	if err != nil {
+		return SearchResult{}, err
+	}
+	result := SearchResult{Query: query, RoomTitles: titles}
 	if query == "" {
 		result.Rooms = memberships
 		return result, nil
@@ -61,9 +66,8 @@ func (s *Service) SearchChats(viewerTenantID uuid.UUID, query string) (SearchRes
 		if membership.ChatRoom == nil {
 			continue
 		}
-		title := strings.ToLower(membership.ChatRoom.Title)
-		kind := strings.ToLower(string(membership.ChatRoom.Kind))
-		if strings.Contains(title, needle) || strings.Contains(kind, needle) {
+		displayTitle := strings.ToLower(titles[membership.ChatRoom.ID])
+		if strings.Contains(displayTitle, needle) {
 			result.Rooms = append(result.Rooms, membership)
 		}
 	}
@@ -73,6 +77,56 @@ func (s *Service) SearchChats(viewerTenantID uuid.UUID, query string) (SearchRes
 	}
 	result.Tenants = tenants
 	return result, nil
+}
+
+func (s *Service) RoomDisplayTitle(viewerTenantID, roomID uuid.UUID) (string, error) {
+	if roomID == uuid.Nil {
+		return "", nil
+	}
+	memberships, err := s.store.ListMemberships(viewerTenantID)
+	if err != nil {
+		return "", err
+	}
+	titles, err := s.roomTitles(viewerTenantID, memberships)
+	if err != nil {
+		return "", err
+	}
+	return titles[roomID], nil
+}
+
+func (s *Service) roomTitles(viewerTenantID uuid.UUID, memberships []models.Membership) (map[uuid.UUID]string, error) {
+	titles := make(map[uuid.UUID]string, len(memberships))
+	var directRoomIDs []uuid.UUID
+	for _, membership := range memberships {
+		if membership.ChatRoom == nil {
+			continue
+		}
+		if membership.ChatRoom.Kind == models.RoomKindDirect {
+			directRoomIDs = append(directRoomIDs, membership.ChatRoom.ID)
+			continue
+		}
+		titles[membership.ChatRoom.ID] = membership.ChatRoom.Title
+	}
+	peers, err := s.store.DirectPeerTenants(viewerTenantID, directRoomIDs)
+	if err != nil {
+		return nil, err
+	}
+	for roomID, peer := range peers {
+		titles[roomID] = tenantName(peer)
+	}
+	for _, roomID := range directRoomIDs {
+		if titles[roomID] == "" {
+			titles[roomID] = "Direct chat"
+		}
+	}
+	return titles, nil
+}
+
+func tenantName(tenant models.Tenant) string {
+	if tenant.User != nil && tenant.User.Name != "" {
+		return tenant.User.Name
+	}
+	return "Tenant"
 }
 
 func (s *Service) OpenDirectChat(viewerTenantID, otherTenantID uuid.UUID) (models.ChatRoom, error) {
@@ -85,8 +139,54 @@ func (s *Service) OpenDirectChat(viewerTenantID, otherTenantID uuid.UUID) (model
 	return s.store.OpenDirectRoom(viewerTenantID, otherTenantID)
 }
 
+func (s *Service) ListDirectChatPeers(viewerTenantID uuid.UUID) ([]models.Tenant, error) {
+	if viewerTenantID == uuid.Nil {
+		return nil, ErrValidation
+	}
+	memberships, err := s.store.ListMemberships(viewerTenantID)
+	if err != nil {
+		return nil, err
+	}
+	var directRoomIDs []uuid.UUID
+	for _, membership := range memberships {
+		if membership.ChatRoom != nil && membership.ChatRoom.Kind == models.RoomKindDirect {
+			directRoomIDs = append(directRoomIDs, membership.ChatRoom.ID)
+		}
+	}
+	peerMap, err := s.store.DirectPeerTenants(viewerTenantID, directRoomIDs)
+	if err != nil {
+		return nil, err
+	}
+	peers := make([]models.Tenant, 0, len(peerMap))
+	for _, peer := range peerMap {
+		peers = append(peers, peer)
+	}
+	sort.Slice(peers, func(i, j int) bool {
+		return strings.ToLower(tenantName(peers[i])) < strings.ToLower(tenantName(peers[j]))
+	})
+	return peers, nil
+}
+
 func (s *Service) CreateGroup(creatorTenantID uuid.UUID, req CreateGroupRequest) (models.ChatRoom, error) {
-	return s.store.CreateGroupRoom(creatorTenantID, req.Title, req.Topic)
+	allowedPeers, err := s.ListDirectChatPeers(creatorTenantID)
+	if err != nil {
+		return models.ChatRoom{}, err
+	}
+	allowed := make(map[uuid.UUID]struct{}, len(allowedPeers))
+	for _, peer := range allowedPeers {
+		allowed[peer.ID] = struct{}{}
+	}
+	memberIDs := make([]uuid.UUID, 0, len(req.MemberIDs))
+	for _, id := range req.MemberIDs {
+		if id == uuid.Nil || id == creatorTenantID {
+			continue
+		}
+		if _, ok := allowed[id]; !ok {
+			return models.ChatRoom{}, ErrValidation
+		}
+		memberIDs = append(memberIDs, id)
+	}
+	return s.store.CreateGroupRoom(creatorTenantID, req.Title, req.Topic, memberIDs)
 }
 
 func (s *Service) SendMessage(tenantID, roomID uuid.UUID, body string) (models.Message, error) {

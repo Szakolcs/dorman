@@ -24,6 +24,7 @@ templ PublicationsPage(publications []PublicationCardItem, activeKind string) {
 				<p class="dm-empty">No publications found.</p>
 			}
 		</div>
+		<script src="/static/js/publications.js"></script>
 	}
 }
 
@@ -50,6 +51,7 @@ templ PublicationKindFilterButton(label string, kind string, activeKind string) 
 
 templ PublicationCard(item PublicationCardItem, activeKind string) {
 	<article
+		id={ publicationCardID(item.ID) }
 		class={
 			templ.KV("dm-publication-card", true),
 			templ.KV("dm-publication-card-tenant", true),
@@ -101,7 +103,8 @@ templ ActivityBookActions(activityID uuid.UUID, stats *administration.ActivitySt
 	if bookedByViewer {
 		<form
 			hx-post={ templ.SafeURL(activityCancelURL(activityID, returnURL)) }
-			hx-swap="none"
+			hx-target={ "#" + activityBookTargetID(activityID, returnURL) }
+			hx-swap="outerHTML"
 			class="dm-activity-book-form"
 		>
 			<button type="submit" class="dm-activity-action-btn dm-activity-cancel-btn">Cancel booking</button>
@@ -111,7 +114,8 @@ templ ActivityBookActions(activityID uuid.UUID, stats *administration.ActivitySt
 	} else {
 		<form
 			hx-post={ templ.SafeURL(activityBookURL(activityID, returnURL)) }
-			hx-swap="none"
+			hx-target={ "#" + activityBookTargetID(activityID, returnURL) }
+			hx-swap="outerHTML"
 			class="dm-activity-book-form"
 		>
 			<button type="submit" class="dm-activity-action-btn dm-activity-book-btn">Book</button>
@@ -187,25 +191,30 @@ templ ActivityDetailPage(activity models.Activity, bookedByViewer bool) {
 		<div class="dm-page">
 			<a href="/tenant" class="dm-back-link">&larr; Back to publications</a>
 			@PublicationDetailHeader(activity.Title, activity.Description, administration.PublicationKindActivity)
-			<div class="dm-card dm-card-with-footer">
-				<div class="dm-card-body">
-					<dl>
-						@DetailRow("Capacity", fmt.Sprintf("%d", activity.Capacity))
-						@DetailRow("Booked", fmt.Sprintf("%d", activity.BookedCount))
-						@DetailRow("Spots left", fmt.Sprintf("%d", activitySpotsFromActivity(activity)))
-					</dl>
-				</div>
-				<div class="dm-publication-card-footer dm-publication-card-footer-activity">
-					@ActivityBookActions(
-						activity.ID,
-						activityStatsFromActivity(activity),
-						bookedByViewer,
-						activityDetailReturnURL(activity.ID),
-					)
-				</div>
-			</div>
+			@ActivityDetailCard(activity, bookedByViewer)
 		</div>
+		<script src="/static/js/publications.js"></script>
 	}
+}
+
+templ ActivityDetailCard(activity models.Activity, bookedByViewer bool) {
+	<div id={ activityDetailCardID(activity.ID) } class="dm-card dm-card-with-footer">
+		<div class="dm-card-body">
+			<dl>
+				@DetailRow("Capacity", fmt.Sprintf("%d", activity.Capacity))
+				@DetailRow("Booked", fmt.Sprintf("%d", activity.BookedCount))
+				@DetailRow("Spots left", fmt.Sprintf("%d", activitySpotsFromActivity(activity)))
+			</dl>
+		</div>
+		<div class="dm-publication-card-footer dm-publication-card-footer-activity">
+			@ActivityBookActions(
+				activity.ID,
+				activityStatsFromActivity(activity),
+				bookedByViewer,
+				activityDetailReturnURL(activity.ID),
+			)
+		</div>
+	</div>
 }
 
 templ EventDetailPage(event models.Event, viewerIntent string) {

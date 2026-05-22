@@ -17,8 +17,9 @@ type Store interface {
 	ListMessages(roomID uuid.UUID) ([]models.Message, error)
 	CreateMessage(message models.Message) error
 	SearchTenants(excludeTenantID uuid.UUID, query string, limit int) ([]models.Tenant, error)
+	DirectPeerTenants(viewerTenantID uuid.UUID, roomIDs []uuid.UUID) (map[uuid.UUID]models.Tenant, error)
 	OpenDirectRoom(tenantA, tenantB uuid.UUID) (models.ChatRoom, error)
-	CreateGroupRoom(creatorTenantID uuid.UUID, title, topic string) (models.ChatRoom, error)
+	CreateGroupRoom(creatorTenantID uuid.UUID, title, topic string, memberIDs []uuid.UUID) (models.ChatRoom, error)
 }
 
 type GormStore struct {
@@ -95,16 +96,34 @@ func (s *GormStore) SearchTenants(excludeTenantID uuid.UUID, query string, limit
 	var tenants []models.Tenant
 	err := s.db.
 		Preload("User").
-		Joins("LEFT JOIN users ON users.id = tenants.user_id").
+		Joins("INNER JOIN users ON users.id = tenants.user_id").
 		Where("tenants.id != ? AND tenants.is_active = ?", excludeTenantID, true).
-		Where(
-			"LOWER(tenants.student_code) LIKE ? OR LOWER(users.name) LIKE ? OR LOWER(users.nickname) LIKE ?",
-			pattern, pattern, pattern,
-		).
-		Order("tenants.student_code ASC").
+		Where("LOWER(users.name) LIKE ?", pattern).
+		Order("users.name ASC").
 		Limit(limit).
 		Find(&tenants).Error
 	return tenants, err
+}
+
+func (s *GormStore) DirectPeerTenants(viewerTenantID uuid.UUID, roomIDs []uuid.UUID) (map[uuid.UUID]models.Tenant, error) {
+	peers := make(map[uuid.UUID]models.Tenant)
+	if viewerTenantID == uuid.Nil || len(roomIDs) == 0 {
+		return peers, nil
+	}
+	var memberships []models.Membership
+	err := s.db.
+		Preload("Tenant.User").
+		Where("room_id IN ? AND tenant_id != ?", roomIDs, viewerTenantID).
+		Find(&memberships).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, membership := range memberships {
+		if membership.Tenant != nil {
+			peers[membership.RoomID] = *membership.Tenant
+		}
+	}
+	return peers, err
 }
 
 func directPairKey(a, b uuid.UUID) string {
@@ -156,7 +175,7 @@ func (s *GormStore) OpenDirectRoom(tenantA, tenantB uuid.UUID) (models.ChatRoom,
 	return room, err
 }
 
-func (s *GormStore) CreateGroupRoom(creatorTenantID uuid.UUID, title, topic string) (models.ChatRoom, error) {
+func (s *GormStore) CreateGroupRoom(creatorTenantID uuid.UUID, title, topic string, memberIDs []uuid.UUID) (models.ChatRoom, error) {
 	if creatorTenantID == uuid.Nil {
 		return models.ChatRoom{}, ErrValidation
 	}
@@ -175,12 +194,31 @@ func (s *GormStore) CreateGroupRoom(creatorTenantID uuid.UUID, title, topic stri
 		if err := tx.Create(&room).Error; err != nil {
 			return err
 		}
-		return tx.Create(&models.Membership{
-			RoomID:   room.ID,
-			TenantID: creatorTenantID,
-			Role:     models.MembershipRoleAdmin,
-			JoinedAt: time.Now(),
-		}).Error
+		now := time.Now()
+		members := append([]uuid.UUID{creatorTenantID}, memberIDs...)
+		seen := make(map[uuid.UUID]struct{}, len(members))
+		for _, tenantID := range members {
+			if tenantID == uuid.Nil {
+				continue
+			}
+			if _, ok := seen[tenantID]; ok {
+				continue
+			}
+			seen[tenantID] = struct{}{}
+			role := models.MembershipRoleMember
+			if tenantID == creatorTenantID {
+				role = models.MembershipRoleAdmin
+			}
+			if err := tx.Create(&models.Membership{
+				RoomID:   room.ID,
+				TenantID: tenantID,
+				Role:     role,
+				JoinedAt: now,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 	return room, err
 }

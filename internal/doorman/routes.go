@@ -20,5 +20,5 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB, auth echo.MiddlewareFunc) {
 	doorman.GET("/access/tenant", h.createTenantAccess)
 	doorman.GET("/guests", h.listGuest)
 	doorman.POST("/register/guest", h.registerGuest)
-	doorman.DELETE("/leave/guest", h.deleteGuest)
+	doorman.DELETE("/leave/guest/:guestID", h.deleteGuest)
 }

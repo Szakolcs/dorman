@@ -22,7 +22,9 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) dashboardPage(c echo.Context) error {
-	tickets, err := h.service.ListTickets(TicketFilter{})
+	tickets, err := h.service.ListTickets(TicketFilter{
+		Statuses: []models.Status{models.StatusReported},
+	})
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -41,7 +43,29 @@ func (h *Handler) ticketsPage(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return renderComponent(c, maintenanceviews.TicketsPage(tickets))
+	listFilter := ticketListFilterFromQuery(filter, c.QueryParam("from"), c.QueryParam("to"))
+	if isHTMX(c) {
+		return renderComponent(c, maintenanceviews.TicketsPanel(tickets, listFilter))
+	}
+	return renderComponent(c, maintenanceviews.TicketsPage(tickets, listFilter))
+}
+
+func ticketListFilterFromQuery(filter TicketFilter, from, to string) maintenanceviews.TicketListFilter {
+	out := maintenanceviews.TicketListFilter{From: from, To: to}
+	for _, s := range filter.Statuses {
+		out.Statuses = append(out.Statuses, string(s))
+	}
+	for _, c := range filter.Categories {
+		out.Categories = append(out.Categories, string(c))
+	}
+	for _, s := range filter.Severities {
+		out.Severities = append(out.Severities, string(s))
+	}
+	return out
+}
+
+func isHTMX(c echo.Context) bool {
+	return c.Request().Header.Get("HX-Request") == "true"
 }
 
 func (h *Handler) ticketDetailPage(c echo.Context) error {

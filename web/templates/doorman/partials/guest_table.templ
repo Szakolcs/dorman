@@ -1,0 +1,53 @@
+package doormanviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ GuestTable(guests []models.GuestEntry, tenants []models.Tenant) {
+	@partials.TableWrap() {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Guest</th>
+					<th class={ partials.Cls.TableTh }>ID Notes</th>
+					<th class={ partials.Cls.TableTh }>Status</th>
+					<th class={ partials.Cls.TableTh }>Host Tenant</th>
+					<th class={ partials.Cls.TableTh }>Action</th>
+				</tr>
+			</thead>
+			<tbody>
+				@GuestRegisterForm(tenants)
+				for _, guest := range guests {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>
+							{ guest.GuestName }
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							{ guest.IDNotes }
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							registered
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							@HostTenantLabel(guest)
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							<form
+								hx-delete={ "/doorman/leave/guest/" + guest.ID.String() }
+								hx-swap="none"
+								hx-confirm="Remove this guest?"
+								class="m-0"
+							>
+								<button type="submit" class={ partials.Cls.ButtonDanger }>
+									Delete
+								</button>
+							</form>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

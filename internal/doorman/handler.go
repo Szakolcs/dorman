@@ -3,6 +3,7 @@ package doorman
 import (
 	"dorm-man/internal/models"
 	doormanviews "dorm-man/web/templates/doorman/pages"
+	dv "dorm-man/web/templates/doorman/partials"
 	"errors"
 	"fmt"
 	"net/http"
@@ -37,9 +38,14 @@ func (h *Handler) dashboardPage(c echo.Context) error {
 }
 
 func (h *Handler) listGuest(c echo.Context) error {
-	filter, err := guestFilter(c)
-	if err != nil {
-		return h.writeError(c, err)
+	form := accessFilterFormValues(c)
+	filter := GuestFilter{}
+	if c.Request().Header.Get("HX-Request") == "true" {
+		var err error
+		filter, err = guestFilterFromForm(form, c)
+		if err != nil {
+			return h.writeError(c, err)
+		}
 	}
 	guests, err := h.service.ListGuests(filter)
 	if err != nil {
@@ -49,7 +55,18 @@ func (h *Handler) listGuest(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return renderComponent(c, doormanviews.GuestsPage(guests, tenants))
+	if c.Request().Header.Get("HX-Request") == "true" {
+		return renderComponent(c, dv.GuestTable(guests, tenants))
+	}
+	return renderComponent(c, doormanviews.GuestsPage(
+		guests,
+		tenants,
+		form.FromDate,
+		form.ToDate,
+		form.FromHour,
+		form.ToHour,
+		form.Status,
+	))
 }
 
 func (h *Handler) registerGuest(c echo.Context) error {
@@ -80,15 +97,30 @@ func (h *Handler) deleteGuest(c echo.Context) error {
 }
 
 func (h *Handler) listTenantAccess(c echo.Context) error {
-	filter, err := tenantAccessFilter(c)
-	if err != nil {
-		return h.writeError(c, err)
+	form := accessFilterFormValues(c)
+	filter := TenantAccessFilter{}
+	if c.Request().Header.Get("HX-Request") == "true" {
+		var err error
+		filter, err = tenantAccessFilterFromForm(form, c)
+		if err != nil {
+			return h.writeError(c, err)
+		}
 	}
 	entries, err := h.service.ListTenantAccess(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return renderComponent(c, doormanviews.TenantAccessPage(entries))
+	if c.Request().Header.Get("HX-Request") == "true" {
+		return renderComponent(c, dv.TenantAccessTable(entries))
+	}
+	return renderComponent(c, doormanviews.TenantAccessPage(
+		entries,
+		form.FromDate,
+		form.ToDate,
+		form.FromHour,
+		form.ToHour,
+		form.Status,
+	))
 }
 
 func (h *Handler) createTenantAccess(c echo.Context) error {
@@ -114,7 +146,40 @@ func (h *Handler) createTenantAccess(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func guestFilter(c echo.Context) (GuestFilter, error) {
+func accessFilterFormValues(c echo.Context) AccessFilterForm {
+	now := time.Now()
+	form := AccessFilterForm{
+		FromDate: now.Format(time.DateOnly),
+		FromHour: now.Format("15:04"),
+		Status:   "checked_in",
+	}
+
+	if c.Request().Header.Get("HX-Request") != "true" {
+		return form
+	}
+
+	if from := c.QueryParam("from"); from != "" {
+		form.FromDate = from
+	}
+	if to := c.QueryParam("to"); to != "" {
+		form.ToDate = to
+	}
+	if fromHour := c.QueryParam("from_hour"); fromHour != "" {
+		form.FromHour = fromHour
+	} else {
+		form.FromHour = "00:00"
+	}
+	if toHour := c.QueryParam("to_hour"); toHour != "" {
+		form.ToHour = toHour
+	}
+	if status := c.QueryParam("status"); status != "" {
+		form.Status = status
+	}
+
+	return form
+}
+
+func guestFilterFromForm(form AccessFilterForm, c echo.Context) (GuestFilter, error) {
 	filter := GuestFilter{}
 	if tenantID := c.QueryParam("tenant_id"); tenantID != "" {
 		id, err := uuid.Parse(tenantID)
@@ -123,27 +188,27 @@ func guestFilter(c echo.Context) (GuestFilter, error) {
 		}
 		filter.TenantID = id
 	}
-	if status := c.QueryParam("status"); status != "" {
-		filter.Status = models.AccessStatus(status)
+	if form.Status != "" {
+		filter.Status = models.AccessStatus(form.Status)
 	}
-	if from := c.QueryParam("from"); from != "" {
-		t, err := time.Parse(time.DateOnly, from)
+	if form.FromDate != "" {
+		from, err := combineFilterDateTime(form.FromDate, form.FromHour, false)
 		if err != nil {
 			return GuestFilter{}, ErrValidation
 		}
-		filter.From = t
+		filter.From = from
 	}
-	if to := c.QueryParam("to"); to != "" {
-		t, err := time.Parse(time.DateOnly, to)
+	if form.ToDate != "" {
+		to, err := combineFilterDateTime(form.ToDate, form.ToHour, form.ToHour == "")
 		if err != nil {
 			return GuestFilter{}, ErrValidation
 		}
-		filter.To = t
+		filter.To = to
 	}
 	return filter, nil
 }
 
-func tenantAccessFilter(c echo.Context) (TenantAccessFilter, error) {
+func tenantAccessFilterFromForm(form AccessFilterForm, c echo.Context) (TenantAccessFilter, error) {
 	filter := TenantAccessFilter{}
 	if tenantID := c.QueryParam("tenant_id"); tenantID != "" {
 		id, err := uuid.Parse(tenantID)
@@ -152,24 +217,51 @@ func tenantAccessFilter(c echo.Context) (TenantAccessFilter, error) {
 		}
 		filter.TenantID = id
 	}
-	if status := c.QueryParam("status"); status != "" {
-		filter.Status = models.AccessStatus(status)
+	if form.Status != "" {
+		filter.Status = models.AccessStatus(form.Status)
 	}
-	if from := c.QueryParam("from"); from != "" {
-		t, err := time.Parse(time.DateOnly, from)
+	if form.FromDate != "" {
+		from, err := combineFilterDateTime(form.FromDate, form.FromHour, false)
 		if err != nil {
 			return TenantAccessFilter{}, ErrValidation
 		}
-		filter.From = t
+		filter.From = from
 	}
-	if to := c.QueryParam("to"); to != "" {
-		t, err := time.Parse(time.DateOnly, to)
+	if form.ToDate != "" {
+		to, err := combineFilterDateTime(form.ToDate, form.ToHour, form.ToHour == "")
 		if err != nil {
 			return TenantAccessFilter{}, ErrValidation
 		}
-		filter.To = t
+		filter.To = to
 	}
 	return filter, nil
+}
+
+func combineFilterDateTime(dateStr, timeStr string, endOfDay bool) (time.Time, error) {
+	date, err := time.ParseInLocation(time.DateOnly, dateStr, time.Local)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if timeStr == "" {
+		if endOfDay {
+			return time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 999999999, time.Local), nil
+		}
+		return date, nil
+	}
+	clock, err := time.Parse("15:04", timeStr)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Date(
+		date.Year(),
+		date.Month(),
+		date.Day(),
+		clock.Hour(),
+		clock.Minute(),
+		0,
+		0,
+		time.Local,
+	), nil
 }
 
 func renderComponent(c echo.Context, component templ.Component) error {

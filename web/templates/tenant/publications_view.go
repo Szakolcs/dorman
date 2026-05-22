@@ -17,6 +17,36 @@ type PublicationCardItem struct {
 	ViewerEventIntent string
 }
 
+func publicationCardID(id uuid.UUID) string {
+	return "publication-" + id.String()
+}
+
+func activityDetailCardID(id uuid.UUID) string {
+	return "activity-detail-" + id.String()
+}
+
+func activeKindFromReturn(returnURL string) string {
+	if returnURL == "" {
+		return ""
+	}
+	u, err := url.Parse(returnURL)
+	if err != nil {
+		return ""
+	}
+	return u.Query().Get("kind")
+}
+
+func activityBookTargetID(activityID uuid.UUID, returnURL string) string {
+	if strings.Contains(returnURL, "/publications/") {
+		return activityDetailCardID(activityID)
+	}
+	return publicationCardID(activityID)
+}
+
+func ActiveKindFromReturn(returnURL string) string {
+	return activeKindFromReturn(returnURL)
+}
+
 func publicationKindFilterURL(kind string, activeKind string) string {
 	if activeKind == kind {
 		return "/tenant"

@@ -77,7 +77,7 @@ var Cls = classes{
 	Textarea:        "dm-textarea",
 	Button:          "dm-button",
 	ButtonSecondary: "dm-button-secondary",
-	ButtonDanger:    "dm-button-danger",
+	ButtonDanger:    "dm-button dm-button-danger",
 	DetailRow:       "dm-detail-row",
 	DetailLabel:     "dm-detail-label",
 	DetailValue:     "dm-detail-value",

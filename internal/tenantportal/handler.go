@@ -101,10 +101,10 @@ func (h *Handler) bookActivity(c echo.Context) error {
 	if err := h.admin.BookActivity(actorID, id); err != nil {
 		return h.writeError(c, err)
 	}
-	redirect := c.QueryParam("return")
-	if redirect == "" || !strings.HasPrefix(redirect, "/tenant") {
-		redirect = "/tenant/publications/" + id.String()
+	if isHTMX(c) {
+		return h.renderActivityBookResponse(c, actorID, id, c.QueryParam("return"))
 	}
+	redirect := activityBookRedirect(c, id)
 	c.Response().Header().Set("HX-Redirect", redirect)
 	return c.NoContent(http.StatusOK)
 }
@@ -121,12 +121,57 @@ func (h *Handler) cancelActivityBooking(c echo.Context) error {
 	if err := h.admin.CancelActivityBooking(actorID, id); err != nil {
 		return h.writeError(c, err)
 	}
-	redirect := c.QueryParam("return")
-	if redirect == "" || !strings.HasPrefix(redirect, "/tenant") {
-		redirect = "/tenant/publications/" + id.String()
+	if isHTMX(c) {
+		return h.renderActivityBookResponse(c, actorID, id, c.QueryParam("return"))
 	}
+	redirect := activityBookRedirect(c, id)
 	c.Response().Header().Set("HX-Redirect", redirect)
 	return c.NoContent(http.StatusOK)
+}
+
+func activityBookRedirect(c echo.Context, activityID uuid.UUID) string {
+	redirect := c.QueryParam("return")
+	if redirect == "" || !strings.HasPrefix(redirect, "/tenant") {
+		redirect = "/tenant/publications/" + activityID.String()
+	}
+	return redirect
+}
+
+func (h *Handler) renderActivityBookResponse(c echo.Context, actorID, activityID uuid.UUID, returnURL string) error {
+	detail, err := h.admin.GetPublication(activityID)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if detail.Kind != administration.PublicationKindActivity || detail.Activity == nil {
+		return h.writeError(c, administration.ErrNotFound)
+	}
+	booked, err := h.admin.HasActivityBooking(actorID, activityID)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if strings.Contains(returnURL, "/publications/") {
+		return renderComponent(c, tenantviews.ActivityDetailCard(*detail.Activity, booked))
+	}
+	item, err := h.activityPublicationCardItem(actorID, *detail.Activity, booked)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, tenantviews.PublicationCard(item, tenantviews.ActiveKindFromReturn(returnURL)))
+}
+
+func (h *Handler) activityPublicationCardItem(actorID uuid.UUID, activity models.Activity, booked bool) (tenantviews.PublicationCardItem, error) {
+	_ = actorID
+	return tenantviews.PublicationCardItem{
+		PublicationListItem: administration.PublicationListItem{
+			Publication: models.Publication{Post: activity.Post},
+			Kind:        administration.PublicationKindActivity,
+			Activity: &administration.ActivityStats{
+				Capacity:    activity.Capacity,
+				BookedCount: activity.BookedCount,
+			},
+		},
+		BookedByViewer: booked,
+	}, nil
 }
 
 func (h *Handler) setEventIntent(c echo.Context) error {
@@ -283,7 +328,11 @@ func (h *Handler) chatPage(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return renderComponent(c, tenantviews.ChatPage(result, roomID, messages, tenant.ID))
+	directPeers, err := h.chat.ListDirectChatPeers(tenant.ID)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, tenantviews.ChatPage(result, roomID, messages, tenant.ID, directPeers))
 }
 
 func (h *Handler) chatSidebarFragment(c echo.Context) error {
@@ -332,9 +381,14 @@ func (h *Handler) createGroupChat(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
+	memberIDs, err := parseFormUUIDs(c, "members")
+	if err != nil {
+		return h.writeError(c, err)
+	}
 	room, err := h.chat.CreateGroup(tenant.ID, chat.CreateGroupRequest{
-		Title: c.FormValue("title"),
-		Topic: c.FormValue("topic"),
+		Title:     c.FormValue("title"),
+		Topic:     c.FormValue("topic"),
+		MemberIDs: memberIDs,
 	})
 	if err != nil {
 		return h.writeError(c, err)
@@ -342,16 +396,34 @@ func (h *Handler) createGroupChat(c echo.Context) error {
 	return h.renderChatOpened(c, tenant, room)
 }
 
+func parseFormUUIDs(c echo.Context, key string) ([]uuid.UUID, error) {
+	if err := c.Request().ParseForm(); err != nil {
+		return nil, chat.ErrValidation
+	}
+	raw := c.Request().PostForm[key]
+	if len(raw) == 0 {
+		return nil, nil
+	}
+	out := make([]uuid.UUID, 0, len(raw))
+	for _, value := range raw {
+		id, err := uuid.Parse(value)
+		if err != nil {
+			return nil, chat.ErrValidation
+		}
+		out = append(out, id)
+	}
+	return out, nil
+}
+
 func (h *Handler) renderChatOpened(c echo.Context, tenant models.Tenant, room models.ChatRoom) error {
 	messages, err := h.chatMessagesForRoom(tenant.ID, room.ID)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	memberships, err := h.chat.ListRooms(tenant.ID)
+	result, err := h.chat.SearchChats(tenant.ID, "")
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	result := tenantviews.SidebarResultFromMemberships(memberships, "")
 	c.Response().Header().Set("HX-Push-Url", tenantviews.ChatRoomURL(room.ID))
 	return renderComponent(c, tenantviews.ChatOpenedUpdate(result, room, messages, tenant.ID))
 }
@@ -361,11 +433,10 @@ func (h *Handler) renderChatPanel(c echo.Context, tenant models.Tenant, roomID u
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	memberships, err := h.chat.ListRooms(tenant.ID)
+	title, err := h.chat.RoomDisplayTitle(tenant.ID, roomID)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	title := tenantviews.RoomTitle(memberships, roomID)
 	return renderComponent(c, tenantviews.ChatPanel(roomID, messages, tenant.ID, title))
 }
 

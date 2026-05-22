@@ -4,84 +4,130 @@ import (
 	"dorm-man/web/templates/common/partials"
 )
 
-templ TenantAccessFilters() {
+templ AccessStatusFilter(status string) {
+	<div class="dm-access-status-filters" data-access-status-filters>
+		<input type="hidden" name="status" value={ status }/>
+		<button
+			type="button"
+			data-access-status="checked_in"
+			class={
+				templ.KV("dm-tenant-kind-filter", true),
+				templ.KV("dm-tenant-kind-filter-active", status == "checked_in"),
+			}
+		>
+			Checked In
+		</button>
+		<button
+			type="button"
+			data-access-status="checked_out"
+			class={
+				templ.KV("dm-tenant-kind-filter", true),
+				templ.KV("dm-tenant-kind-filter-active", status == "checked_out"),
+			}
+		>
+			Checked Out
+		</button>
+	</div>
+}
+
+templ TenantAccessFilters(fromDate, toDate, fromHour, toHour, status string) {
 	<form
+		id="tenant-access-filters"
 		hx-get="/doorman/list/tenants"
 		hx-target="#tenant-access-table"
 		hx-swap="innerHTML"
-		class={ partials.Cls.FilterBar }
+		hx-trigger="change from:input[type='date'], change from:input[type='time'], tenant-filter"
+		data-filter-trigger="tenant-filter"
+		class="dm-access-filter-bar"
 	>
-		<input
-			type="date"
-			name="from"
-			class={ partials.Cls.Input }
-		/>
-		<input
-			type="date"
-			name="to"
-			class={ partials.Cls.Input }
-		/>
-		<select
-			name="status"
-			class={ partials.Cls.Select }
-		>
-			<option value="">
-				All Statuses
-			</option>
-
-			<option value="checked_in">
-				Checked In
-			</option>
-
-			<option value="checked_out">
-				Checked Out
-			</option>
-		</select>
-		<button
-			type="submit"
-			class={ partials.Cls.Button }
-		>
-			Filter
-		</button>
+		<label class="dm-field">
+			<span class="dm-label">Date</span>
+			<div class="dm-datetime-fields">
+				<input
+					type="date"
+					name="from"
+					value={ fromDate }
+					class={ partials.Cls.Input }
+				/>
+				<input
+					type="date"
+					name="to"
+					value={ toDate }
+					class={ partials.Cls.Input }
+				/>
+			</div>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Time</span>
+			<div class="dm-datetime-fields">
+				<input
+					type="time"
+					name="from_hour"
+					value={ fromHour }
+					class={ partials.Cls.Input }
+				/>
+				<input
+					type="time"
+					name="to_hour"
+					value={ toHour }
+					class={ partials.Cls.Input }
+				/>
+			</div>
+		</label>
+		<div class="dm-field">
+			<span class="dm-label">Status</span>
+			@AccessStatusFilter(status)
+		</div>
 	</form>
 }
 
-templ GuestFilters() {
+templ GuestFilters(fromDate, toDate, fromHour, toHour, status string) {
 	<form
-		hx-get="/doorman/list/guests"
+		id="guest-filters"
+		hx-get="/doorman/guests"
 		hx-target="#guest-table"
 		hx-swap="innerHTML"
-		class={ partials.Cls.FilterBar }
+		hx-trigger="change from:input[type='date'], change from:input[type='time'], guest-filter"
+		data-filter-trigger="guest-filter"
+		class="dm-access-filter-bar"
 	>
-		<input
-			type="date"
-			name="from"
-			class={ partials.Cls.Input }
-		/>
-		<input
-			type="date"
-			name="to"
-			class={ partials.Cls.Input }
-		/>
-		<select
-			name="status"
-			class={ partials.Cls.Select }
-		>
-			<option value="">
-				All Guests
-			</option>
-			<option value="checked_in">
-				Checked In
-			</option>
-			<option value="checked_out">
-				Checked Out
-			</option>
-		</select>
-		<button
-			type="submit"
-			class={ partials.Cls.Button }
-		>
-			Filter
-		</button>
+		<label class="dm-field">
+			<span class="dm-label">Date</span>
+			<div class="dm-datetime-fields">
+				<input
+					type="date"
+					name="from"
+					value={ fromDate }
+					class={ partials.Cls.Input }
+				/>
+				<input
+					type="date"
+					name="to"
+					value={ toDate }
+					class={ partials.Cls.Input }
+				/>
+			</div>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Time</span>
+			<div class="dm-datetime-fields">
+				<input
+					type="time"
+					name="from_hour"
+					value={ fromHour }
+					class={ partials.Cls.Input }
+				/>
+				<input
+					type="time"
+					name="to_hour"
+					value={ toHour }
+					class={ partials.Cls.Input }
+				/>
+			</div>
+		</label>
+		<div class="dm-field">
+			<span class="dm-label">Status</span>
+			@AccessStatusFilter(status)
+		</div>
 	</form>
 }

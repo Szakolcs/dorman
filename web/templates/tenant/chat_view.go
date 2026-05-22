@@ -3,7 +3,6 @@ package tenantviews
 import (
 	"fmt"
 
-	"dorm-man/internal/chat"
 	"dorm-man/internal/models"
 
 	"github.com/google/uuid"
@@ -11,14 +10,6 @@ import (
 
 func ChatRoomURL(roomID uuid.UUID) string {
 	return chatRoomURL(roomID)
-}
-
-func RoomTitle(memberships []models.Membership, roomID uuid.UUID) string {
-	return roomTitle(memberships, roomID)
-}
-
-func SidebarResultFromMemberships(memberships []models.Membership, query string) chat.SearchResult {
-	return sidebarResultFromMemberships(memberships, query)
 }
 
 func chatRoomURL(roomID uuid.UUID) string {
@@ -64,19 +55,14 @@ func tenantDisplayName(tenant models.Tenant) string {
 	if tenant.User != nil && tenant.User.Name != "" {
 		return tenant.User.Name
 	}
-	if tenant.StudentCode != "" {
-		return tenant.StudentCode
-	}
 	return "Tenant"
 }
 
-func roomTitle(memberships []models.Membership, roomID uuid.UUID) string {
-	for _, membership := range memberships {
-		if membership.ChatRoom != nil && membership.ChatRoom.ID == roomID {
-			return membership.ChatRoom.Title
-		}
+func chatRoomDisplayTitle(room models.ChatRoom, displayTitle string) string {
+	if displayTitle != "" {
+		return displayTitle
 	}
-	return ""
+	return room.Title
 }
 
 func messageSenderLabel(message models.Message) string {
@@ -99,12 +85,5 @@ func roomKindLabel(kind models.RoomKind) string {
 		return "Event"
 	default:
 		return string(kind)
-	}
-}
-
-func sidebarResultFromMemberships(memberships []models.Membership, query string) chat.SearchResult {
-	return chat.SearchResult{
-		Rooms: memberships,
-		Query: query,
 	}
 }

@@ -6,56 +6,16 @@ import (
 	dv "dorm-man/web/templates/doorman/partials"
 )
 
-templ GuestsPage(guests []models.GuestEntry,tenants []models.Tenant) {
+templ GuestsPage(guests []models.GuestEntry, tenants []models.Tenant, fromDate, toDate, fromHour, toHour, status string) {
 	@dv.Layout("Guests") {
 		@dv.Navigation()
 		<div class={ partials.Cls.Page }>
 			@partials.PageHeader("Guests", "Register and manage guest access.")
-			@dv.GuestFilters()
+			@dv.GuestFilters(fromDate, toDate, fromHour, toHour, status)
 			<div id="guest-table" class={ partials.Cls.Card }>
-				@partials.TableWrap() {
-					<table class={ partials.Cls.Table }>
-					<thead class={ partials.Cls.TableHead }>
-						<tr class={ partials.Cls.TableTr }>
-							<th class={ partials.Cls.TableTh }>Guest</th>
-							<th class={ partials.Cls.TableTh }>ID Notes</th>
-							<th class={ partials.Cls.TableTh }>Status</th>
-							<th class={ partials.Cls.TableTh }>Host Tenant</th>
-							<th class={ partials.Cls.TableTh }>Action</th>
-						</tr>
-					</thead>
-					<tbody>
-						@dv.GuestRegisterForm(tenants)
-						for _, guest := range guests {
-							<tr class={ partials.Cls.TableTr }>
-								<td class={ partials.Cls.TableTd }>
-									{ guest.GuestName }
-								</td>
-								<td class={ partials.Cls.TableTd }>
-									{ guest.IDNotes }
-								</td>
-								<td class={ partials.Cls.TableTd }>
-									registered
-								</td>
-								<td class={ partials.Cls.TableTd }>
-									@dv.HostTenantLabel(guest)
-								</td>
-								<td class={ partials.Cls.TableTd }>
-									<button
-										hx-delete={ "/doorman/leave/guest/" + guest.ID.String() }
-										hx-target="#guest-table"
-										hx-swap="outerHTML"
-										class={ partials.Cls.ButtonDanger }
-									>
-										Delete
-									</button>
-								</td>
-							</tr>
-						}
-					</tbody>
-				</table>
-				}
+				@dv.GuestTable(guests, tenants)
 			</div>
 		</div>
+		<script src="/static/js/doorman-filters.js"></script>
 	}
 }

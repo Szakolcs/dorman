@@ -49,7 +49,7 @@
 		--color-bg-elevated: var(--nord1);
 		--color-surface: var(--nord2);
 		--color-foreground: var(--nord4);
-		--color-muted: var(--nord3);
+		--color-muted: color-mix(in srgb, var(--nord4) 85%, var(--nord0));
 		--color-accent: var(--nord8);
 		--color-accent-hover: var(--nord7);
 		--color-border: var(--nord2);
@@ -86,7 +86,7 @@
 	--color-bg-elevated: var(--nord1);
 	--color-surface: var(--nord2);
 	--color-foreground: var(--nord4);
-	--color-muted: var(--nord3);
+	--color-muted: color-mix(in srgb, var(--nord4) 85%, var(--nord0));
 	--color-accent: var(--nord8);
 	--color-accent-hover: var(--nord7);
 	--color-border: var(--nord2);
@@ -267,6 +267,10 @@
 
 	.dm-label {
 		@apply text-sm font-medium text-dm-fg;
+	}
+
+	.dm-field-hint {
+		@apply text-xs leading-relaxed text-dm-muted;
 	}
 
 	.dm-input,
@@ -772,11 +776,15 @@
 	}
 
 	.dm-chat-layout {
-		@apply grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)];
+		@apply grid min-h-[calc(100vh-11rem)] gap-4 lg:grid-cols-[280px_minmax(0,1fr)];
+	}
+
+	.dm-chat-main {
+		@apply flex min-h-0 flex-col;
 	}
 
 	.dm-chat-sidebar {
-		@apply flex flex-col gap-3;
+		@apply flex min-h-0 flex-col gap-3;
 	}
 
 	.dm-chat-search-form {
@@ -812,16 +820,20 @@
 		@apply px-1 text-sm text-dm-muted;
 	}
 
+	.dm-chat-sidebar-body {
+		@apply flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto;
+	}
+
 	.dm-chat-create-group {
-		@apply mt-1 py-4;
+		@apply mt-2 py-4;
 	}
 
 	.dm-chat-rooms {
-		@apply flex flex-col gap-2;
+		@apply flex flex-col gap-3;
 	}
 
 	.dm-chat-room-link {
-		@apply flex flex-col gap-1 rounded-2xl border border-dm-border bg-dm-elevated px-4 py-3 text-dm-fg no-underline transition;
+		@apply flex flex-col gap-1 rounded-2xl border border-dm-border bg-dm-elevated px-4 py-3.5 text-dm-fg no-underline transition;
 		@apply hover:border-dm-accent hover:shadow-sm;
 	}
 
@@ -838,11 +850,11 @@
 	}
 
 	.dm-chat-panel {
-		@apply flex min-h-[420px] flex-col rounded-2xl border border-dm-border bg-dm-elevated shadow-sm;
+		@apply flex h-full min-h-[32rem] flex-1 flex-col rounded-2xl border border-dm-border bg-dm-elevated shadow-sm;
 	}
 
 	.dm-chat-panel-empty {
-		@apply items-center justify-center p-8;
+		@apply h-full min-h-[32rem] items-center justify-center p-8;
 	}
 
 	.dm-chat-panel-header {
@@ -854,8 +866,7 @@
 	}
 
 	.dm-chat-messages {
-		@apply flex flex-1 flex-col gap-3 overflow-y-auto p-4;
-		max-height: 28rem;
+		@apply flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4;
 	}
 
 	.dm-chat-empty {
@@ -892,6 +903,35 @@
 
 	.dm-chat-compose-field {
 		@apply min-w-0 flex-1;
+	}
+
+	.dm-chat-member-picker {
+		@apply grid gap-3 sm:grid-cols-2;
+	}
+
+	.dm-chat-member-picker-column {
+		@apply flex min-h-0 flex-col gap-2;
+	}
+
+	.dm-chat-member-picker-label {
+		@apply text-xs font-semibold tracking-wide text-dm-muted uppercase;
+	}
+
+	.dm-chat-member-list {
+		@apply flex min-h-32 flex-col gap-2 overflow-y-auto rounded-xl border border-dm-border bg-dm-bg p-2;
+	}
+
+	.dm-chat-member-list-selected {
+		@apply bg-dm-surface/40;
+	}
+
+	.dm-chat-member-chip {
+		@apply w-full cursor-pointer rounded-lg border border-dm-border bg-dm-elevated px-3 py-2 text-left text-sm font-medium text-dm-fg transition;
+		@apply hover:border-dm-accent hover:bg-dm-accent/10 hover:text-dm-accent;
+	}
+
+	.dm-chat-member-list-selected .dm-chat-member-chip {
+		@apply border-dm-accent/40 bg-dm-accent/10;
 	}
 
 	/* Tenant tickets */
@@ -1053,6 +1093,26 @@
 
 	.dm-filter-bar {
 		@apply mb-6 flex flex-wrap items-end gap-4 rounded-2xl border border-dm-border bg-dm-elevated p-6 shadow-sm;
+	}
+
+	.dm-access-filter-bar {
+		@apply mb-6 grid grid-cols-1 gap-4 rounded-2xl border border-dm-border bg-dm-elevated p-6 shadow-sm md:grid-cols-3;
+	}
+
+	.dm-access-filter-bar .dm-field {
+		@apply min-w-0;
+	}
+
+	.dm-access-filter-bar .dm-datetime-fields {
+		@apply w-full;
+	}
+
+	.dm-access-status-filters {
+		@apply flex w-full gap-2;
+	}
+
+	.dm-access-status-filters .dm-tenant-kind-filter {
+		@apply min-w-0 flex-1 justify-center;
 	}
 
 	.dm-alert {

@@ -58,6 +58,18 @@ type GuestFilter struct {
 	Status   models.AccessStatus `json:"status"    query:"status"`
 }
 
+type AccessFilterForm struct {
+	FromDate string
+	ToDate   string
+	FromHour string
+	ToHour   string
+	Status   string
+}
+
+type GuestFilterForm = AccessFilterForm
+
+type TenantAccessFilterForm = AccessFilterForm
+
 type TenantAccessFilter struct {
 	TenantID uuid.UUID           `json:"tenant_id" query:"tenant_id"`
 	From     time.Time           `json:"from"      query:"from"`
