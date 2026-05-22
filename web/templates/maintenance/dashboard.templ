@@ -8,15 +8,8 @@ import (
 templ DashboardPage(tickets []models.Ticket) {
 	@Layout("Maintenance Dashboard") {
 		@StaffNavigation()
-		<div class="space-y-6">
-			<div>
-				<h1 class="mb-2 text-3xl font-bold">
-					Maintenance Dashboard
-				</h1>
-				<p class="text-dm-muted">
-					Recent reported tickets across the dormitory.
-				</p>
-			</div>
+		<div class={ partials.Cls.Page }>
+			@partials.PageHeader("Maintenance Dashboard", "Recent reported tickets across the dormitory.")
 			@partials.Card("Recent Tickets") {
 				@TicketTable(tickets, "/maintenance/tickets/")
 			}

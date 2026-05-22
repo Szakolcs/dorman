@@ -21,10 +21,9 @@ var (
 )
 
 type GuestData struct {
-	GuestID    uuid.UUID    `json:"guest_id"`
-	HostTenant *models.User `json:"host_tenant"`
-	GuestName  string       `json:"guest_name"`
-	IDNotes    string       `json:"id_notes"`
+	HostTenantID uuid.UUID `json:"host_tenant_id"`
+	GuestName    string    `json:"guest_name"`
+	IDNotes      string    `json:"id_notes"`
 }
 
 type GuestRegisterRequest struct {

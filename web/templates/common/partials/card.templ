@@ -1,11 +1,16 @@
 package partials
 
 templ Card(title string) {
-	<div class="rounded-xl border border-dm-border bg-dm-elevated p-6 shadow-sm">
-		<h2 class="mb-4 text-xl font-semibold">
+	<section class={ Cls.Card }>
+		<h2 class={ Cls.CardTitle }>
 			{ title }
 		</h2>
+		{ children... }
+	</section>
+}
 
+templ TableWrap() {
+	<div class={ Cls.TableWrap }>
 		{ children... }
 	</div>
 }

@@ -1,7 +1,96 @@
 package adminviews
 
-templ RegisterUserPage() {
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ RegisterUserPage(roles []models.Role) {
 	@Layout("Register User") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@PageHeader("Register user", "Create a staff account or a tenant login linked to a student record.")
+			@partials.Card("New account") {
+				<form class={ partials.Cls.FormGrid } hx-post="/administration/register/new" hx-swap="none">
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Name</span>
+						<input type="text" name="name" required class={ partials.Cls.Input }/>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Email</span>
+						<input type="email" name="email" required class={ partials.Cls.Input }/>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Nickname</span>
+						<input type="text" name="nickname" required class={ partials.Cls.Input }/>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Password</span>
+						<input type="password" name="password" required class={ partials.Cls.Input }/>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Role</span>
+						@RoleSelect(roles)
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Student code (tenants)</span>
+						<input type="text" name="student_code" placeholder="Optional for staff" class={ partials.Cls.Input }/>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Degree</span>
+						<select name="degree" class={ partials.Cls.Select }>
+							<option value="">—</option>
+							<option value="bsc">bsc</option>
+							<option value="ba">ba</option>
+							<option value="msc">msc</option>
+							<option value="ma">ma</option>
+							<option value="phd">phd</option>
+						</select>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Faculty</span>
+						<select name="faculty" class={ partials.Cls.Select }>
+							<option value="">—</option>
+							<option value="science">science</option>
+							<option value="humanities">humanities</option>
+							<option value="engineering">engineering</option>
+							<option value="medicine">medicine</option>
+						</select>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Age</span>
+						<input type="number" name="age" min="16" max="99" class={ partials.Cls.Input }/>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Sex</span>
+						<select name="sex" class={ partials.Cls.Select }>
+							<option value="">—</option>
+							<option value="female">female</option>
+							<option value="male">male</option>
+							<option value="other">other</option>
+						</select>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Nationality</span>
+						<select name="nationality" class={ partials.Cls.Select }>
+							<option value="">—</option>
+							<option value="hungarian">hungarian</option>
+							<option value="international">international</option>
+						</select>
+					</label>
+					<label class={ partials.Cls.Field + " md:col-span-2" }>
+						<span class={ partials.Cls.Label }>Avatar URL</span>
+						<input type="url" name="avatar_url" class={ partials.Cls.Input }/>
+					</label>
+					<label class={ partials.Cls.Field + " md:col-span-2" }>
+						<span class={ partials.Cls.Label }>Photo URL</span>
+						<input type="url" name="photo_url" class={ partials.Cls.Input }/>
+					</label>
+					<div class="md:col-span-2">
+						<button type="submit" class={ partials.Cls.Button }>Register user</button>
+					</div>
+				</form>
+			}
+		</div>
 	}
 }

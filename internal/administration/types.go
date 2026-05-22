@@ -77,6 +77,27 @@ type PublicationFilter struct {
 	Pagination
 }
 
+// ActivityStats holds booking counters for activity list rows.
+type ActivityStats struct {
+	Capacity    int `json:"capacity"`
+	BookedCount int `json:"booked_count"`
+}
+
+// EventInterestStats holds attendance intent aggregates for event list rows.
+type EventInterestStats struct {
+	Interested    int `json:"interested"`
+	NotInterested int `json:"not_interested"`
+	Busy          int `json:"busy"`
+}
+
+// PublicationListItem is a publication row tagged with its forum kind for list UIs.
+type PublicationListItem struct {
+	models.Publication
+	Kind     PublicationKind
+	Activity *ActivityStats      `json:"activity,omitempty"`
+	Event    *EventInterestStats `json:"event,omitempty"`
+}
+
 type BuildingFilter struct {
 	Search string `json:"search" query:"search"`
 	Pagination
@@ -183,6 +204,10 @@ type CreateEventRequest struct {
 	SharedAreaID *uuid.UUID              `json:"shared_area_id" form:"shared_area_id"`
 	StartsAt     time.Time               `json:"starts_at"      form:"starts_at"`
 	EndsAt       time.Time               `json:"ends_at"        form:"ends_at"`
+}
+
+type UpdatePublicationStateRequest struct {
+	State models.PublicationState `json:"state" form:"state"`
 }
 
 type AssignRoomRequest struct {

@@ -321,7 +321,7 @@ func (s *Service) DeleteJob(actorID, id uuid.UUID) error {
 // publications (news / activities / events)
 // ---------------------------------------------------------------------------
 
-func (s *Service) ListPublications(filter PublicationFilter) ([]models.Publication, error) {
+func (s *Service) ListPublications(filter PublicationFilter) ([]PublicationListItem, error) {
 	return s.store.getPublications(filter)
 }
 
@@ -385,6 +385,16 @@ func (s *Service) ArchiveNews(actorID, id uuid.UUID) error {
 	return s.store.archiveNews(actorID, id)
 }
 
+func (s *Service) UpdateNewsState(actorID, id uuid.UUID, state models.PublicationState) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if id == uuid.Nil || state == "" {
+		return ErrValidation
+	}
+	return s.store.updateNewsState(actorID, id, state)
+}
+
 func (s *Service) CreateActivity(actorID uuid.UUID, req CreateActivityRequest) (models.Activity, error) {
 	if actorID == uuid.Nil {
 		return models.Activity{}, ErrUnauthorized
@@ -422,6 +432,16 @@ func (s *Service) ArchiveActivity(actorID, id uuid.UUID) error {
 		return ErrValidation
 	}
 	return s.store.archiveActivity(actorID, id)
+}
+
+func (s *Service) UpdateActivityState(actorID, id uuid.UUID, state models.PublicationState) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if id == uuid.Nil || state == "" {
+		return ErrValidation
+	}
+	return s.store.updateActivityState(actorID, id, state)
 }
 
 func (s *Service) CreateEvent(actorID uuid.UUID, req CreateEventRequest) (models.Event, error) {
@@ -462,6 +482,16 @@ func (s *Service) ArchiveEvent(actorID, id uuid.UUID) error {
 		return ErrValidation
 	}
 	return s.store.archiveEvent(actorID, id)
+}
+
+func (s *Service) UpdateEventState(actorID, id uuid.UUID, state models.PublicationState) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if id == uuid.Nil || state == "" {
+		return ErrValidation
+	}
+	return s.store.updateEventState(actorID, id, state)
 }
 
 // ---------------------------------------------------------------------------
@@ -646,6 +676,10 @@ func (s *Service) RegisterUser(actorID uuid.UUID, req RegisterUserRequest) (mode
 	if err != nil {
 		return models.User{}, err
 	}
+	role, err := s.store.getRoleByID(req.RoleID)
+	if err != nil {
+		return models.User{}, err
+	}
 	user := models.User{
 		Name:         req.Name,
 		Email:        strings.ToLower(strings.TrimSpace(req.Email)),
@@ -653,10 +687,25 @@ func (s *Service) RegisterUser(actorID uuid.UUID, req RegisterUserRequest) (mode
 		PasswordHash: string(hash),
 		AvatarURL:    req.AvatarURL,
 		PhotoUrl:     req.PhotoURL,
-		RoleID:       req.RoleID.String(),
+		RoleID:       role.ID,
 	}
-	if err := s.store.registerUser(actorID, user); err != nil {
-		return models.User{}, err
+	if role.Name == "tenant" {
+		tenant := models.Tenant{
+			UserID:      &user.ID,
+			StudentCode: req.StudentCode,
+			Degree:      req.Degree,
+			Faculty:     req.Faculty,
+			Age:         req.Age,
+			Sex:         req.Sex,
+			Nationality: req.Nationality,
+		}
+		if err := s.store.createTenant(actorID, user, tenant); err != nil {
+			return models.User{}, err
+		}
+	} else {
+		if err := s.store.registerUser(actorID, user); err != nil {
+			return models.User{}, err
+		}
 	}
 	return user, nil
 }
@@ -694,12 +743,41 @@ func (s *Service) UpdateUser(actorID uuid.UUID, req UpdateUserRequest) (models.U
 		user.PhotoUrl = *req.PhotoURL
 	}
 	if req.RoleID != nil {
-		user.RoleID = req.RoleID.String()
+		user.RoleID = *req.RoleID
 	}
 	if err := s.store.updateUser(actorID, user); err != nil {
 		return models.User{}, err
 	}
 	return user, nil
+}
+
+// ---------------------------------------------------------------------------
+// form lookups (select dropdowns)
+// ---------------------------------------------------------------------------
+
+func (s *Service) ListRoles() ([]models.Role, error) {
+	return s.store.getRoles()
+}
+
+func (s *Service) ListBuildings() ([]models.Building, error) {
+	return s.store.getBuilding(BuildingFilter{})
+}
+
+func (s *Service) ListFlats() ([]models.Flat, error) {
+	return s.store.getFlat(FlatFilter{})
+}
+
+func (s *Service) ListRooms() ([]models.Room, error) {
+	return s.store.getRoom(RoomFilter{})
+}
+
+func (s *Service) ListSharedAreas() ([]models.SharedArea, error) {
+	return s.store.getSharedArea(SharedAreaFilter{})
+}
+
+func (s *Service) ListActiveTenants() ([]models.Tenant, error) {
+	active := true
+	return s.store.getTenants(TenantFilter{IsActive: &active})
 }
 
 // ---------------------------------------------------------------------------

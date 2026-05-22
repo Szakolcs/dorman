@@ -1,15 +1,152 @@
 package adminviews
 
-import "dorm-man/internal/models"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	"fmt"
+)
 
 templ TenantsPage(tenants []models.Tenant) {
 	@Layout("Tenants") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@PageHeader("Tenants", "Browse resident records, assignments, and profile data.")
+			@partials.Card("Tenant directory") {
+				@TenantsTable(tenants)
+			}
+		</div>
+	}
+}
+
+templ TenantsTable(tenants []models.Tenant) {
+	if len(tenants) == 0 {
+		<p class={ partials.Cls.Empty }>No tenants found.</p>
+	} else {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Student code</th>
+					<th class={ partials.Cls.TableTh }>Name</th>
+					<th class={ partials.Cls.TableTh }>Faculty</th>
+					<th class={ partials.Cls.TableTh }>Status</th>
+					<th class={ partials.Cls.TableTh }></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, tenant := range tenants {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>{ tenant.StudentCode }</td>
+						<td class={ partials.Cls.TableTd }>
+							if tenant.User != nil {
+								{ tenant.User.Name }
+							} else {
+								<span class="text-dm-muted">No linked user</span>
+							}
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							if tenant.Faculty != nil {
+								{ string(*tenant.Faculty) }
+							}
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							if tenant.IsActive {
+								active
+							} else {
+								inactive
+							}
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							<a
+								href={ templ.SafeURL("/administration/tenants/" + tenant.ID.String()) }
+								class={ partials.Cls.Link }
+							>
+								View
+							</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
 	}
 }
 
 templ TenantDetailPage(tenant models.Tenant) {
 	@Layout("Tenant") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@BackLink("/administration/tenants", "Back to tenants")
+			@PageHeader(tenant.StudentCode, "Tenant profile and room assignment history.")
+			@partials.Card("Profile") {
+				<dl>
+					@DetailRow("Student code", tenant.StudentCode)
+					if tenant.User != nil {
+						@DetailRow("Name", tenant.User.Name)
+						@DetailRow("Email", tenant.User.Email)
+						@DetailRow("Nickname", tenant.User.Nickname)
+					}
+					if tenant.Degree != nil {
+						@DetailRow("Degree", string(*tenant.Degree))
+					}
+					if tenant.Faculty != nil {
+						@DetailRow("Faculty", string(*tenant.Faculty))
+					}
+					if tenant.Age != nil {
+						@DetailRow("Age", fmt.Sprintf("%d", *tenant.Age))
+					}
+					if tenant.Sex != nil {
+						@DetailRow("Sex", string(*tenant.Sex))
+					}
+					if tenant.Nationality != nil {
+						@DetailRow("Nationality", string(*tenant.Nationality))
+					}
+					@DetailRow("Registered", tenant.RegisteredAt.Format("2006-01-02"))
+					if tenant.IsActive {
+						@DetailRow("Status", "active")
+					} else {
+						@DetailRow("Status", "inactive")
+					}
+				</dl>
+			}
+			@partials.Card("Room assignments") {
+				@TenantAssignmentsTable(tenant.RoomAssignments)
+			}
+		</div>
+	}
+}
+
+templ TenantAssignmentsTable(assignments []models.RoomAssignment) {
+	if len(assignments) == 0 {
+		<p class={ partials.Cls.Empty }>No room assignments recorded.</p>
+	} else {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Room</th>
+					<th class={ partials.Cls.TableTh }>Flat</th>
+					<th class={ partials.Cls.TableTh }>Effective</th>
+					<th class={ partials.Cls.TableTh }>Ended</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, assignment := range assignments {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>{ assignment.Room.Number }</td>
+						<td class={ partials.Cls.TableTd }>
+							if assignment.Room.Flat.Name != "" {
+								{ assignment.Room.Flat.Name }
+							}
+						</td>
+						<td class={ partials.Cls.TableTd }>{ assignment.EffectiveAt.Format("2006-01-02") }</td>
+						<td class={ partials.Cls.TableTd }>
+							if assignment.EndedAt != nil {
+								{ assignment.EndedAt.Format("2006-01-02") }
+							} else {
+								<span class="text-dm-success">current</span>
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
 	}
 }

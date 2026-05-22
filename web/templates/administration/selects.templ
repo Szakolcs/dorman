@@ -1,0 +1,98 @@
+package adminviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ RoleSelect(roles []models.Role) {
+	<select name="role_id" required class={ partials.Cls.Select }>
+		if len(roles) == 0 {
+			<option value="">No roles available</option>
+		}
+		for _, role := range roles {
+			<option value={ role.ID.String() }>{ role.Name }</option>
+		}
+	</select>
+}
+
+templ TenantSelect(tenants []models.Tenant) {
+	<select name="tenant_id" required class={ partials.Cls.Select }>
+		if len(tenants) == 0 {
+			<option value="">No tenants available</option>
+		}
+		for _, tenant := range tenants {
+			<option value={ tenant.ID.String() }>
+				@TenantOptionLabel(tenant)
+			</option>
+		}
+	</select>
+}
+
+templ TenantOptionLabel(tenant models.Tenant) {
+	if tenant.User != nil {
+		{ tenant.StudentCode + " — " + tenant.User.Name }
+	} else {
+		{ tenant.StudentCode }
+	}
+}
+
+templ BuildingSelect(buildings []models.Building) {
+	<select name="building_id" class={ partials.Cls.Select }>
+		<option value="">— None —</option>
+		for _, building := range buildings {
+			<option value={ building.ID.String() }>
+				{ building.Code + " — " + building.Name }
+			</option>
+		}
+	</select>
+}
+
+templ FlatSelect(flats []models.Flat) {
+	<select name="flat_id" class={ partials.Cls.Select }>
+		<option value="">— None —</option>
+		for _, flat := range flats {
+			<option value={ flat.ID.String() }>
+				@FlatOptionLabel(flat)
+			</option>
+		}
+	</select>
+}
+
+templ FlatOptionLabel(flat models.Flat) {
+	if flat.Building != nil {
+		{ flat.Name + " — " + flat.Building.Code }
+	} else {
+		{ flat.Name }
+	}
+}
+
+templ RoomSelect(rooms []models.Room) {
+	<select name="room_id" class={ partials.Cls.Select }>
+		<option value="">— None —</option>
+		for _, room := range rooms {
+			<option value={ room.ID.String() }>
+				@RoomOptionLabel(room)
+			</option>
+		}
+	</select>
+}
+
+templ RoomOptionLabel(room models.Room) {
+	if room.Flat.Name != "" {
+		{ "Room " + room.Number + " — " + room.Flat.Name }
+	} else {
+		{ "Room " + room.Number }
+	}
+}
+
+templ SharedAreaSelect(sharedAreas []models.SharedArea) {
+	<select name="shared_area_id" class={ partials.Cls.Select }>
+		<option value="">— None —</option>
+		for _, area := range sharedAreas {
+			<option value={ area.ID.String() }>
+				{ area.Code + " — " + area.Name }
+			</option>
+		}
+	</select>
+}

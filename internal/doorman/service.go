@@ -35,11 +35,9 @@ func (s *Service) RegisterGuest(req GuestRegisterRequest) (*GuestRegisterRespons
 		return nil, ErrValidation
 	}
 	guest := GuestData{
-		HostTenant: &models.User{
-			BaseModel: models.BaseModel{ID: req.HostTenantID},
-		},
-		GuestName: req.GuestName,
-		IDNotes:   req.IDNotes,
+		HostTenantID: req.HostTenantID,
+		GuestName:    req.GuestName,
+		IDNotes:      req.IDNotes,
 	}
 	err := s.store.RegisterGuest(guest)
 	if err != nil {

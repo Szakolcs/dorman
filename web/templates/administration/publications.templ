@@ -1,27 +1,269 @@
 package adminviews
 
-import "dorm-man/internal/models"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	"fmt"
 
-templ PublicationsPage(publications []models.Publication) {
+	"github.com/google/uuid"
+)
+
+templ PublicationsPage(publications []PublicationListItem, sharedAreas []models.SharedArea, activeKind string) {
 	@Layout("Publications") {
 		@Navigation()
+		<div class="dm-page">
+			@PageHeader("Publications", "Manage official news, bookable activities, and scheduled events.")
+			<div class="dm-publication-list">
+				@PublicationCreateCard()
+				for _, pub := range publications {
+					@PublicationCard(pub, activeKind)
+				}
+			</div>
+			@PublicationCreateModal(sharedAreas)
+		</div>
+		<script src="/static/js/publications.js"></script>
 	}
+}
+
+templ PublicationCreateCard() {
+	<button
+		type="button"
+		class="dm-publication-create-card"
+		aria-label="Create publication"
+		onclick="openPublicationCreateModal()"
+	>
+		<span class="dm-publication-create-icon" aria-hidden="true">+</span>
+		<span class="dm-publication-create-label">New publication</span>
+	</button>
+}
+
+templ PublicationCard(item PublicationListItem, activeKind string) {
+	<article class="dm-publication-card">
+		<a
+			href={ templ.SafeURL(publicationKindFilterURL(item.Kind, activeKind)) }
+			class={
+				templ.KV("dm-publication-card-kind", true),
+				templ.KV("dm-publication-card-kind-active", activeKind == item.Kind),
+			}
+			aria-label={ "Filter by " + publicationKindLabel(item.Kind) }
+		>
+			{ publicationKindLabel(item.Kind) }
+		</a>
+		<a
+			href={ templ.SafeURL("/administration/publications/" + item.ID.String()) }
+			class="dm-publication-card-body"
+		>
+			<h3 class="dm-publication-card-title">{ item.Title }</h3>
+			if item.Description != "" {
+				<p class="dm-publication-card-description">{ item.Description }</p>
+			}
+			if item.Kind == "activity" && item.Activity != nil {
+				<p class="dm-publication-card-stats">{ activityStatsLabel(item.Activity) }</p>
+			}
+			if item.Kind == "event" && item.Event != nil {
+				<p class="dm-publication-card-stats">{ eventInterestStatsLabel(item.Event) }</p>
+			}
+			<p class="dm-publication-card-meta">
+				{ string(item.State) } · { item.UpdatedAt.Format("2006-01-02") }
+			</p>
+		</a>
+	</article>
+}
+
+templ PublicationCreateModal(sharedAreas []models.SharedArea) {
+	<dialog id="publication-create-dialog" class="dm-dialog">
+		<div class="dm-dialog-panel">
+			<header class="dm-dialog-header">
+				<h2 class="dm-dialog-title">Create publication</h2>
+				<button
+					type="button"
+					class="dm-dialog-close"
+					aria-label="Close"
+					onclick="closePublicationCreateModal()"
+				>
+					&times;
+				</button>
+			</header>
+			<label class="dm-field">
+				<span class="dm-label">Publication type</span>
+				<select id="publication-kind-select" class="dm-select">
+					<option value="news">News</option>
+					<option value="activity">Activity</option>
+					<option value="event">Event</option>
+				</select>
+			</label>
+			<div data-publication-form="news" class="dm-publication-form-panel">
+				@NewsCreateForm()
+			</div>
+			<div data-publication-form="activity" class="dm-publication-form-panel" hidden>
+				@ActivityCreateForm(sharedAreas)
+			</div>
+			<div data-publication-form="event" class="dm-publication-form-panel" hidden>
+				@EventCreateForm(sharedAreas)
+			</div>
+		</div>
+	</dialog>
+}
+
+templ PublicationPageHeader(title string, subtitle string, state models.PublicationState) {
+	<header class="dm-page-header dm-page-header-row">
+		<div class="dm-page-header-text">
+			<h1 class="dm-page-title">{ title }</h1>
+			if subtitle != "" {
+				<p class="dm-page-subtitle">{ subtitle }</p>
+			}
+		</div>
+		@PublicationStateBadge(state)
+	</header>
+}
+
+templ PublicationStateBadge(state models.PublicationState) {
+	<span
+		class={
+			templ.KV("dm-publication-status", true),
+			templ.KV(publicationStateClass(state), true),
+		}
+	>
+		{ string(state) }
+	</span>
+}
+
+templ PublicationActions(kind string, id uuid.UUID, state models.PublicationState) {
+	<div class="dm-form-actions">
+		if publicationCanPublish(state) {
+			<form
+				method="post"
+				hx-put={ templ.SafeURL(publicationStateUpdateURL(kind, id)) }
+				hx-swap="none"
+			>
+				<input type="hidden" name="state" value="published"/>
+				<button type="submit" class="dm-button">Publish</button>
+			</form>
+		}
+		if publicationCanArchive(state) {
+			<form
+				method="post"
+				hx-delete={ templ.SafeURL(publicationArchiveURL(kind, id)) }
+				hx-swap="none"
+				hx-confirm="Archive this publication?"
+			>
+				<button type="submit" class="dm-button dm-button-danger">Archive</button>
+			</form>
+		}
+	</div>
+}
+
+templ NewsCreateForm() {
+	<form class="dm-form" method="post" hx-post="/administration/publications/news" hx-swap="none">
+		<label class="dm-field">
+			<span class="dm-label">Title</span>
+			<input type="text" name="title" required class="dm-input"/>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Description</span>
+			<textarea name="description" rows="4" class="dm-textarea"></textarea>
+		</label>
+		<button type="submit" class="dm-button">Create news</button>
+	</form>
+}
+
+templ ActivityCreateForm(sharedAreas []models.SharedArea) {
+	<form class="dm-form" method="post" hx-post="/administration/publications/activities" hx-swap="none">
+		<label class="dm-field">
+			<span class="dm-label">Title</span>
+			<input type="text" name="title" required class="dm-input"/>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Description</span>
+			<textarea name="description" rows="4" class="dm-textarea"></textarea>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Capacity</span>
+			<input type="number" name="capacity" min="1" value="10" class="dm-input"/>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Shared area (optional)</span>
+			@SharedAreaSelect(sharedAreas)
+		</label>
+		<button type="submit" class="dm-button">Create activity</button>
+	</form>
+}
+
+templ EventCreateForm(sharedAreas []models.SharedArea) {
+	<form class="dm-form" method="post" hx-post="/administration/publications/events" hx-swap="none">
+		<label class="dm-field">
+			<span class="dm-label">Title</span>
+			<input type="text" name="title" required class="dm-input"/>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Description</span>
+			<textarea name="description" rows="4" class="dm-textarea"></textarea>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Starts at</span>
+			<input type="datetime-local" name="starts_at" required class="dm-input"/>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Ends at</span>
+			<input type="datetime-local" name="ends_at" required class="dm-input"/>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Shared area (optional)</span>
+			@SharedAreaSelect(sharedAreas)
+		</label>
+		<button type="submit" class="dm-button">Create event</button>
+	</form>
 }
 
 templ NewsDetailPage(news models.Publication) {
 	@Layout("News") {
 		@Navigation()
+		<div class="dm-page">
+			@BackLink("/administration/publications", "Back to publications")
+			@PublicationPageHeader(news.Title, news.Description, news.State)
+			@partials.Card("Publication") {
+				<dl>
+					@DetailRow("Created", news.CreatedAt.Format("2006-01-02 15:04"))
+					if news.Author != nil {
+						@DetailRow("Author", news.Author.Name)
+					}
+				</dl>
+			}
+			@PublicationActions("news", news.ID, news.State)
+		</div>
 	}
 }
 
 templ ActivityDetailPage(activity models.Activity) {
 	@Layout("Activity") {
 		@Navigation()
+		<div class="dm-page">
+			@BackLink("/administration/publications", "Back to publications")
+			@PublicationPageHeader(activity.Title, activity.Description, activity.State)
+			@partials.Card("Activity") {
+				<dl>
+					@DetailRow("Capacity", fmt.Sprintf("%d", activity.Capacity))
+					@DetailRow("Booked", fmt.Sprintf("%d", activity.BookedCount))
+				</dl>
+			}
+			@PublicationActions("activity", activity.ID, activity.State)
+		</div>
 	}
 }
 
 templ EventDetailPage(event models.Event) {
 	@Layout("Event") {
 		@Navigation()
+		<div class="dm-page">
+			@BackLink("/administration/publications", "Back to publications")
+			@PublicationPageHeader(event.Title, event.Description, event.State)
+			@partials.Card("Event") {
+				<dl>
+					@DetailRow("Starts", event.StartsAt.Format("2006-01-02 15:04"))
+					@DetailRow("Ends", event.EndsAt.Format("2006-01-02 15:04"))
+				</dl>
+			}
+			@PublicationActions("event", event.ID, event.State)
+		</div>
 	}
 }

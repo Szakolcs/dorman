@@ -33,15 +33,13 @@ func New() (*App, error) {
 	}
 
 	toMigrate := append([]any(nil), models.All()...)
-	toMigrate = append(toMigrate, models.All()...)
-	toMigrate = append(toMigrate, models.All()...)
-	toMigrate = append(toMigrate, models.All()...)
-	toMigrate = append(toMigrate, models.All()...)
-	toMigrate = append(toMigrate, models.All()...)
+
 	if err := db.AutoMigrate(toMigrate...); err != nil {
 		return nil, fmt.Errorf("auto migrate models: %w", err)
 	}
-
+	if err := config.CreateAuditInfrastructure(db); err != nil {
+		return nil, fmt.Errorf("create audit infrastructure: %w", err)
+	}
 	e := echo.New()
 	e.HideBanner = true
 	e.Static("/static", "web/static")

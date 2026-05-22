@@ -2,24 +2,18 @@ package maintenanceviews
 
 import (
 	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
 )
 
 templ TicketsPage(tickets []models.Ticket) {
 	@Layout("Maintenance Tickets") {
 		@StaffNavigation()
-		<div class="space-y-6">
-			<div>
-				<h1 class="mb-2 text-3xl font-bold">
-					Maintenance Tickets
-				</h1>
-				<p class="text-dm-muted">
-					Review and update all reported tickets.
-				</p>
-			</div>
+		<div class={ partials.Cls.Page }>
+			@partials.PageHeader("Maintenance Tickets", "Review and update all reported tickets.")
 			@StaffTicketFilters()
 			<div
 				id="ticket-table"
-				class="dm-card"
+				class={ partials.Cls.Card }
 			>
 				@TicketTable(tickets, "/maintenance/tickets/")
 			</div>

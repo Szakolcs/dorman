@@ -15,4 +15,5 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB, cfg config.Config) {
 	e.GET("/", handler.loginPage)
 	home := e.Group("/home")
 	home.POST("/login", handler.login)
+	home.POST("/logout", handler.logout)
 }

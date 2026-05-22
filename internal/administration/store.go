@@ -14,7 +14,7 @@ import (
 // userID, so that DB-level audit triggers can attribute the change.
 func AuditedTransaction(db *gorm.DB, userID uuid.UUID, fn func(tx *gorm.DB) error) error {
 	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Exec("SET LOCAL app.current_app_user = ?", userID).Error; err != nil {
+		if err := tx.Exec("SELECT set_config('app.current_app_user', ?, true)", userID).Error; err != nil {
 			return err
 		}
 		return fn(tx)
@@ -41,22 +41,25 @@ type Store interface {
 	updateJob(actorID uuid.UUID, job models.OperationalJob) error
 	deleteJob(actorID, id uuid.UUID) error
 
-	getPublications(filter PublicationFilter) ([]models.Publication, error)
+	getPublications(filter PublicationFilter) ([]PublicationListItem, error)
 	getNewsByID(id uuid.UUID) (models.Publication, error)
 	createPublication(actorID uuid.UUID, pub models.Publication) error
 	updatePublication(actorID uuid.UUID, pub models.Publication) error
 	deletePublication(actorID, id uuid.UUID) error
 	archiveNews(actorID, id uuid.UUID) error
+	updateNewsState(actorID, id uuid.UUID, state models.PublicationState) error
 
 	getActivityByID(id uuid.UUID) (models.Activity, error)
 	createActivity(actorID uuid.UUID, a models.Activity) error
 	updateActivity(actorID uuid.UUID, a models.Activity) error
 	archiveActivity(actorID, id uuid.UUID) error
+	updateActivityState(actorID, id uuid.UUID, state models.PublicationState) error
 
 	getEventByID(id uuid.UUID) (models.Event, error)
 	createEvent(actorID uuid.UUID, e models.Event) error
 	updateEvent(actorID uuid.UUID, e models.Event) error
 	archiveEvent(actorID, id uuid.UUID) error
+	updateEventState(actorID, id uuid.UUID, state models.PublicationState) error
 
 	getBuilding(filter BuildingFilter) ([]models.Building, error)
 	getBuildingByID(id uuid.UUID) (models.Building, error)
@@ -90,8 +93,10 @@ type Store interface {
 
 	registerUser(actorID uuid.UUID, user models.User) error
 	updateUser(actorID uuid.UUID, user models.User) error
-
+	createTenant(actorID uuid.UUID, user models.User, tenant models.Tenant) error
 	getAuditLogs(filter AuditLogFilter) ([]models.Audit, error)
+	getRoles() ([]models.Role, error)
+	getRoleByID(id uuid.UUID) (models.Role, error)
 }
 
 type GormStore struct {
@@ -367,59 +372,35 @@ func (s *GormStore) deleteJob(actorID, id uuid.UUID) error {
 // gets migrated they will work as-is.
 // ---------------------------------------------------------------------------
 
-func (s *GormStore) getPublications(filter PublicationFilter) ([]models.Publication, error) {
-	fetch := func(table string) ([]models.Publication, error) {
-		q := s.db.Table(table).
-			Select("id, created_at, updated_at, deleted_at, title, description, state")
+func (s *GormStore) getPublications(filter PublicationFilter) ([]PublicationListItem, error) {
+	var out []PublicationListItem
+	var err error
 
-		if filter.Search != "" {
-			q = q.Where("LOWER(title) LIKE ?", likePattern(filter.Search))
-		}
-		if filter.State != nil {
-			q = q.Where("state = ?", *filter.State)
-		}
-		if filter.From != nil {
-			q = q.Where("created_at >= ?", *filter.From)
-		}
-		if filter.To != nil {
-			q = q.Where("created_at <= ?", *filter.To)
-		}
-
-		q = applyOrder(q, filter.Pagination, "created_at")
-
-		var rows []models.Publication
-		err := q.Scan(&rows).Error
-		return rows, err
-	}
-
-	var out []models.Publication
 	switch filter.Kind {
 	case PublicationKindActivity:
-		rows, err := fetch("activities")
-		if err != nil {
-			return nil, err
-		}
-		out = rows
+		out, err = s.fetchActivityPublications(filter)
 	case PublicationKindEvent:
-		rows, err := fetch("events")
-		if err != nil {
-			return nil, err
-		}
-		out = rows
+		out, err = s.fetchEventPublications(filter)
 	case PublicationKindNews:
-		// no News model is migrated yet; return an empty slice so callers
-		// can still distinguish "kind known, none found" from an error.
-		return []models.Publication{}, nil
+		out, err = s.fetchNewsPublications(filter)
 	default:
-		acts, err := fetch("activities")
+		news, err := s.fetchNewsPublications(filter)
 		if err != nil {
 			return nil, err
 		}
-		evts, err := fetch("events")
+		acts, err := s.fetchActivityPublications(filter)
 		if err != nil {
 			return nil, err
 		}
-		out = append(acts, evts...)
+		evts, err := s.fetchEventPublications(filter)
+		if err != nil {
+			return nil, err
+		}
+		out = append(news, acts...)
+		out = append(out, evts...)
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	// Apply pagination at the application level since the union spans tables.
@@ -436,13 +417,133 @@ func (s *GormStore) getPublications(filter PublicationFilter) ([]models.Publicat
 	}
 	start := (page - 1) * per
 	if start >= len(out) {
-		return []models.Publication{}, nil
+		return []PublicationListItem{}, nil
 	}
 	end := start + per
 	if end > len(out) {
 		end = len(out)
 	}
 	return out[start:end], nil
+}
+
+func applyPublicationFilters(q *gorm.DB, filter PublicationFilter) *gorm.DB {
+	if filter.Search != "" {
+		q = q.Where("LOWER(title) LIKE ?", likePattern(filter.Search))
+	}
+	if filter.State != nil {
+		q = q.Where("state = ?", *filter.State)
+	}
+	if filter.From != nil {
+		q = q.Where("created_at >= ?", *filter.From)
+	}
+	if filter.To != nil {
+		q = q.Where("created_at <= ?", *filter.To)
+	}
+	return applyOrder(q, filter.Pagination, "created_at")
+}
+
+func (s *GormStore) fetchNewsPublications(filter PublicationFilter) ([]PublicationListItem, error) {
+	q := applyPublicationFilters(s.db.Model(&models.Publication{}), filter)
+	var rows []models.Publication
+	if err := q.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]PublicationListItem, len(rows))
+	for i, row := range rows {
+		out[i] = PublicationListItem{
+			Publication: row,
+			Kind:        PublicationKindNews,
+		}
+	}
+	return out, nil
+}
+
+func (s *GormStore) fetchActivityPublications(filter PublicationFilter) ([]PublicationListItem, error) {
+	q := applyPublicationFilters(s.db.Model(&models.Activity{}), filter)
+	var rows []models.Activity
+	if err := q.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]PublicationListItem, len(rows))
+	for i, row := range rows {
+		out[i] = PublicationListItem{
+			Publication: publicationFromPost(row.Post),
+			Kind:        PublicationKindActivity,
+			Activity: &ActivityStats{
+				Capacity:    row.Capacity,
+				BookedCount: row.BookedCount,
+			},
+		}
+	}
+	return out, nil
+}
+
+func (s *GormStore) fetchEventPublications(filter PublicationFilter) ([]PublicationListItem, error) {
+	q := applyPublicationFilters(s.db.Model(&models.Event{}), filter)
+	var rows []models.Event
+	if err := q.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	statsByEvent, err := s.eventInterestStatsFor(rows)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]PublicationListItem, len(rows))
+	for i, row := range rows {
+		st := statsByEvent[row.ID]
+		out[i] = PublicationListItem{
+			Publication: publicationFromPost(row.Post),
+			Kind:        PublicationKindEvent,
+			Event:       &st,
+		}
+	}
+	return out, nil
+}
+
+func publicationFromPost(post models.Post) models.Publication {
+	return models.Publication{Post: post}
+}
+
+type eventIntentCount struct {
+	EventID uuid.UUID `gorm:"column:event_id"`
+	Intent  string    `gorm:"column:intent"`
+	Count   int       `gorm:"column:count"`
+}
+
+func (s *GormStore) eventInterestStatsFor(events []models.Event) (map[uuid.UUID]EventInterestStats, error) {
+	out := make(map[uuid.UUID]EventInterestStats, len(events))
+	for _, evt := range events {
+		out[evt.ID] = EventInterestStats{}
+	}
+	if len(events) == 0 {
+		return out, nil
+	}
+	ids := make([]uuid.UUID, len(events))
+	for i, evt := range events {
+		ids[i] = evt.ID
+	}
+	var counts []eventIntentCount
+	err := s.db.Model(&models.EventAttendance{}).
+		Select("event_id, intent, COUNT(*) AS count").
+		Where("event_id IN ?", ids).
+		Group("event_id, intent").
+		Scan(&counts).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range counts {
+		st := out[row.EventID]
+		switch models.EventAttendanceIntent(row.Intent) {
+		case models.EventAttendanceInterested:
+			st.Interested = row.Count
+		case models.EventAttendanceNotInterested:
+			st.NotInterested = row.Count
+		case models.EventAttendanceBusy:
+			st.Busy = row.Count
+		}
+		out[row.EventID] = st
+	}
+	return out, nil
 }
 
 func (s *GormStore) createPublication(actorID uuid.UUID, pub models.Publication) error {
@@ -707,7 +808,21 @@ func (s *GormStore) registerUser(actorID uuid.UUID, user models.User) error {
 		return tx.Create(&user).Error
 	})
 }
+func (s *GormStore) createTenant(actorID uuid.UUID, user models.User, tenant models.Tenant) error {
+	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
+		if err := tx.Create(&user).Error; err != nil {
+			return err
+		}
 
+		tenant.UserID = &user.ID
+
+		if err := tx.Create(&tenant).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
 func (s *GormStore) updateUser(actorID uuid.UUID, user models.User) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		return tx.Save(&user).Error
@@ -822,10 +937,14 @@ func (s *GormStore) getNewsByID(id uuid.UUID) (models.Publication, error) {
 }
 
 func (s *GormStore) archiveNews(actorID, id uuid.UUID) error {
+	return s.updateNewsState(actorID, id, models.PublicationStateArchived)
+}
+
+func (s *GormStore) updateNewsState(actorID, id uuid.UUID, state models.PublicationState) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		res := tx.Model(&models.Publication{}).
 			Where("id = ?", id).
-			Update("state", models.PublicationStateArchived)
+			Update("state", state)
 		if res.Error != nil {
 			return res.Error
 		}
@@ -865,10 +984,14 @@ func (s *GormStore) updateActivity(actorID uuid.UUID, a models.Activity) error {
 }
 
 func (s *GormStore) archiveActivity(actorID, id uuid.UUID) error {
+	return s.updateActivityState(actorID, id, models.PublicationStateArchived)
+}
+
+func (s *GormStore) updateActivityState(actorID, id uuid.UUID, state models.PublicationState) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		res := tx.Model(&models.Activity{}).
 			Where("id = ?", id).
-			Update("state", models.PublicationStateArchived)
+			Update("state", state)
 		if res.Error != nil {
 			return res.Error
 		}
@@ -908,10 +1031,14 @@ func (s *GormStore) updateEvent(actorID uuid.UUID, e models.Event) error {
 }
 
 func (s *GormStore) archiveEvent(actorID, id uuid.UUID) error {
+	return s.updateEventState(actorID, id, models.PublicationStateArchived)
+}
+
+func (s *GormStore) updateEventState(actorID, id uuid.UUID, state models.PublicationState) error {
 	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		res := tx.Model(&models.Event{}).
 			Where("id = ?", id).
-			Update("state", models.PublicationStateArchived)
+			Update("state", state)
 		if res.Error != nil {
 			return res.Error
 		}
@@ -951,4 +1078,19 @@ func (s *GormStore) getAuditLogs(filter AuditLogFilter) ([]models.Audit, error) 
 	var as []models.Audit
 	err := q.Find(&as).Error
 	return as, err
+}
+
+func (s *GormStore) getRoles() ([]models.Role, error) {
+	var roles []models.Role
+	err := s.db.Order("name ASC").Find(&roles).Error
+	return roles, err
+}
+
+func (s *GormStore) getRoleByID(id uuid.UUID) (models.Role, error) {
+	var role models.Role
+	err := s.db.First(&role, "id = ?", id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.Role{}, ErrNotFound
+	}
+	return role, err
 }

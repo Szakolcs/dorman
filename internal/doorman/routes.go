@@ -14,10 +14,11 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB, auth echo.MiddlewareFunc) {
 
 	doorman := e.Group("/doorman")
 	doorman.Use(auth, middleware.RequireRole("doorman", "admin", "dev"))
+	doorman.GET("", h.dashboardPage)
 	doorman.GET("/", h.dashboardPage)
 	doorman.GET("/list/tenants", h.listTenantAccess)
-	doorman.GET("/access/tenant/", h.createTenantAccess)
-	doorman.GET("/list/guests", h.listGuest)
+	doorman.GET("/access/tenant", h.createTenantAccess)
+	doorman.GET("/guests", h.listGuest)
 	doorman.POST("/register/guest", h.registerGuest)
 	doorman.DELETE("/leave/guest", h.deleteGuest)
 }

@@ -2,25 +2,19 @@ package doormanviews
 
 import (
 	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
 	dv "dorm-man/web/templates/doorman/partials"
 )
 
 templ TenantAccessPage(entries []models.TenantEntry) {
 	@dv.Layout("Tenant Access") {
 		@dv.Navigation()
-		<div class="space-y-6">
-			<div>
-				<h1 class="mb-2 text-3xl font-bold">
-					Tenant Access
-				</h1>
-				<p class="text-dm-muted">
-					View and filter tenant access history.
-				</p>
-			</div>
+		<div class={ partials.Cls.Page }>
+			@partials.PageHeader("Tenant Access", "View and filter tenant access history.")
 			@dv.TenantAccessFilters()
 			<div
 				id="tenant-access-table"
-				class="dm-card"
+				class={ partials.Cls.Card }
 			>
 				@dv.TenantAccessTable(entries)
 			</div>

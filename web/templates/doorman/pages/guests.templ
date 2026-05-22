@@ -2,58 +2,50 @@ package doormanviews
 
 import (
 	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
 	dv "dorm-man/web/templates/doorman/partials"
 )
 
 templ GuestsPage(guests []models.GuestEntry,tenants []models.Tenant) {
 	@dv.Layout("Guests") {
 		@dv.Navigation()
-		<div class="space-y-6">
-			<div>
-				<h1 class="mb-2 text-3xl font-bold">
-					Guests
-				</h1>
-				<p class="text-dm-muted">
-					Register and manage guest access.
-				</p>
-			</div>
+		<div class={ partials.Cls.Page }>
+			@partials.PageHeader("Guests", "Register and manage guest access.")
 			@dv.GuestFilters()
-			<div
-				id="guest-table"
-				class="dm-card overflow-x-auto"
-			>
-				<table class="dm-table">
-					<thead>
-						<tr>
-							<th>Guest</th>
-							<th>ID Notes</th>
-							<th>Status</th>
-							<th>Host Tenant</th>
-							<th>Action</th>
+			<div id="guest-table" class={ partials.Cls.Card }>
+				@partials.TableWrap() {
+					<table class={ partials.Cls.Table }>
+					<thead class={ partials.Cls.TableHead }>
+						<tr class={ partials.Cls.TableTr }>
+							<th class={ partials.Cls.TableTh }>Guest</th>
+							<th class={ partials.Cls.TableTh }>ID Notes</th>
+							<th class={ partials.Cls.TableTh }>Status</th>
+							<th class={ partials.Cls.TableTh }>Host Tenant</th>
+							<th class={ partials.Cls.TableTh }>Action</th>
 						</tr>
 					</thead>
 					<tbody>
 						@dv.GuestRegisterForm(tenants)
 						for _, guest := range guests {
-							<tr>
-								<td class="p-3">
+							<tr class={ partials.Cls.TableTr }>
+								<td class={ partials.Cls.TableTd }>
 									{ guest.GuestName }
 								</td>
-								<td class="p-3">
+								<td class={ partials.Cls.TableTd }>
 									{ guest.IDNotes }
 								</td>
-								<td class="p-3">
+								<td class={ partials.Cls.TableTd }>
 									registered
 								</td>
-								<td class="p-3">
-									{ guest.HostTenant.User.Name }
+								<td class={ partials.Cls.TableTd }>
+									@dv.HostTenantLabel(guest)
 								</td>
-								<td class="p-3">
+								<td class={ partials.Cls.TableTd }>
 									<button
 										hx-delete={ "/doorman/leave/guest/" + guest.ID.String() }
 										hx-target="#guest-table"
 										hx-swap="outerHTML"
-										class="rounded-lg bg-dm-error px-4 py-2 font-medium text-white hover:opacity-90"
+										class={ partials.Cls.ButtonDanger }
 									>
 										Delete
 									</button>
@@ -62,6 +54,7 @@ templ GuestsPage(guests []models.GuestEntry,tenants []models.Tenant) {
 						}
 					</tbody>
 				</table>
+				}
 			</div>
 		</div>
 	}

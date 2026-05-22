@@ -1,15 +1,192 @@
 package adminviews
 
-import "dorm-man/internal/models"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
 
-templ InventoryPage(items []models.InventoryItem) {
+templ InventoryPage(
+	items []models.InventoryItem,
+	buildings []models.Building,
+	flats []models.Flat,
+	rooms []models.Room,
+	sharedAreas []models.SharedArea,
+) {
 	@Layout("Inventory") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@PageHeader("Inventory", "Track furniture, appliances, and shared equipment across the dormitory.")
+			@partials.Card("Add inventory item") {
+				@InventoryCreateForm(buildings, flats, rooms, sharedAreas)
+			}
+			@partials.Card("Inventory items") {
+				@InventoryTable(items)
+			}
+		</div>
 	}
+}
+
+templ InventoryTable(items []models.InventoryItem) {
+	if len(items) == 0 {
+		<p class={ partials.Cls.Empty }>No inventory items found.</p>
+	} else {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Name</th>
+					<th class={ partials.Cls.TableTh }>Condition</th>
+					<th class={ partials.Cls.TableTh }>Status</th>
+					<th class={ partials.Cls.TableTh }>Purchased</th>
+					<th class={ partials.Cls.TableTh }></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, item := range items {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>{ item.Name }</td>
+						<td class={ partials.Cls.TableTd }>{ string(item.Condition) }</td>
+						<td class={ partials.Cls.TableTd }>{ string(item.Status) }</td>
+						<td class={ partials.Cls.TableTd }>{ item.PurchaseDate.Format("2006-01-02") }</td>
+						<td class={ partials.Cls.TableTd }>
+							<a
+								href={ templ.SafeURL("/administration/inventory/" + item.ID.String()) }
+								class={ partials.Cls.Link }
+							>
+								View
+							</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+templ InventoryCreateForm(
+	buildings []models.Building,
+	flats []models.Flat,
+	rooms []models.Room,
+	sharedAreas []models.SharedArea,
+) {
+	<form
+		class={ partials.Cls.FormGrid }
+		hx-post="/administration/inventory"
+		hx-swap="none"
+	>
+		<label class={ partials.Cls.Field + " md:col-span-2" }>
+			<span class={ partials.Cls.Label }>Name</span>
+			<input type="text" name="name" required class={ partials.Cls.Input }/>
+		</label>
+		<label class={ partials.Cls.Field + " md:col-span-2" }>
+			<span class={ partials.Cls.Label }>Description</span>
+			<textarea name="description" rows="3" class={ partials.Cls.Textarea }></textarea>
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Condition</span>
+			<select name="condition" class={ partials.Cls.Select }>
+				<option value="new">new</option>
+				<option value="good" selected>good</option>
+				<option value="used">used</option>
+				<option value="damaged">damaged</option>
+				<option value="broken">broken</option>
+			</select>
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Status</span>
+			<select name="status" class={ partials.Cls.Select }>
+				<option value="in_stock">in_stock</option>
+				<option value="in_use" selected>in_use</option>
+				<option value="withdrawn">withdrawn</option>
+				<option value="destroyed">destroyed</option>
+			</select>
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Purchase date</span>
+			<input type="date" name="purchase_date" class={ partials.Cls.Input }/>
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Room (optional)</span>
+			@RoomSelect(rooms)
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Flat (optional)</span>
+			@FlatSelect(flats)
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Building (optional)</span>
+			@BuildingSelect(buildings)
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Shared area (optional)</span>
+			@SharedAreaSelect(sharedAreas)
+		</label>
+		<div class="md:col-span-2">
+			<button type="submit" class={ partials.Cls.Button }>Create item</button>
+		</div>
+	</form>
 }
 
 templ InventoryDetailPage(item models.InventoryItem) {
 	@Layout("Inventory Item") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@BackLink("/administration/inventory", "Back to inventory")
+			@PageHeader(item.Name, item.Description)
+			@partials.Card("Details") {
+				<dl>
+					@DetailRow("Condition", string(item.Condition))
+					@DetailRow("Status", string(item.Status))
+					@DetailRow("Purchased", item.PurchaseDate.Format("2006-01-02"))
+					if item.Room != nil {
+						@DetailRow("Room", item.Room.Number)
+					}
+					if item.Flat != nil {
+						@DetailRow("Flat", item.Flat.Name)
+					}
+					if item.Building != nil {
+						@DetailRow("Building", item.Building.Name)
+					}
+					if item.SharedArea != nil {
+						@DetailRow("Shared area", item.SharedArea.Name)
+					}
+				</dl>
+			}
+			@partials.Card("Update status") {
+				<form
+					class="flex flex-wrap items-end gap-4"
+					hx-put={ templ.SafeURL("/administration/inventory/" + item.ID.String() + "/status") }
+					hx-swap="none"
+				>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Status</span>
+						<select name="status" class={ partials.Cls.Select }>
+							<option value="in_stock">in_stock</option>
+							<option value="in_use">in_use</option>
+							<option value="withdrawn">withdrawn</option>
+							<option value="destroyed">destroyed</option>
+						</select>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Condition</span>
+						<select name="condition" class={ partials.Cls.Select }>
+							<option value="new">new</option>
+							<option value="good">good</option>
+							<option value="used">used</option>
+							<option value="damaged">damaged</option>
+							<option value="broken">broken</option>
+						</select>
+					</label>
+					<button type="submit" class={ partials.Cls.Button }>Save</button>
+				</form>
+			}
+			<form
+				hx-delete={ templ.SafeURL("/administration/inventory/" + item.ID.String()) }
+				hx-swap="none"
+			>
+				<button type="submit" class={ partials.Cls.ButtonDanger }>
+					Delete item
+				</button>
+			</form>
+		</div>
 	}
 }

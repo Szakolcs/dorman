@@ -1,25 +1,29 @@
 package doormanviews
 
+import (
+	"dorm-man/web/templates/common/partials"
+)
+
 templ TenantAccessFilters() {
 	<form
 		hx-get="/doorman/list/tenants"
 		hx-target="#tenant-access-table"
 		hx-swap="innerHTML"
-		class="dm-card mb-6 flex flex-wrap gap-4"
+		class={ partials.Cls.FilterBar }
 	>
 		<input
 			type="date"
 			name="from"
-			class="dm-input"
+			class={ partials.Cls.Input }
 		/>
 		<input
 			type="date"
 			name="to"
-			class="dm-input"
+			class={ partials.Cls.Input }
 		/>
 		<select
 			name="status"
-			class="dm-input"
+			class={ partials.Cls.Select }
 		>
 			<option value="">
 				All Statuses
@@ -35,7 +39,7 @@ templ TenantAccessFilters() {
 		</select>
 		<button
 			type="submit"
-			class="dm-button"
+			class={ partials.Cls.Button }
 		>
 			Filter
 		</button>
@@ -47,21 +51,21 @@ templ GuestFilters() {
 		hx-get="/doorman/list/guests"
 		hx-target="#guest-table"
 		hx-swap="innerHTML"
-		class="dm-card mb-6 flex flex-wrap gap-4"
+		class={ partials.Cls.FilterBar }
 	>
 		<input
 			type="date"
 			name="from"
-			class="dm-input"
+			class={ partials.Cls.Input }
 		/>
 		<input
 			type="date"
 			name="to"
-			class="dm-input"
+			class={ partials.Cls.Input }
 		/>
 		<select
 			name="status"
-			class="dm-input"
+			class={ partials.Cls.Select }
 		>
 			<option value="">
 				All Guests
@@ -75,7 +79,7 @@ templ GuestFilters() {
 		</select>
 		<button
 			type="submit"
-			class="dm-button"
+			class={ partials.Cls.Button }
 		>
 			Filter
 		</button>

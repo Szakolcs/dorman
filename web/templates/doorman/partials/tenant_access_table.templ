@@ -1,30 +1,39 @@
 package doormanviews
 
-import "dorm-man/internal/models"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
 
 templ TenantAccessTable(entries []models.TenantEntry) {
-	<table class="dm-table">
-		<thead>
-			<tr>
-				<th>Tenant</th>
-				<th>Status</th>
-				<th>Time</th>
+	@partials.TableWrap() {
+		<table class={ partials.Cls.Table }>
+		<thead class={ partials.Cls.TableHead }>
+			<tr class={ partials.Cls.TableTr }>
+				<th class={ partials.Cls.TableTh }>Tenant</th>
+				<th class={ partials.Cls.TableTh }>Status</th>
+				<th class={ partials.Cls.TableTh }>Time</th>
 			</tr>
 		</thead>
 		<tbody>
 			for _, entry := range entries {
-				<tr>
-					<td class="p-3">
-						{ entry.User.Name }
+				<tr class={ partials.Cls.TableTr }>
+					<td class={ partials.Cls.TableTd }>
+						if entry.User != nil {
+							{ entry.User.Name }
+						} else {
+							unknown
+						}
 					</td>
-					<td class="p-3">
+					<td class={ partials.Cls.TableTd }>
 						{ string(entry.Status) }
 					</td>
-					<td class="p-3">
+					<td class={ partials.Cls.TableTd }>
 						{ entry.TimeOfEntry.Format("2006-01-02 15:04") }
 					</td>
 				</tr>
 			}
 		</tbody>
 	</table>
+	}
 }

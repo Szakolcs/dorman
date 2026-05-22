@@ -27,7 +27,11 @@ func NewStore(db *gorm.DB) *GormStore {
 
 func (s *GormStore) getTenants() ([]models.Tenant, error) {
 	var tenants []models.Tenant
-	err := s.db.Find(&tenants).Error
+	err := s.db.
+		Preload("User").
+		Where("user_id IS NOT NULL AND is_active = ?", true).
+		Order("student_code ASC").
+		Find(&tenants).Error
 	if err != nil {
 		return nil, err
 	}
@@ -92,15 +96,10 @@ func (s *GormStore) ListGuests(filter GuestFilter) ([]models.GuestEntry, error) 
 			filter.To,
 		)
 	}
-	if filter.Status != "" {
-		query = query.Where(
-			"status = ?",
-			filter.Status,
-		)
-	}
 	var guests []models.GuestEntry
 	err := query.
 		Preload("HostTenant").
+		Preload("HostTenant.User").
 		Order("created_at DESC").
 		Find(&guests).
 		Error
@@ -112,7 +111,7 @@ func (s *GormStore) ListGuests(filter GuestFilter) ([]models.GuestEntry, error) 
 
 func (s *GormStore) RegisterGuest(guest GuestData) error {
 	entry := models.GuestEntry{
-		HostTenantID: guest.HostTenant.ID,
+		HostTenantID: guest.HostTenantID,
 		GuestName:    guest.GuestName,
 		IDNotes:      guest.IDNotes,
 	}
@@ -132,8 +131,16 @@ func (s *GormStore) DeleteGuest(guestID uuid.UUID) error {
 }
 
 func (s *GormStore) RegisterTenantAccess(tenantID uuid.UUID, accessStatus models.AccessStatus) error {
+	var tenant models.Tenant
+	if err := s.db.Select("user_id").First(&tenant, "id = ?", tenantID).Error; err != nil {
+		return err
+	}
+	if tenant.UserID == nil {
+		return gorm.ErrRecordNotFound
+	}
+
 	entry := models.TenantEntry{
-		UserID:      tenantID,
+		UserID:      *tenant.UserID,
 		Status:      accessStatus,
 		TimeOfEntry: time.Now(),
 	}

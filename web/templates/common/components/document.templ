@@ -1,5 +1,7 @@
 package components
 
+import "dorm-man/web/templates/common/partials"
+
 const HtmxCDN = "https://unpkg.com/htmx.org@2.0.4"
 
 templ Document(title string) {
@@ -14,7 +16,7 @@ templ Document(title string) {
 			<script src={ HtmxCDN }></script>
 		</head>
 		<body>
-			<main class="mx-auto max-w-6xl px-4 py-6 pb-8 md:px-6">
+			<main class={ partials.Cls.Shell }>
 				{ children... }
 			</main>
 		</body>
@@ -22,10 +24,7 @@ templ Document(title string) {
 }
 
 templ ErrorAlert(message string) {
-	<p
-		class="my-4 rounded border border-dm-error bg-dm-error/10 px-4 py-2 text-dm-error"
-		role="alert"
-	>
+	<p class={ partials.Cls.AlertError } role="alert">
 		{ message }
 	</p>
 }

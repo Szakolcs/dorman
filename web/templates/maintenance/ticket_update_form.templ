@@ -1,23 +1,21 @@
 package maintenanceviews
 
-import "dorm-man/internal/models"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
 
 templ TicketUpdateForm(ticket models.Ticket) {
 	<form
 		hx-put={ "/maintenance/tickets/" + ticket.ID.String() }
-		class="space-y-4"
+		class={ partials.Cls.Form }
 	>
-		<div>
-			<label
-				for="status"
-				class="mb-1 block text-sm font-medium"
-			>
-				Status
-			</label>
+		<label for="status" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Status</span>
 			<select
 				id="status"
 				name="status"
-				class="dm-input w-full"
+				class={ partials.Cls.Select }
 				required
 			>
 				<option
@@ -57,18 +55,13 @@ templ TicketUpdateForm(ticket models.Ticket) {
 					Closed
 				</option>
 			</select>
-		</div>
-		<div>
-			<label
-				for="category"
-				class="mb-1 block text-sm font-medium"
-			>
-				Category
-			</label>
+		</label>
+		<label for="category" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Category</span>
 			<select
 				id="category"
 				name="category"
-				class="dm-input w-full"
+				class={ partials.Cls.Select }
 			>
 				<option
 					value="yearly"
@@ -95,18 +88,13 @@ templ TicketUpdateForm(ticket models.Ticket) {
 					Incident
 				</option>
 			</select>
-		</div>
-		<div>
-			<label
-				for="severity"
-				class="mb-1 block text-sm font-medium"
-			>
-				Severity
-			</label>
+		</label>
+		<label for="severity" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Severity</span>
 			<select
 				id="severity"
 				name="severity"
-				class="dm-input w-full"
+				class={ partials.Cls.Select }
 			>
 				<option
 					value="high"
@@ -127,18 +115,13 @@ templ TicketUpdateForm(ticket models.Ticket) {
 					Low
 				</option>
 			</select>
-		</div>
-		<div>
-			<label
-				for="impact"
-				class="mb-1 block text-sm font-medium"
-			>
-				Impact
-			</label>
+		</label>
+		<label for="impact" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Impact</span>
 			<select
 				id="impact"
 				name="impact"
-				class="dm-input w-full"
+				class={ partials.Cls.Select }
 			>
 				<option
 					value="life_threatening"
@@ -165,46 +148,36 @@ templ TicketUpdateForm(ticket models.Ticket) {
 					Beauty flaw
 				</option>
 			</select>
-		</div>
-		<div>
-			<label
-				for="description"
-				class="mb-1 block text-sm font-medium"
-			>
-				Description
-			</label>
+		</label>
+		<label for="description" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Description</span>
 			<textarea
 				id="description"
 				name="description"
-				class="dm-input w-full"
+				class={ partials.Cls.Textarea }
 				rows="4"
 			>{ ticket.Description }</textarea>
-		</div>
-		<div>
-			<label
-				for="note"
-				class="mb-1 block text-sm font-medium"
-			>
-				Status change note
-			</label>
+		</label>
+		<label for="note" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Status change note</span>
 			<textarea
 				id="note"
 				name="note"
-				class="dm-input w-full"
+				class={ partials.Cls.Textarea }
 				rows="2"
 				placeholder="Optional note for status transition"
 			></textarea>
-		</div>
-		<div class="flex gap-3">
+		</label>
+		<div class={ partials.Cls.FormActions }>
 			<button
 				type="submit"
-				class="dm-button"
+				class={ partials.Cls.Button }
 			>
 				Update Ticket
 			</button>
 			<button
 				type="button"
-				class="dm-button border-dm-error text-dm-error"
+				class={ partials.Cls.ButtonDanger }
 				hx-delete={ "/maintenance/tickets/" + ticket.ID.String() }
 				hx-confirm="Delete this ticket?"
 			>

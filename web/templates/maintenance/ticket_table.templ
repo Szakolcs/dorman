@@ -2,50 +2,52 @@ package maintenanceviews
 
 import (
 	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
 	"fmt"
 )
 
 templ TicketTable(tickets []models.Ticket, detailPrefix string) {
 	if len(tickets) == 0 {
-		<p class="text-dm-muted">No tickets found.</p>
+		<p class={ partials.Cls.Empty }>No tickets found.</p>
 	} else {
-		<table class="dm-table">
-			<thead>
-				<tr>
-					<th>Reported</th>
-					<th>Category</th>
-					<th>Severity</th>
-					<th>Status</th>
-					<th>Reporter</th>
-					<th></th>
+		@partials.TableWrap() {
+			<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Reported</th>
+					<th class={ partials.Cls.TableTh }>Category</th>
+					<th class={ partials.Cls.TableTh }>Severity</th>
+					<th class={ partials.Cls.TableTh }>Status</th>
+					<th class={ partials.Cls.TableTh }>Reporter</th>
+					<th class={ partials.Cls.TableTh }></th>
 				</tr>
 			</thead>
 			<tbody>
 				for _, ticket := range tickets {
-					<tr>
-						<td class="p-3">
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>
 							{ ticket.CreatedAt.Format("2006-01-02 15:04") }
 						</td>
-						<td class="p-3">
+						<td class={ partials.Cls.TableTd }>
 							{ string(ticket.Category) }
 						</td>
-						<td class="p-3">
+						<td class={ partials.Cls.TableTd }>
 							{ string(ticket.Severity) }
 						</td>
-						<td class="p-3">
+						<td class={ partials.Cls.TableTd }>
 							{ string(ticket.Status) }
 						</td>
-						<td class="p-3">
+						<td class={ partials.Cls.TableTd }>
 							if ticket.CreatedByUser != nil {
 								{ ticket.CreatedByUser.Name }
 							} else {
 								{ fmt.Sprintf("%s", ticket.CreatedByUserID) }
 							}
 						</td>
-						<td class="p-3">
+						<td class={ partials.Cls.TableTd }>
 							<a
 								href={ templ.SafeURL(detailPrefix + ticket.ID.String()) }
-								class="text-dm-link hover:text-dm-accent-hover"
+								class={ partials.Cls.Link }
 							>
 								View
 							</a>
@@ -54,5 +56,6 @@ templ TicketTable(tickets []models.Ticket, detailPrefix string) {
 				}
 			</tbody>
 		</table>
+		}
 	}
 }

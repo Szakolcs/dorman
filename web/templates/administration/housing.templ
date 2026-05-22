@@ -1,33 +1,280 @@
 package adminviews
 
-import "dorm-man/internal/models"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	"fmt"
+
+	"github.com/google/uuid"
+)
 
 templ HousingPage(buildings []models.Building, flats []models.Flat, sharedAreas []models.SharedArea, rooms []models.Room) {
 	@Layout("Housing") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@PageHeader("Housing", "Buildings, flats, shared areas, and assignable rooms.")
+			<div class={ partials.Cls.SectionGrid }>
+				@partials.Card("Buildings") {
+					@BuildingsTable(buildings)
+				}
+				@partials.Card("Flats") {
+					@FlatsTable(flats)
+				}
+				@partials.Card("Shared areas") {
+					@SharedAreasTable(sharedAreas)
+				}
+				@partials.Card("Rooms") {
+					@RoomsTable(rooms)
+				}
+			</div>
+		</div>
+	}
+}
+
+templ BuildingsTable(buildings []models.Building) {
+	if len(buildings) == 0 {
+		<p class={ partials.Cls.Empty }>No buildings configured.</p>
+	} else {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Name</th>
+					<th class={ partials.Cls.TableTh }>Code</th>
+					<th class={ partials.Cls.TableTh }></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, building := range buildings {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>{ building.Name }</td>
+						<td class={ partials.Cls.TableTd }>{ building.Code }</td>
+						<td class={ partials.Cls.TableTd }>
+							<a href={ templ.SafeURL("/administration/housing/building/" + building.ID.String()) } class={ partials.Cls.Link }>View</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+templ FlatsTable(flats []models.Flat) {
+	if len(flats) == 0 {
+		<p class={ partials.Cls.Empty }>No flats configured.</p>
+	} else {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Name</th>
+					<th class={ partials.Cls.TableTh }>Floor</th>
+					<th class={ partials.Cls.TableTh }></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, flat := range flats {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>{ flat.Name }</td>
+						<td class={ partials.Cls.TableTd }>{ fmt.Sprintf("%d", flat.Floor) }</td>
+						<td class={ partials.Cls.TableTd }>
+							<a href={ templ.SafeURL("/administration/housing/flat/" + flat.ID.String()) } class={ partials.Cls.Link }>View</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+templ SharedAreasTable(sharedAreas []models.SharedArea) {
+	if len(sharedAreas) == 0 {
+		<p class={ partials.Cls.Empty }>No shared areas configured.</p>
+	} else {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Name</th>
+					<th class={ partials.Cls.TableTh }>Code</th>
+					<th class={ partials.Cls.TableTh }></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, area := range sharedAreas {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>{ area.Name }</td>
+						<td class={ partials.Cls.TableTd }>{ area.Code }</td>
+						<td class={ partials.Cls.TableTd }>
+							<a href={ templ.SafeURL("/administration/housing/shared/" + area.ID.String()) } class={ partials.Cls.Link }>View</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+templ RoomsTable(rooms []models.Room) {
+	if len(rooms) == 0 {
+		<p class={ partials.Cls.Empty }>No rooms configured.</p>
+	} else {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Number</th>
+					<th class={ partials.Cls.TableTh }>Capacity</th>
+					<th class={ partials.Cls.TableTh }></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, room := range rooms {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>{ room.Number }</td>
+						<td class={ partials.Cls.TableTd }>{ fmt.Sprintf("%d", room.Capacity) }</td>
+						<td class={ partials.Cls.TableTd }>
+							<a href={ templ.SafeURL("/administration/housing/room/" + room.ID.String()) } class={ partials.Cls.Link }>View</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
 	}
 }
 
 templ BuildingDetailPage(building models.Building) {
 	@Layout("Building") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@BackLink("/administration/housing", "Back to housing")
+			@PageHeader(building.Name, fmt.Sprintf("Building code: %s", building.Code))
+			<div class={ partials.Cls.SectionGrid }>
+				@partials.Card("Flats in this building") {
+					@FlatsTable(building.Flats)
+				}
+				@partials.Card("Shared areas") {
+					@SharedAreasTable(building.SharedAreas)
+				}
+			</div>
+		</div>
 	}
 }
 
 templ FlatDetailPage(flat models.Flat) {
 	@Layout("Flat") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@BackLink("/administration/housing", "Back to housing")
+			@PageHeader(flat.Name, fmt.Sprintf("Floor %d", flat.Floor))
+			@partials.Card("Rooms") {
+				@FlatRoomsTable(flat.Rooms)
+			}
+			@partials.Card("Flat inventory") {
+				@InventoryTable(flat.Inventory)
+			}
+		</div>
+	}
+}
+
+templ FlatRoomsTable(rooms []models.Room) {
+	if len(rooms) == 0 {
+		<p class={ partials.Cls.Empty }>No rooms in this flat.</p>
+	} else {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Number</th>
+					<th class={ partials.Cls.TableTh }>Capacity</th>
+					<th class={ partials.Cls.TableTh }>Occupied</th>
+					<th class={ partials.Cls.TableTh }></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, room := range rooms {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>{ room.Number }</td>
+						<td class={ partials.Cls.TableTd }>{ fmt.Sprintf("%d", room.Capacity) }</td>
+						<td class={ partials.Cls.TableTd }>{ fmt.Sprintf("%d", len(room.Assignments)) }</td>
+						<td class={ partials.Cls.TableTd }>
+							<a href={ templ.SafeURL("/administration/housing/room/" + room.ID.String()) } class={ partials.Cls.Link }>View</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
 	}
 }
 
 templ SharedAreaDetailPage(sharedArea models.SharedArea) {
 	@Layout("Shared Area") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@BackLink("/administration/housing", "Back to housing")
+			@PageHeader(sharedArea.Name, fmt.Sprintf("Area code: %s", sharedArea.Code))
+			@partials.Card("Inventory in shared area") {
+				@InventoryTable(sharedArea.Inventory)
+			}
+		</div>
 	}
 }
 
-templ RoomDetailPage(room models.Room) {
+templ RoomDetailPage(room models.Room, tenants []models.Tenant) {
 	@Layout("Room") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@BackLink("/administration/housing", "Back to housing")
+			@PageHeader(fmt.Sprintf("Room %s", room.Number), fmt.Sprintf("Capacity %d", room.Capacity))
+			@partials.Card("Current assignments") {
+				@RoomAssignmentsTable(room.Assignments)
+			}
+			@partials.Card("Assign tenant to room") {
+				@RoomAssignForm(room.ID, tenants)
+			}
+		</div>
 	}
+}
+
+templ RoomAssignmentsTable(assignments []models.RoomAssignment) {
+	if len(assignments) == 0 {
+		<p class={ partials.Cls.Empty }>No active assignments for this room.</p>
+	} else {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Tenant</th>
+					<th class={ partials.Cls.TableTh }>Student code</th>
+					<th class={ partials.Cls.TableTh }>Since</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, assignment := range assignments {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>
+							if assignment.Tenant.User != nil {
+								{ assignment.Tenant.User.Name }
+							} else {
+								{ assignment.Tenant.StudentCode }
+							}
+						</td>
+						<td class={ partials.Cls.TableTd }>{ assignment.Tenant.StudentCode }</td>
+						<td class={ partials.Cls.TableTd }>{ assignment.EffectiveAt.Format("2006-01-02") }</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+templ RoomAssignForm(roomID uuid.UUID, tenants []models.Tenant) {
+	<form class={ partials.Cls.FormGrid } hx-post="/administration/housing/room/assign" hx-swap="none">
+		<input type="hidden" name="room_id" value={ roomID.String() }/>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Tenant</span>
+			@TenantSelect(tenants)
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Effective date (optional)</span>
+			<input type="date" name="effective_at" class={ partials.Cls.Input }/>
+		</label>
+		<div class="md:col-span-2">
+			<button type="submit" class={ partials.Cls.Button }>Assign tenant</button>
+		</div>
+	</form>
 }

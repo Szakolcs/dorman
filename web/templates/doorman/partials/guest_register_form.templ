@@ -1,49 +1,52 @@
 package doormanviews
 
-import "dorm-man/internal/models"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
 
 templ GuestRegisterForm(tenants []models.Tenant) {
-	<tr>
+	<tr class={ partials.Cls.TableTr }>
 		<form
 			hx-post="/doorman/register/guest"
 			hx-target="#guest-table"
 			hx-swap="outerHTML"
 		>
-			<td class="p-3">
+			<td class={ partials.Cls.TableTd }>
 				<input
 					type="text"
 					name="guest_name"
 					placeholder="Guest Name"
-					class="dm-input w-full"
+					class={ partials.Cls.Input }
 				/>
 			</td>
-			<td class="p-3">
+			<td class={ partials.Cls.TableTd }>
 				<input
 					type="text"
 					name="id_notes"
 					placeholder="ID Notes"
-					class="dm-input w-full"
+					class={ partials.Cls.Input }
 				/>
 			</td>
-			<td class="p-3">
+			<td class={ partials.Cls.TableTd }>
 				checked_in
 			</td>
-			<td class="p-3">
+			<td class={ partials.Cls.TableTd }>
 				<select
 					name="host_tenant_id"
-					class="dm-input w-full"
+					class={ partials.Cls.Select }
 				>
 					for _, tenant := range tenants {
 						<option value={ tenant.ID.String() }>
-							{ tenant.User.Name }
+							@TenantLabel(tenant)
 						</option>
 					}
 				</select>
 			</td>
-			<td class="p-3">
+			<td class={ partials.Cls.TableTd }>
 				<button
 					type="submit"
-					class="dm-button"
+					class={ partials.Cls.Button }
 				>
 					Create
 				</button>

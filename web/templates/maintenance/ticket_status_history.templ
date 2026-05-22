@@ -1,42 +1,47 @@
 package maintenanceviews
 
-import "dorm-man/internal/models"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
 
 templ TicketStatusHistory(changes []models.StatusChange) {
 	if len(changes) == 0 {
-		<p class="text-dm-muted">No status changes recorded.</p>
+		<p class={ partials.Cls.Empty }>No status changes recorded.</p>
 	} else {
-		<table class="dm-table">
-			<thead>
-				<tr>
-					<th>When</th>
-					<th>From</th>
-					<th>To</th>
-					<th>Note</th>
+		@partials.TableWrap() {
+			<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>When</th>
+					<th class={ partials.Cls.TableTh }>From</th>
+					<th class={ partials.Cls.TableTh }>To</th>
+					<th class={ partials.Cls.TableTh }>Note</th>
 				</tr>
 			</thead>
 			<tbody>
 				for _, change := range changes {
-					<tr>
-						<td class="p-3">
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>
 							{ change.CreatedAt.Format("2006-01-02 15:04") }
 						</td>
-						<td class="p-3">
+						<td class={ partials.Cls.TableTd }>
 							if change.FromStatus != nil {
 								{ string(*change.FromStatus) }
 							} else {
 								—
 							}
 						</td>
-						<td class="p-3">
+						<td class={ partials.Cls.TableTd }>
 							{ string(change.ToStatus) }
 						</td>
-						<td class="p-3">
+						<td class={ partials.Cls.TableTd }>
 							{ change.Note }
 						</td>
 					</tr>
 				}
 			</tbody>
 		</table>
+		}
 	}
 }

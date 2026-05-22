@@ -1,6 +1,6 @@
 package models
 
-// All returns all administration-owned model pointers in migration order
+// All returns all model pointers in migration order
 // (FK dependencies first). Activity and Event live in the forum package.
 func All() []any {
 	return []any{

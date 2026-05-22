@@ -15,6 +15,7 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB, auth echo.MiddlewareFunc) {
 	staff := e.Group("/maintenance")
 	staff.Use(auth, middleware.RequireRole("maintainer", "admin", "dev"))
 	staff.GET("", h.dashboardPage)
+	staff.GET("/", h.dashboardPage)
 	staff.GET("/tickets", h.ticketsPage)
 	staff.GET("/tickets/:id", h.ticketDetailPage)
 	staff.PUT("/tickets/:id", h.updateTicket)

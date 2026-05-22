@@ -4,6 +4,7 @@ import (
 	"dorm-man/internal/models"
 	doormanviews "dorm-man/web/templates/doorman/pages"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -36,11 +37,19 @@ func (h *Handler) dashboardPage(c echo.Context) error {
 }
 
 func (h *Handler) listGuest(c echo.Context) error {
-	if _, err := guestFilter(c); err != nil {
+	filter, err := guestFilter(c)
+	if err != nil {
 		return h.writeError(c, err)
 	}
-	c.Response().Header().Set("HX-Redirect", "/doorman/guests")
-	return c.NoContent(http.StatusOK)
+	guests, err := h.service.ListGuests(filter)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	tenants, err := h.service.GetTenants()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, doormanviews.GuestsPage(guests, tenants))
 }
 
 func (h *Handler) registerGuest(c echo.Context) error {
@@ -83,10 +92,11 @@ func (h *Handler) listTenantAccess(c echo.Context) error {
 }
 
 func (h *Handler) createTenantAccess(c echo.Context) error {
-	var req TenantAccessRequest
-	if err := c.Bind(&req); err != nil {
-		return h.writeError(c, ErrValidation)
+	req := TenantAccessRequest{
+		TenantID:     uuid.MustParse(c.QueryParam("id")),
+		AccessStatus: models.AccessStatus(c.QueryParam("direction")),
 	}
+	fmt.Println("req", req)
 	_, err := h.service.RegisterTenantAccess(req)
 	if err != nil {
 		return h.writeError(c, err)

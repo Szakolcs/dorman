@@ -1,9 +1,24 @@
 package adminviews
 
-import "dorm-man/internal/models"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	"fmt"
+)
 
 templ DashboardPage(activeTenants int, openJobs int, buildings int, recentAudits []models.Audit) {
 	@Layout("Administration") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@PageHeader("Administration Dashboard", "Overview of dormitory operations and recent changes.")
+			<div class={ partials.Cls.StatGrid }>
+				@StatCard("Active tenants", fmt.Sprintf("%d", activeTenants))
+				@StatCard("Open jobs", fmt.Sprintf("%d", openJobs))
+				@StatCard("Buildings", fmt.Sprintf("%d", buildings))
+			</div>
+			@partials.Card("Recent audit events") {
+				@AuditTable(recentAudits)
+			}
+		</div>
 	}
 }

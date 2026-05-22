@@ -15,6 +15,7 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB, auth echo.MiddlewareFunc) {
 	forum := e.Group("/api/forum")
 	forum.Use(auth, middleware.RequireRole("admin", "dev"))
 	forum.GET("", h.feedPage)
+	forum.GET("/", h.feedPage)
 	forum.GET("/feed", h.feedListFragment)
 	forum.POST("/posts", h.createCommunityPostView)
 	forum.GET("/posts/:id", h.postPage)

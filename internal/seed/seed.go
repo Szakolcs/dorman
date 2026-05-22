@@ -50,22 +50,22 @@ func Run(db *gorm.DB, reset bool) error {
 	}
 
 	perms := []models.Permission{
-		{Name: "platform.all", Read: true, Write: true, OperationID: ops[0].ID.String()},
-		{Name: "administration.all", Read: true, Write: true, OperationID: ops[1].ID.String()},
-		{Name: "maintenance.all", Read: true, Write: true, OperationID: ops[2].ID.String()},
-		{Name: "doorman.all", Read: true, Write: true, OperationID: ops[3].ID.String()},
-		{Name: "tenant.basic", Read: true, Write: false, OperationID: ops[4].ID.String()},
+		{Name: "platform.all", Read: true, Write: true, OperationID: ops[0].ID},
+		{Name: "administration.all", Read: true, Write: true, OperationID: ops[1].ID},
+		{Name: "maintenance.all", Read: true, Write: true, OperationID: ops[2].ID},
+		{Name: "doorman.all", Read: true, Write: true, OperationID: ops[3].ID},
+		{Name: "tenant.basic", Read: true, Write: false, OperationID: ops[4].ID},
 	}
 	if err := db.Create(&perms).Error; err != nil {
 		return fmt.Errorf("seed permissions: %w", err)
 	}
 
 	roles := []models.Role{
-		{Name: "dev", PermissionID: perms[0].ID.String()},
-		{Name: "admin", PermissionID: perms[1].ID.String()},
-		{Name: "maintainer", PermissionID: perms[2].ID.String()},
-		{Name: "doorman", PermissionID: perms[3].ID.String()},
-		{Name: "tenant", PermissionID: perms[4].ID.String()},
+		{Name: "dev", PermissionID: perms[0].ID},
+		{Name: "admin", PermissionID: perms[1].ID},
+		{Name: "maintainer", PermissionID: perms[2].ID},
+		{Name: "doorman", PermissionID: perms[3].ID},
+		{Name: "tenant", PermissionID: perms[4].ID},
 	}
 	if err := db.Create(&roles).Error; err != nil {
 		return fmt.Errorf("seed roles: %w", err)
@@ -81,7 +81,6 @@ func Run(db *gorm.DB, reset bool) error {
 		password string
 		name     string
 		email    string
-		uniCode  string
 		role     string
 	}
 
@@ -91,7 +90,6 @@ func Run(db *gorm.DB, reset bool) error {
 			password: "dev",
 			name:     "Development Superuser Account",
 			email:    "dev@dorm.local",
-			uniCode:  "UC-DEV-0001",
 			role:     "dev",
 		},
 		{
@@ -99,7 +97,6 @@ func Run(db *gorm.DB, reset bool) error {
 			password: "admin",
 			name:     "Campus Housing Administrator",
 			email:    "admin@dorm.local",
-			uniCode:  "UC-ADM-0001",
 			role:     "admin",
 		},
 		{
@@ -107,7 +104,6 @@ func Run(db *gorm.DB, reset bool) error {
 			password: "maintainer",
 			name:     "Facilities and Maintenance Coordinator",
 			email:    "maintainer@dorm.local",
-			uniCode:  "UC-MNT-0001",
 			role:     "maintainer",
 		},
 		{
@@ -115,7 +111,6 @@ func Run(db *gorm.DB, reset bool) error {
 			password: "doorman",
 			name:     "Front Desk and Security Officer",
 			email:    "doorman@dorm.local",
-			uniCode:  "UC-DRM-0001",
 			role:     "doorman",
 		},
 		{
@@ -123,7 +118,6 @@ func Run(db *gorm.DB, reset bool) error {
 			password: "tenant1",
 			name:     "Anna Kovacs",
 			email:    "tenant1@student.uni.local",
-			uniCode:  "STU-2024-00142",
 			role:     "tenant",
 		},
 		{
@@ -131,7 +125,6 @@ func Run(db *gorm.DB, reset bool) error {
 			password: "tenant2",
 			name:     "Mate Nagy",
 			email:    "tenant2@student.uni.local",
-			uniCode:  "STU-2024-00287",
 			role:     "tenant",
 		},
 	}
@@ -143,15 +136,13 @@ func Run(db *gorm.DB, reset bool) error {
 			return fmt.Errorf("hash password for %s: %w", acct.nickname, err)
 		}
 		user := models.User{
-			UniCode:      acct.uniCode,
 			Name:         acct.name,
 			Email:        acct.email,
 			Nickname:     acct.nickname,
 			PasswordHash: string(hash),
-			IsActive:     true,
 			AvatarURL:    "https://example.local/avatars/" + acct.nickname + ".png",
 			PhotoUrl:     "https://example.local/photos/" + acct.nickname + "-profile.jpg",
-			RoleID:       roleByName[acct.role].ID.String(),
+			RoleID:       roleByName[acct.role].ID,
 		}
 		if err := db.Create(&user).Error; err != nil {
 			return fmt.Errorf("seed user %s: %w", acct.nickname, err)
@@ -355,6 +346,7 @@ func Run(db *gorm.DB, reset bool) error {
 
 	auditOld := fmt.Sprintf(`{"status":"%s"}`, models.InventoryStatusInStock)
 	auditNew := fmt.Sprintf(`{"status":"%s","room_id":"%s"}`, models.InventoryStatusInUse, rooms[0].ID)
+	adminUserID := users["admin"].ID
 	audits := []models.Audit{
 		{
 			TableName: "inventory_items",
@@ -362,7 +354,7 @@ func Run(db *gorm.DB, reset bool) error {
 			OldData:   auditOld,
 			NewData:   auditNew,
 			ChangedAt: ago(200 * 24 * time.Hour).Format(time.RFC3339),
-			ChangedBy: users["admin"].ID,
+			ChangedBy: &adminUserID,
 		},
 		{
 			TableName: "room_assignments",
@@ -370,7 +362,7 @@ func Run(db *gorm.DB, reset bool) error {
 			OldData:   `{}`,
 			NewData:   fmt.Sprintf(`{"tenant_id":"%s","room_id":"%s"}`, tenants[0].ID, rooms[0].ID),
 			ChangedAt: assignments[0].EffectiveAt.Format(time.RFC3339),
-			ChangedBy: users["admin"].ID,
+			ChangedBy: &adminUserID,
 		},
 	}
 	if err := db.Create(&audits).Error; err != nil {

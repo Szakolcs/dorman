@@ -1,15 +1,19 @@
 package maintenanceviews
 
+import (
+	"dorm-man/web/templates/common/partials"
+)
+
 templ StaffTicketFilters() {
 	<form
 		method="GET"
 		action="/maintenance/tickets"
-		class="dm-card mb-6 flex flex-wrap gap-4"
+		class={ partials.Cls.FilterBar }
 	>
 		@ticketFilterFields()
 		<button
 			type="submit"
-			class="dm-button"
+			class={ partials.Cls.Button }
 		>
 			Filter
 		</button>
@@ -20,12 +24,12 @@ templ TenantTicketFilters() {
 	<form
 		method="GET"
 		action="/tenant/tickets"
-		class="dm-card mb-6 flex flex-wrap gap-4"
+		class={ partials.Cls.FilterBar }
 	>
 		@ticketFilterFields()
 		<button
 			type="submit"
-			class="dm-button"
+			class={ partials.Cls.Button }
 		>
 			Filter
 		</button>
@@ -36,16 +40,16 @@ templ ticketFilterFields() {
 	<input
 		type="date"
 		name="from"
-		class="dm-input"
+		class={ partials.Cls.Input }
 	/>
 	<input
 		type="date"
 		name="to"
-		class="dm-input"
+		class={ partials.Cls.Input }
 	/>
 	<select
 		name="status"
-		class="dm-input"
+		class={ partials.Cls.Select }
 	>
 		<option value="">All Statuses</option>
 		<option value="reported">Reported</option>
@@ -57,7 +61,7 @@ templ ticketFilterFields() {
 	</select>
 	<select
 		name="category"
-		class="dm-input"
+		class={ partials.Cls.Select }
 	>
 		<option value="">All Categories</option>
 		<option value="yearly">Yearly</option>
@@ -67,7 +71,7 @@ templ ticketFilterFields() {
 	</select>
 	<select
 		name="severity"
-		class="dm-input"
+		class={ partials.Cls.Select }
 	>
 		<option value="">All Severities</option>
 		<option value="high">High</option>

@@ -64,6 +64,21 @@ func (h *Handler) loginPage(c echo.Context) error {
 	return loginComponent.LoginPage(c.QueryParam("error")).Render(c.Request().Context(), c.Response().Writer)
 }
 
+func (h *Handler) logout(c echo.Context) error {
+	cookie := &http.Cookie{
+		Name:     "jwt",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   h.cookieSecure,
+		SameSite: http.SameSiteLaxMode,
+	}
+	c.SetCookie(cookie)
+	c.Response().Header().Set("HX-Redirect", "/")
+	return c.NoContent(http.StatusOK)
+}
+
 func (h *Handler) writeError(c echo.Context, err error) error {
 	status := http.StatusInternalServerError
 	category := "internal_error"

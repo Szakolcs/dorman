@@ -1,15 +1,157 @@
 package adminviews
 
-import "dorm-man/internal/models"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
 
 templ JobsPage(jobs []models.OperationalJob) {
 	@Layout("Jobs") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@PageHeader("Operational jobs", "Plan and track maintenance work across the dormitory.")
+			@partials.Card("Create job") {
+				@JobCreateForm()
+			}
+			@partials.Card("Jobs") {
+				@JobsTable(jobs)
+			}
+		</div>
 	}
+}
+
+templ JobsTable(jobs []models.OperationalJob) {
+	if len(jobs) == 0 {
+		<p class={ partials.Cls.Empty }>No jobs found.</p>
+	} else {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Title</th>
+					<th class={ partials.Cls.TableTh }>Priority</th>
+					<th class={ partials.Cls.TableTh }>Status</th>
+					<th class={ partials.Cls.TableTh }>Starts</th>
+					<th class={ partials.Cls.TableTh }>Ends</th>
+					<th class={ partials.Cls.TableTh }></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, job := range jobs {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>{ job.Title }</td>
+						<td class={ partials.Cls.TableTd }>{ string(job.Priority) }</td>
+						<td class={ partials.Cls.TableTd }>{ string(job.Status) }</td>
+						<td class={ partials.Cls.TableTd }>{ job.StartsAt.Format("2006-01-02 15:04") }</td>
+						<td class={ partials.Cls.TableTd }>{ job.EndsAt.Format("2006-01-02 15:04") }</td>
+						<td class={ partials.Cls.TableTd }>
+							<a
+								href={ templ.SafeURL("/administration/jobs/" + job.ID.String()) }
+								class={ partials.Cls.Link }
+							>
+								View
+							</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}
+
+templ JobCreateForm() {
+	<form class={ partials.Cls.FormGrid } hx-post="/administration/jobs" hx-swap="none">
+		<label class={ partials.Cls.Field + " md:col-span-2" }>
+			<span class={ partials.Cls.Label }>Title</span>
+			<input type="text" name="title" required class={ partials.Cls.Input }/>
+		</label>
+		<label class={ partials.Cls.Field + " md:col-span-2" }>
+			<span class={ partials.Cls.Label }>Description</span>
+			<textarea name="description" rows="4" class={ partials.Cls.Textarea }></textarea>
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Starts at</span>
+			<input type="datetime-local" name="starts_at" required class={ partials.Cls.Input }/>
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Ends at</span>
+			<input type="datetime-local" name="ends_at" required class={ partials.Cls.Input }/>
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Priority</span>
+			<select name="priority" class={ partials.Cls.Select }>
+				<option value="low">low</option>
+				<option value="medium" selected>medium</option>
+				<option value="high">high</option>
+			</select>
+		</label>
+		<label class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Status</span>
+			<select name="status" class={ partials.Cls.Select }>
+				<option value="planned" selected>planned</option>
+				<option value="scheduled">scheduled</option>
+				<option value="in_progress">in_progress</option>
+				<option value="finished">finished</option>
+				<option value="canceled">canceled</option>
+			</select>
+		</label>
+		<div class="md:col-span-2">
+			<button type="submit" class={ partials.Cls.Button }>Create job</button>
+		</div>
+	</form>
 }
 
 templ JobDetailPage(job models.OperationalJob) {
 	@Layout("Job") {
 		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@BackLink("/administration/jobs", "Back to jobs")
+			@PageHeader(job.Title, job.Description)
+			@partials.Card("Details") {
+				<dl>
+					@DetailRow("Priority", string(job.Priority))
+					@DetailRow("Status", string(job.Status))
+					@DetailRow("Starts", job.StartsAt.Format("2006-01-02 15:04"))
+					@DetailRow("Ends", job.EndsAt.Format("2006-01-02 15:04"))
+				</dl>
+			}
+			@partials.Card("Update job") {
+				<form class={ partials.Cls.FormGrid } hx-put={ templ.SafeURL("/administration/jobs?id=" + job.ID.String()) } hx-swap="none">
+					<label class={ partials.Cls.Field + " md:col-span-2" }>
+						<span class={ partials.Cls.Label }>Title</span>
+						<input type="text" name="title" value={ job.Title } class={ partials.Cls.Input }/>
+					</label>
+					<label class={ partials.Cls.Field + " md:col-span-2" }>
+						<span class={ partials.Cls.Label }>Description</span>
+						<textarea name="description" rows="4" class={ partials.Cls.Textarea }>{ job.Description }</textarea>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Priority</span>
+						<select name="priority" class={ partials.Cls.Select }>
+							<option value="low">low</option>
+							<option value="medium">medium</option>
+							<option value="high">high</option>
+						</select>
+					</label>
+					<label class={ partials.Cls.Field }>
+						<span class={ partials.Cls.Label }>Status</span>
+						<select name="status" class={ partials.Cls.Select }>
+							<option value="planned">planned</option>
+							<option value="scheduled">scheduled</option>
+							<option value="in_progress">in_progress</option>
+							<option value="finished">finished</option>
+							<option value="canceled">canceled</option>
+						</select>
+					</label>
+					<div class="md:col-span-2">
+						<button type="submit" class={ partials.Cls.Button }>Save changes</button>
+					</div>
+				</form>
+			}
+			<form hx-delete={ templ.SafeURL("/administration/jobs?id=" + job.ID.String()) } hx-swap="none">
+				<button type="submit" class={ partials.Cls.ButtonDanger }>
+					Delete job
+				</button>
+			</form>
+		</div>
 	}
 }

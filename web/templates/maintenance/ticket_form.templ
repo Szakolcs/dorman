@@ -1,21 +1,20 @@
 package maintenanceviews
 
+import (
+	"dorm-man/web/templates/common/partials"
+)
+
 templ TicketCreateForm() {
 	<form
 		hx-post="/tenant/tickets"
-		class="space-y-4"
+		class={ partials.Cls.Form }
 	>
-		<div>
-			<label
-				for="category"
-				class="mb-1 block text-sm font-medium"
-			>
-				Category
-			</label>
+		<label for="category" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Category</span>
 			<select
 				id="category"
 				name="category"
-				class="dm-input w-full"
+				class={ partials.Cls.Select }
 				required
 			>
 				<option value="">Select category</option>
@@ -24,18 +23,13 @@ templ TicketCreateForm() {
 				<option value="weekly">Weekly</option>
 				<option value="incident">Incident</option>
 			</select>
-		</div>
-		<div>
-			<label
-				for="severity"
-				class="mb-1 block text-sm font-medium"
-			>
-				Severity
-			</label>
+		</label>
+		<label for="severity" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Severity</span>
 			<select
 				id="severity"
 				name="severity"
-				class="dm-input w-full"
+				class={ partials.Cls.Select }
 				required
 			>
 				<option value="">Select severity</option>
@@ -43,18 +37,13 @@ templ TicketCreateForm() {
 				<option value="medium">Medium</option>
 				<option value="low">Low</option>
 			</select>
-		</div>
-		<div>
-			<label
-				for="impact"
-				class="mb-1 block text-sm font-medium"
-			>
-				Impact
-			</label>
+		</label>
+		<label for="impact" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Impact</span>
 			<select
 				id="impact"
 				name="impact"
-				class="dm-input w-full"
+				class={ partials.Cls.Select }
 				required
 			>
 				<option value="">Select impact</option>
@@ -63,27 +52,24 @@ templ TicketCreateForm() {
 				<option value="inconvenience">Inconvenience</option>
 				<option value="beauty_flaw">Beauty flaw</option>
 			</select>
-		</div>
-		<div>
-			<label
-				for="description"
-				class="mb-1 block text-sm font-medium"
-			>
-				Description
-			</label>
+		</label>
+		<label for="description" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Description</span>
 			<textarea
 				id="description"
 				name="description"
-				class="dm-input w-full"
+				class={ partials.Cls.Textarea }
 				rows="4"
 				required
 			></textarea>
+		</label>
+		<div class={ partials.Cls.FormActions }>
+			<button
+				type="submit"
+				class={ partials.Cls.Button }
+			>
+				Submit Ticket
+			</button>
 		</div>
-		<button
-			type="submit"
-			class="dm-button"
-		>
-			Submit Ticket
-		</button>
 	</form>
 }

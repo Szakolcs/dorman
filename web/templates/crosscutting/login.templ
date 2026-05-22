@@ -1,57 +1,37 @@
 package platform
 
-import "dorm-man/web/templates/common/components"
+import (
+	"dorm-man/web/templates/common/components"
+	"dorm-man/web/templates/common/partials"
+)
 
 templ LoginPage(errorMessage string) {
 	@components.Document("Login") {
-		@LoginContent(errorMessage)
+		<div class={ partials.Cls.LoginPanel }>
+			@LoginContent(errorMessage)
+		</div>
 	}
 }
 
 templ LoginContent(errorMessage string) {
-	<h1 class="mb-2 text-3xl font-bold">Platform Login</h1>
-	<p class="mb-6 text-dm-muted">
+	<h1 class={ partials.Cls.PageTitle }>Platform Login</h1>
+	<p class="dm-page-subtitle mb-6">
 		Sign in and get redirected to your module based on your role.
 	</p>
 	if errorMessage != "" {
 		@components.ErrorAlert(errorMessage)
 	}
-	<form
-		class="flex max-w-xl flex-col gap-2"
-		hx-post="/home/login"
-		hx-swap="none"
-	>
-		<label
-			for="login-nickname"
-			class="text-sm font-medium text-dm-fg"
-		>
-			Nickname
+	<form class="dm-form mt-6" hx-post="/home/login" hx-swap="none">
+		<label for="login-nickname" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Nickname</span>
+			<input id="login-nickname" name="nickname" type="text" required class={ partials.Cls.Input }/>
 		</label>
-		<input
-			id="login-nickname"
-			name="nickname"
-			type="text"
-			required
-			class="rounded border border-dm-border bg-dm-bg px-3 py-2 text-dm-fg focus:outline-2 focus:outline-offset-1 focus:outline-dm-focus"
-		/>
-		<label
-			for="login-password"
-			class="text-sm font-medium text-dm-fg"
-		>
-			Password
+		<label for="login-password" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Password</span>
+			<input id="login-password" name="password" type="password" required class={ partials.Cls.Input }/>
 		</label>
-		<input
-			id="login-password"
-			name="password"
-			type="password"
-			required
-			class="rounded border border-dm-border bg-dm-bg px-3 py-2 text-dm-fg focus:outline-2 focus:outline-offset-1 focus:outline-dm-focus"
-		/>
-		<button
-			type="submit"
-			class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:border-dm-accent-hover hover:bg-dm-accent-hover"
-		>
-			Login
-		</button>
+		<div class={ partials.Cls.FormActions }>
+			<button type="submit" class={ partials.Cls.Button }>Login</button>
+		</div>
 	</form>
 }

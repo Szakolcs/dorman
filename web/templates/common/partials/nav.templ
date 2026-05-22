@@ -1,9 +1,15 @@
 package partials
 
+templ NavLink(href string, label string) {
+	<a href={ templ.URL(href) } class={ Cls.NavLink }>
+		{ label }
+	</a>
+}
+
 templ ThemeToggle() {
 	<button
 		type="button"
-		class="cursor-pointer rounded border border-dm-border bg-dm-surface px-2 py-1 text-sm text-dm-muted hover:border-dm-accent hover:text-dm-fg"
+		class={ Cls.NavButton }
 		data-theme-toggle-label
 		onclick="dmCycleTheme()"
 		aria-label="Cycle theme: system, light, dark"
@@ -12,11 +18,23 @@ templ ThemeToggle() {
 	</button>
 }
 
+templ LogoutButton() {
+	<button
+		type="button"
+		class={ Cls.NavButtonDanger }
+		hx-post="/home/logout"
+		hx-swap="none"
+	>
+		Logout
+	</button>
+}
+
 templ BaseNav() {
-	<nav class="mb-6 flex flex-wrap items-center gap-2 gap-x-4 rounded-lg border border-dm-border bg-dm-elevated px-4 py-2">
+	<nav class={ Cls.Nav }>
 		{ children... }
-		<span class="ml-auto">
+		<span class={ Cls.NavActions }>
 			@ThemeToggle()
+			@LogoutButton()
 		</span>
 	</nav>
 }

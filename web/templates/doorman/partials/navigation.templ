@@ -2,26 +2,10 @@ package doormanviews
 
 import "dorm-man/web/templates/common/partials"
 
-
 templ Navigation() {
 	@partials.BaseNav() {
-		<a
-			href="/doorman"
-			class="font-medium text-dm-link hover:text-dm-accent-hover"
-		>
-			Dashboard
-		</a>
-		<a
-			href="/doorman/list/tenants"
-			class="font-medium text-dm-link hover:text-dm-accent-hover"
-		>
-			Tenant Access
-		</a>
-		<a
-			href="/doorman/list/guests"
-			class="font-medium text-dm-link hover:text-dm-accent-hover"
-		>
-			Guests
-		</a>
+		@partials.NavLink("/doorman", "Dashboard")
+		@partials.NavLink("/doorman/list/tenants", "Tenant Access")
+		@partials.NavLink("/doorman/guests", "Guests")
 	}
 }

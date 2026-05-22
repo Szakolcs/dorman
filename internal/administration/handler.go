@@ -3,6 +3,7 @@ package administration
 import (
 	"dorm-man/internal/models"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -49,12 +50,8 @@ func actorID(c echo.Context) (uuid.UUID, error) {
 	if !ok {
 		return uuid.Nil, ErrUnauthorized
 	}
-	switch v := raw.(type) {
-	case string:
-		return uuid.Parse(v)
-	default:
-		return uuid.Nil, ErrUnauthorized
-	}
+
+	return uuid.MustParse(raw.(string)), nil
 }
 
 func paramUUID(c echo.Context, key string) (uuid.UUID, error) {
@@ -84,7 +81,13 @@ func parseDate(s string) *time.Time {
 	if s == "" {
 		return nil
 	}
-	for _, layout := range []string{time.RFC3339, time.DateTime, time.DateOnly} {
+	for _, layout := range []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05",
+		"2006-01-02T15:04",
+		time.DateTime,
+		time.DateOnly,
+	} {
 		if t, err := time.Parse(layout, s); err == nil {
 			return &t
 		}
@@ -239,7 +242,23 @@ func (h *Handler) inventoryPage(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return renderComponent(c, adminviews.InventoryPage(items))
+	buildings, err := h.service.ListBuildings()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	flats, err := h.service.ListFlats()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	rooms, err := h.service.ListRooms()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	sharedAreas, err := h.service.ListSharedAreas()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.InventoryPage(items, buildings, flats, rooms, sharedAreas))
 }
 
 func (h *Handler) inventoryDetailPage(c echo.Context) error {
@@ -256,6 +275,7 @@ func (h *Handler) inventoryDetailPage(c echo.Context) error {
 
 func (h *Handler) createInventoryItem(c echo.Context) error {
 	actor, err := actorID(c)
+	fmt.Println("actor", actor)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -465,7 +485,32 @@ func (h *Handler) publicationsPage(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return renderComponent(c, adminviews.PublicationsPage(pubs))
+	items := make([]adminviews.PublicationListItem, len(pubs))
+	for i, pub := range pubs {
+		item := adminviews.PublicationListItem{
+			Publication: pub.Publication,
+			Kind:        string(pub.Kind),
+		}
+		if pub.Activity != nil {
+			item.Activity = &adminviews.ActivityStats{
+				Capacity:    pub.Activity.Capacity,
+				BookedCount: pub.Activity.BookedCount,
+			}
+		}
+		if pub.Event != nil {
+			item.Event = &adminviews.EventInterestStats{
+				Interested:    pub.Event.Interested,
+				NotInterested: pub.Event.NotInterested,
+				Busy:          pub.Event.Busy,
+			}
+		}
+		items[i] = item
+	}
+	sharedAreas, err := h.service.ListSharedAreas()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.PublicationsPage(items, sharedAreas, string(filter.Kind)))
 }
 
 func (h *Handler) publicationDetailPage(c echo.Context) error {
@@ -522,6 +567,23 @@ func (h *Handler) archiveNews(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+func (h *Handler) updateNewsState(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	state := models.PublicationState(c.FormValue("state"))
+	if err := h.service.UpdateNewsState(actor, id, state); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/publications/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
 func (h *Handler) createActivity(c echo.Context) error {
 	actor, err := actorID(c)
 	if err != nil {
@@ -562,6 +624,23 @@ func (h *Handler) archiveActivity(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+func (h *Handler) updateActivityState(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	state := models.PublicationState(c.FormValue("state"))
+	if err := h.service.UpdateActivityState(actor, id, state); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/publications/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
 func (h *Handler) createEvent(c echo.Context) error {
 	actor, err := actorID(c)
 	if err != nil {
@@ -599,6 +678,23 @@ func (h *Handler) archiveEvent(c echo.Context) error {
 		return h.writeError(c, err)
 	}
 	c.Response().Header().Set("HX-Redirect", "/administration/publications")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) updateEventState(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	state := models.PublicationState(c.FormValue("state"))
+	if err := h.service.UpdateEventState(actor, id, state); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/publications/"+id.String())
 	return c.NoContent(http.StatusOK)
 }
 
@@ -667,7 +763,11 @@ func (h *Handler) roomDetail(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return renderComponent(c, adminviews.RoomDetailPage(r))
+	tenants, err := h.service.ListActiveTenants()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.RoomDetailPage(r, tenants))
 }
 
 // ---------------------------------------------------------------------------
@@ -762,11 +862,16 @@ func (h *Handler) deleteAssignment(c echo.Context) error {
 // ---------------------------------------------------------------------------
 
 func (h *Handler) registerUserPage(c echo.Context) error {
-	return renderComponent(c, adminviews.RegisterUserPage())
+	roles, err := h.service.ListRoles()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.RegisterUserPage(roles))
 }
 
 func (h *Handler) registerUser(c echo.Context) error {
 	actor, err := actorID(c)
+	fmt.Println("actor", actor)
 	if err != nil {
 		return h.writeError(c, err)
 	}
