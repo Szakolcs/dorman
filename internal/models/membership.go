@@ -1,7 +1,6 @@
 package models
 
 import (
-	"dorm-man/internal/models/chat"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,11 +11,11 @@ import (
 // per-tenant unread counts.
 type Membership struct {
 	BaseModel
-	RoomID     uuid.UUID           `gorm:"type:uuid;not null;index;uniqueIndex:idx_room_tenant_membership"`
-	TenantID   uuid.UUID           `gorm:"type:uuid;not null;index;uniqueIndex:idx_room_tenant_membership"`
-	Role       chat.MembershipRole `gorm:"type:varchar(20);not null;default:'member';index"`
-	JoinedAt   time.Time           `gorm:"not null;default:CURRENT_TIMESTAMP"`
-	LastReadAt *time.Time          `gorm:"index"`
+	RoomID     uuid.UUID      `gorm:"type:uuid;not null;index;uniqueIndex:idx_room_tenant_membership"`
+	TenantID   uuid.UUID      `gorm:"type:uuid;not null;index;uniqueIndex:idx_room_tenant_membership"`
+	Role       MembershipRole `gorm:"type:varchar(20);not null;default:'member';index"`
+	JoinedAt   time.Time      `gorm:"not null;default:CURRENT_TIMESTAMP"`
+	LastReadAt *time.Time     `gorm:"index"`
 
 	Room   *Room   `gorm:"foreignKey:RoomID;references:ID"`
 	Tenant *Tenant `gorm:"foreignKey:TenantID;references:ID"`
