@@ -3,7 +3,9 @@ package administration
 import (
 	"dorm-man/internal/models"
 	"errors"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -50,6 +52,12 @@ type Store interface {
 	updateNewsState(actorID, id uuid.UUID, state models.PublicationState) error
 
 	getActivityByID(id uuid.UUID) (models.Activity, error)
+	countActivities() (int, error)
+	hasActivityBooking(activityID, userID uuid.UUID) (bool, error)
+	bookActivity(userID, activityID uuid.UUID) error
+	cancelActivityBooking(userID, activityID uuid.UUID) error
+	getEventAttendanceIntent(eventID, userID uuid.UUID) (models.EventAttendanceIntent, error)
+	setEventAttendanceIntent(userID, eventID uuid.UUID, intent models.EventAttendanceIntent) error
 	createActivity(actorID uuid.UUID, a models.Activity) error
 	updateActivity(actorID uuid.UUID, a models.Activity) error
 	archiveActivity(actorID, id uuid.UUID) error
@@ -332,7 +340,7 @@ func (s *GormStore) getJobs(filter JobsFilter) ([]models.OperationalJob, error) 
 		q = q.Where("starts_at <= ?", *filter.To)
 	}
 
-	q = applyOrder(q, filter.Pagination, "starts_at")
+	q = applyOrder(q, filter.Pagination, "ends_at")
 	q = applyPagination(q, filter.Pagination)
 
 	var jobs []models.OperationalJob
@@ -398,6 +406,7 @@ func (s *GormStore) getPublications(filter PublicationFilter) ([]PublicationList
 		}
 		out = append(news, acts...)
 		out = append(out, evts...)
+		sortPublicationListItems(out)
 	}
 	if err != nil {
 		return nil, err
@@ -439,11 +448,30 @@ func applyPublicationFilters(q *gorm.DB, filter PublicationFilter) *gorm.DB {
 	if filter.To != nil {
 		q = q.Where("created_at <= ?", *filter.To)
 	}
-	return applyOrder(q, filter.Pagination, "created_at")
+	return q
+}
+
+func sortPublicationListItems(out []PublicationListItem) {
+	sort.Slice(out, func(i, j int) bool {
+		left := publicationListSortKey(out[i])
+		right := publicationListSortKey(out[j])
+		if left.Equal(right) {
+			return out[i].CreatedAt.After(out[j].CreatedAt)
+		}
+		return left.After(right)
+	})
+}
+
+func publicationListSortKey(item PublicationListItem) time.Time {
+	if !item.UpdatedAt.IsZero() {
+		return item.UpdatedAt
+	}
+	return item.CreatedAt
 }
 
 func (s *GormStore) fetchNewsPublications(filter PublicationFilter) ([]PublicationListItem, error) {
 	q := applyPublicationFilters(s.db.Model(&models.Publication{}), filter)
+	q = applyOrder(q, filter.Pagination, "updated_at")
 	var rows []models.Publication
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
@@ -460,6 +488,7 @@ func (s *GormStore) fetchNewsPublications(filter PublicationFilter) ([]Publicati
 
 func (s *GormStore) fetchActivityPublications(filter PublicationFilter) ([]PublicationListItem, error) {
 	q := applyPublicationFilters(s.db.Model(&models.Activity{}), filter)
+	q = applyOrder(q, filter.Pagination, "updated_at")
 	var rows []models.Activity
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
@@ -480,6 +509,7 @@ func (s *GormStore) fetchActivityPublications(filter PublicationFilter) ([]Publi
 
 func (s *GormStore) fetchEventPublications(filter PublicationFilter) ([]PublicationListItem, error) {
 	q := applyPublicationFilters(s.db.Model(&models.Event{}), filter)
+	q = applyOrder(q, filter.Pagination, "starts_at")
 	var rows []models.Event
 	if err := q.Find(&rows).Error; err != nil {
 		return nil, err
@@ -969,6 +999,136 @@ func (s *GormStore) getActivityByID(id uuid.UUID) (models.Activity, error) {
 		return models.Activity{}, ErrNotFound
 	}
 	return a, err
+}
+
+func (s *GormStore) countActivities() (int, error) {
+	var n int64
+	err := s.db.Model(&models.Activity{}).
+		Where("state != ?", models.PublicationStateArchived).
+		Count(&n).Error
+	return int(n), err
+}
+
+func (s *GormStore) hasActivityBooking(activityID, userID uuid.UUID) (bool, error) {
+	var count int64
+	err := s.db.Model(&models.ActivityBooking{}).
+		Where("activity_id = ? AND user_id = ?", activityID, userID).
+		Count(&count).Error
+	return count > 0, err
+}
+
+func (s *GormStore) bookActivity(userID, activityID uuid.UUID) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		var activity models.Activity
+		if err := tx.First(&activity, "id = ?", activityID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotFound
+			}
+			return err
+		}
+		if activity.State != models.PublicationStatePublished {
+			return ErrValidation
+		}
+		if activity.BookedCount >= activity.Capacity {
+			return ErrCapacityConflict
+		}
+		var existing int64
+		if err := tx.Model(&models.ActivityBooking{}).
+			Where("activity_id = ? AND user_id = ?", activityID, userID).
+			Count(&existing).Error; err != nil {
+			return err
+		}
+		if existing > 0 {
+			return ErrConcurrencyConflict
+		}
+		booking := models.ActivityBooking{
+			ActivityID: activityID,
+			UserID:     userID,
+		}
+		if err := tx.Create(&booking).Error; err != nil {
+			return err
+		}
+		res := tx.Model(&models.Activity{}).
+			Where("id = ? AND booked_count < capacity", activityID).
+			UpdateColumn("booked_count", gorm.Expr("booked_count + 1"))
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return ErrCapacityConflict
+		}
+		return nil
+	})
+}
+
+func (s *GormStore) cancelActivityBooking(userID, activityID uuid.UUID) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		var booking models.ActivityBooking
+		err := tx.Where("activity_id = ? AND user_id = ?", activityID, userID).First(&booking).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrNotFound
+		}
+		if err != nil {
+			return err
+		}
+		if err := tx.Delete(&booking).Error; err != nil {
+			return err
+		}
+		res := tx.Model(&models.Activity{}).
+			Where("id = ? AND booked_count > 0", activityID).
+			UpdateColumn("booked_count", gorm.Expr("booked_count - 1"))
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return ErrNotFound
+		}
+		return nil
+	})
+}
+
+func (s *GormStore) getEventAttendanceIntent(eventID, userID uuid.UUID) (models.EventAttendanceIntent, error) {
+	var attendance models.EventAttendance
+	err := s.db.
+		Where("event_id = ? AND user_id = ?", eventID, userID).
+		First(&attendance).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return attendance.Intent, nil
+}
+
+func (s *GormStore) setEventAttendanceIntent(userID, eventID uuid.UUID, intent models.EventAttendanceIntent) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		var event models.Event
+		if err := tx.First(&event, "id = ?", eventID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return ErrNotFound
+			}
+			return err
+		}
+		if event.State != models.PublicationStatePublished {
+			return ErrValidation
+		}
+
+		var attendance models.EventAttendance
+		err := tx.Where("event_id = ? AND user_id = ?", eventID, userID).First(&attendance).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return tx.Create(&models.EventAttendance{
+				EventID: eventID,
+				UserID:  userID,
+				Intent:  intent,
+			}).Error
+		}
+		if err != nil {
+			return err
+		}
+		attendance.Intent = intent
+		return tx.Save(&attendance).Error
+	})
 }
 
 func (s *GormStore) createActivity(actorID uuid.UUID, a models.Activity) error {

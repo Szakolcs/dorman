@@ -2,6 +2,8 @@ package chat
 
 import (
 	"errors"
+
+	"dorm-man/internal/models"
 )
 
 var (
@@ -14,3 +16,14 @@ var (
 	ErrTenantNotFound   = errors.New("tenant_not_found")
 	ErrRoomKindMismatch = errors.New("room_kind_mismatch")
 )
+
+type SearchResult struct {
+	Rooms   []models.Membership
+	Tenants []models.Tenant
+	Query   string
+}
+
+type CreateGroupRequest struct {
+	Title string
+	Topic string
+}

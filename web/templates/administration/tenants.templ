@@ -15,6 +15,7 @@ templ TenantsPage(tenants []models.Tenant) {
 				@TenantsTable(tenants)
 			}
 		</div>
+		<script src="/static/js/clickable-rows.js"></script>
 	}
 }
 
@@ -22,51 +23,47 @@ templ TenantsTable(tenants []models.Tenant) {
 	if len(tenants) == 0 {
 		<p class={ partials.Cls.Empty }>No tenants found.</p>
 	} else {
-		<table class={ partials.Cls.Table }>
-			<thead class={ partials.Cls.TableHead }>
-				<tr class={ partials.Cls.TableTr }>
-					<th class={ partials.Cls.TableTh }>Student code</th>
-					<th class={ partials.Cls.TableTh }>Name</th>
-					<th class={ partials.Cls.TableTh }>Faculty</th>
-					<th class={ partials.Cls.TableTh }>Status</th>
-					<th class={ partials.Cls.TableTh }></th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, tenant := range tenants {
+		@partials.TableWrap() {
+			<table class={ partials.Cls.Table }>
+				<thead class={ partials.Cls.TableHead }>
 					<tr class={ partials.Cls.TableTr }>
-						<td class={ partials.Cls.TableTd }>{ tenant.StudentCode }</td>
-						<td class={ partials.Cls.TableTd }>
-							if tenant.User != nil {
-								{ tenant.User.Name }
-							} else {
-								<span class="text-dm-muted">No linked user</span>
-							}
-						</td>
-						<td class={ partials.Cls.TableTd }>
-							if tenant.Faculty != nil {
-								{ string(*tenant.Faculty) }
-							}
-						</td>
-						<td class={ partials.Cls.TableTd }>
-							if tenant.IsActive {
-								active
-							} else {
-								inactive
-							}
-						</td>
-						<td class={ partials.Cls.TableTd }>
-							<a
-								href={ templ.SafeURL("/administration/tenants/" + tenant.ID.String()) }
-								class={ partials.Cls.Link }
-							>
-								View
-							</a>
-						</td>
+						<th class={ partials.Cls.TableTh }>Student code</th>
+						<th class={ partials.Cls.TableTh }>Name</th>
+						<th class={ partials.Cls.TableTh }>Faculty</th>
+						<th class={ partials.Cls.TableTh }>Status</th>
 					</tr>
-				}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					for _, tenant := range tenants {
+						<tr
+							class={ partials.Cls.TableTr + " dm-table-row-link" }
+							data-row-href={ "/administration/tenants/" + tenant.ID.String() }
+						>
+							<td class={ partials.Cls.TableTd }>{ tenant.StudentCode }</td>
+							<td class={ partials.Cls.TableTd }>
+								if tenant.User != nil {
+									{ tenant.User.Name }
+								} else {
+									<span class="text-dm-muted">No linked user</span>
+								}
+							</td>
+							<td class={ partials.Cls.TableTd }>
+								if tenant.Faculty != nil {
+									{ string(*tenant.Faculty) }
+								}
+							</td>
+							<td class={ partials.Cls.TableTd }>
+								if tenant.IsActive {
+									active
+								} else {
+									inactive
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
 	}
 }
 

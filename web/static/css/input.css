@@ -178,7 +178,7 @@
 	}
 
 	.dm-section-grid {
-		@apply grid gap-6 xl:grid-cols-2;
+		@apply grid min-w-0 gap-6 xl:grid-cols-2;
 	}
 
 	.dm-section-grid-3 {
@@ -191,7 +191,7 @@
 
 	/* Surfaces */
 	.dm-card {
-		@apply rounded-2xl border border-dm-border bg-dm-elevated p-6 shadow-sm;
+		@apply min-w-0 rounded-2xl border border-dm-border bg-dm-elevated p-6 shadow-sm;
 	}
 
 	.dm-card-title {
@@ -208,6 +208,15 @@
 
 	.dm-stat-value {
 		@apply mt-1 text-3xl font-bold tracking-tight text-dm-fg;
+	}
+
+	.dm-stat-detail {
+		@apply mt-1 text-sm text-dm-muted;
+	}
+
+	.dm-stat-link {
+		@apply block text-dm-fg no-underline transition;
+		@apply hover:border-dm-accent hover:shadow-md;
 	}
 
 	.dm-login-panel {
@@ -270,6 +279,16 @@
 		@apply min-h-24 resize-y leading-relaxed;
 	}
 
+	.dm-datetime-fields {
+		@apply grid grid-cols-1 gap-2 sm:grid-cols-2;
+	}
+
+	.dm-input[type="date"],
+	.dm-input[type="time"] {
+		@apply min-h-[42px];
+		color-scheme: light dark;
+	}
+
 	/* Buttons */
 	.dm-button {
 		@apply inline-flex cursor-pointer items-center justify-center rounded-lg border border-transparent bg-dm-accent px-4 py-2.5 text-sm font-semibold text-dm-on-accent shadow-sm transition hover:bg-dm-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dm-focus/40 disabled:cursor-not-allowed disabled:opacity-60;
@@ -285,11 +304,11 @@
 
 	/* Tables */
 	.dm-table-wrap {
-		@apply overflow-x-auto rounded-xl border border-dm-border;
+		@apply -mx-2 max-w-[calc(100%+1rem)] overflow-x-auto rounded-xl border border-dm-border px-2;
 	}
 
 	.dm-table {
-		@apply w-full min-w-[640px] border-collapse text-left text-sm;
+		@apply w-full min-w-0 border-collapse text-left text-sm;
 	}
 
 	.dm-table thead {
@@ -301,7 +320,7 @@
 	}
 
 	.dm-table td {
-		@apply border-b border-dm-border/50 px-4 py-3 align-top text-dm-fg;
+		@apply border-b border-dm-border/50 px-4 py-3 align-top break-words text-dm-fg;
 	}
 
 	.dm-table tbody tr:last-child td {
@@ -310,6 +329,10 @@
 
 	.dm-table tbody tr:hover {
 		@apply bg-dm-surface/25;
+	}
+
+	.dm-table-row-link {
+		@apply cursor-pointer;
 	}
 
 	/* Detail lists */
@@ -448,6 +471,584 @@
 	.dm-publication-status-canceled,
 	.dm-publication-status-postponed {
 		@apply border-dm-error/30 bg-dm-error/10 text-dm-error;
+	}
+
+	/* Inventory */
+	.dm-inventory-header-badges {
+		@apply flex shrink-0 flex-wrap items-center justify-end gap-2;
+	}
+
+	.dm-inventory-status-in-stock {
+		@apply border-dm-border bg-dm-surface text-dm-muted;
+	}
+
+	.dm-inventory-status-in-use {
+		@apply border-dm-accent/40 bg-dm-accent/15 text-dm-accent;
+	}
+
+	.dm-inventory-status-withdrawn {
+		@apply border-dm-border bg-dm-surface/60 text-dm-muted;
+	}
+
+	.dm-inventory-status-destroyed {
+		@apply border-dm-error/30 bg-dm-error/10 text-dm-error;
+	}
+
+	.dm-inventory-condition-new {
+		@apply border-dm-accent/40 bg-dm-accent/15 text-dm-accent;
+	}
+
+	.dm-inventory-condition-good {
+		@apply border-dm-border bg-dm-surface text-dm-muted;
+	}
+
+	.dm-inventory-condition-used {
+		@apply border-dm-border bg-dm-surface/60 text-dm-muted;
+	}
+
+	.dm-inventory-condition-damaged,
+	.dm-inventory-condition-broken {
+		@apply border-dm-error/30 bg-dm-error/10 text-dm-error;
+	}
+
+	.dm-form-inline {
+		@apply flex flex-wrap items-end gap-4;
+	}
+
+	/* Tenant portal */
+	.dm-tenant-kind-filters {
+		@apply mb-6 flex flex-wrap gap-2;
+	}
+
+	.dm-tenant-kind-filter {
+		@apply inline-flex items-center rounded-full border border-dm-border bg-dm-elevated px-4 py-2 text-sm font-medium text-dm-muted no-underline transition;
+		@apply hover:border-dm-accent hover:text-dm-accent;
+	}
+
+	.dm-tenant-kind-filter-active {
+		@apply border-dm-accent bg-dm-accent/15 text-dm-accent;
+	}
+
+	.dm-tenant-kind-news {
+		@apply border-dm-border bg-dm-surface text-dm-muted;
+	}
+
+	.dm-tenant-kind-activity {
+		@apply border-dm-accent/40 bg-dm-accent/15 text-dm-accent;
+	}
+
+	.dm-tenant-kind-event {
+		@apply border-dm-border bg-dm-surface/60 text-dm-muted;
+	}
+
+	.dm-publication-card-actions {
+		@apply flex items-center justify-end border-t border-dm-border pt-3;
+	}
+
+	.dm-publication-card-tenant {
+		@apply gap-0 overflow-hidden p-0;
+	}
+
+	.dm-publication-card-content {
+		@apply flex flex-col gap-3 p-5;
+	}
+
+	.dm-publication-card-footer {
+		@apply mt-auto border-t border-dm-border;
+	}
+
+	.dm-publication-card-footer-activity {
+		@apply flex justify-end p-3;
+	}
+
+	.dm-activity-book-form {
+		@apply m-0;
+	}
+
+	.dm-activity-action-btn {
+		@apply inline-flex cursor-pointer items-center justify-center rounded-full border px-5 py-2 text-sm font-semibold transition;
+	}
+
+	.dm-activity-book-btn {
+		@apply border-dm-accent bg-dm-accent text-white;
+		@apply hover:bg-dm-accent/90;
+	}
+
+	.dm-activity-cancel-btn {
+		@apply border-dm-border bg-dm-surface text-dm-fg;
+		@apply hover:border-dm-error/40 hover:bg-dm-error/10 hover:text-dm-error;
+	}
+
+	.dm-activity-full-btn {
+		@apply cursor-default border-dm-border bg-dm-surface/60 text-dm-muted;
+	}
+
+	.dm-publication-card-footer-event {
+		@apply grid grid-cols-3 divide-x divide-dm-border;
+	}
+
+	.dm-event-intent-form {
+		@apply m-0 min-w-0;
+	}
+
+	.dm-event-intent-btn {
+		@apply w-full cursor-pointer border-0 px-3 py-3 text-sm font-semibold transition;
+	}
+
+	/* Dark mode — tinted text on transparent (unchanged) */
+	[data-theme="dark"] .dm-event-intent-interested .dm-event-intent-btn,
+	[data-theme="dark"] .dm-event-intent-not-interested .dm-event-intent-btn,
+	[data-theme="dark"] .dm-event-intent-busy .dm-event-intent-btn {
+		@apply bg-transparent;
+	}
+
+	[data-theme="dark"] .dm-event-intent-interested .dm-event-intent-btn {
+		@apply text-emerald-300 hover:bg-emerald-500/10;
+	}
+
+	[data-theme="dark"] .dm-event-intent-interested .dm-event-intent-btn-active {
+		@apply bg-emerald-500/15 text-emerald-200;
+	}
+
+	[data-theme="dark"] .dm-event-intent-not-interested .dm-event-intent-btn {
+		@apply text-rose-300 hover:bg-rose-500/10;
+	}
+
+	[data-theme="dark"] .dm-event-intent-not-interested .dm-event-intent-btn-active {
+		@apply bg-rose-500/15 text-rose-200;
+	}
+
+	[data-theme="dark"] .dm-event-intent-busy .dm-event-intent-btn {
+		@apply text-amber-300 hover:bg-amber-500/10;
+	}
+
+	[data-theme="dark"] .dm-event-intent-busy .dm-event-intent-btn-active {
+		@apply bg-amber-500/15 text-amber-200;
+	}
+
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-theme]) .dm-event-intent-interested .dm-event-intent-btn,
+		:root:not([data-theme]) .dm-event-intent-not-interested .dm-event-intent-btn,
+		:root:not([data-theme]) .dm-event-intent-busy .dm-event-intent-btn {
+			@apply bg-transparent;
+		}
+
+		:root:not([data-theme]) .dm-event-intent-interested .dm-event-intent-btn {
+			@apply text-emerald-300 hover:bg-emerald-500/10;
+		}
+
+		:root:not([data-theme]) .dm-event-intent-interested .dm-event-intent-btn-active {
+			@apply bg-emerald-500/15 text-emerald-200;
+		}
+
+		:root:not([data-theme]) .dm-event-intent-not-interested .dm-event-intent-btn {
+			@apply text-rose-300 hover:bg-rose-500/10;
+		}
+
+		:root:not([data-theme]) .dm-event-intent-not-interested .dm-event-intent-btn-active {
+			@apply bg-rose-500/15 text-rose-200;
+		}
+
+		:root:not([data-theme]) .dm-event-intent-busy .dm-event-intent-btn {
+			@apply text-amber-300 hover:bg-amber-500/10;
+		}
+
+		:root:not([data-theme]) .dm-event-intent-busy .dm-event-intent-btn-active {
+			@apply bg-amber-500/15 text-amber-200;
+		}
+	}
+
+	/* Light mode — soft intent tint, darker Nord text */
+	[data-theme="light"] .dm-event-intent-interested .dm-event-intent-btn {
+		background-color: color-mix(in srgb, var(--nord14) 28%, var(--nord6));
+		color: var(--nord10);
+	}
+
+	[data-theme="light"] .dm-event-intent-interested .dm-event-intent-btn:hover {
+		background-color: color-mix(in srgb, var(--nord14) 36%, var(--nord6));
+	}
+
+	[data-theme="light"] .dm-event-intent-interested .dm-event-intent-btn-active {
+		background-color: color-mix(in srgb, var(--nord14) 44%, var(--nord6));
+		color: var(--nord0);
+		box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--nord14) 55%, var(--nord3));
+	}
+
+	[data-theme="light"] .dm-event-intent-not-interested .dm-event-intent-btn {
+		background-color: color-mix(in srgb, var(--nord11) 28%, var(--nord6));
+		color: var(--nord10);
+	}
+
+	[data-theme="light"] .dm-event-intent-not-interested .dm-event-intent-btn:hover {
+		background-color: color-mix(in srgb, var(--nord11) 36%, var(--nord6));
+	}
+
+	[data-theme="light"] .dm-event-intent-not-interested .dm-event-intent-btn-active {
+		background-color: color-mix(in srgb, var(--nord11) 44%, var(--nord6));
+		color: var(--nord0);
+		box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--nord11) 55%, var(--nord3));
+	}
+
+	[data-theme="light"] .dm-event-intent-busy .dm-event-intent-btn {
+		background-color: color-mix(in srgb, var(--nord13) 28%, var(--nord6));
+		color: var(--nord10);
+	}
+
+	[data-theme="light"] .dm-event-intent-busy .dm-event-intent-btn:hover {
+		background-color: color-mix(in srgb, var(--nord13) 36%, var(--nord6));
+	}
+
+	[data-theme="light"] .dm-event-intent-busy .dm-event-intent-btn-active {
+		background-color: color-mix(in srgb, var(--nord13) 44%, var(--nord6));
+		color: var(--nord0);
+		box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--nord13) 55%, var(--nord3));
+	}
+
+	@media (prefers-color-scheme: light) {
+		:root:not([data-theme]) .dm-event-intent-interested .dm-event-intent-btn {
+			background-color: color-mix(in srgb, var(--nord14) 28%, var(--nord6));
+			color: var(--nord10);
+		}
+
+		:root:not([data-theme]) .dm-event-intent-interested .dm-event-intent-btn:hover {
+			background-color: color-mix(in srgb, var(--nord14) 36%, var(--nord6));
+		}
+
+		:root:not([data-theme]) .dm-event-intent-interested .dm-event-intent-btn-active {
+			background-color: color-mix(in srgb, var(--nord14) 44%, var(--nord6));
+			color: var(--nord0);
+			box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--nord14) 55%, var(--nord3));
+		}
+
+		:root:not([data-theme]) .dm-event-intent-not-interested .dm-event-intent-btn {
+			background-color: color-mix(in srgb, var(--nord11) 28%, var(--nord6));
+			color: var(--nord10);
+		}
+
+		:root:not([data-theme]) .dm-event-intent-not-interested .dm-event-intent-btn:hover {
+			background-color: color-mix(in srgb, var(--nord11) 36%, var(--nord6));
+		}
+
+		:root:not([data-theme]) .dm-event-intent-not-interested .dm-event-intent-btn-active {
+			background-color: color-mix(in srgb, var(--nord11) 44%, var(--nord6));
+			color: var(--nord0);
+			box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--nord11) 55%, var(--nord3));
+		}
+
+		:root:not([data-theme]) .dm-event-intent-busy .dm-event-intent-btn {
+			background-color: color-mix(in srgb, var(--nord13) 28%, var(--nord6));
+			color: var(--nord10);
+		}
+
+		:root:not([data-theme]) .dm-event-intent-busy .dm-event-intent-btn:hover {
+			background-color: color-mix(in srgb, var(--nord13) 36%, var(--nord6));
+		}
+
+		:root:not([data-theme]) .dm-event-intent-busy .dm-event-intent-btn-active {
+			background-color: color-mix(in srgb, var(--nord13) 44%, var(--nord6));
+			color: var(--nord0);
+			box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--nord13) 55%, var(--nord3));
+		}
+	}
+
+	.dm-card-with-footer {
+		@apply overflow-hidden p-0;
+	}
+
+	.dm-card-with-footer .dm-card-body {
+		@apply p-6;
+	}
+
+	.dm-activity-book-btn {
+		@apply min-w-[6rem];
+	}
+
+	.dm-activity-book-status {
+		@apply rounded-full border border-dm-accent/40 bg-dm-accent/15 px-3 py-1 text-xs font-semibold tracking-wide text-dm-accent uppercase;
+	}
+
+	.dm-activity-book-full {
+		@apply border-dm-border bg-dm-surface text-dm-muted;
+	}
+
+	.dm-chat-layout {
+		@apply grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)];
+	}
+
+	.dm-chat-sidebar {
+		@apply flex flex-col gap-3;
+	}
+
+	.dm-chat-search-form {
+		@apply shrink-0;
+	}
+
+	.dm-chat-search-section {
+		@apply flex flex-col gap-2;
+	}
+
+	.dm-chat-search-label {
+		@apply text-xs font-semibold tracking-wide text-dm-muted uppercase;
+	}
+
+	.dm-chat-search-results {
+		@apply flex flex-col gap-1;
+	}
+
+	.dm-chat-search-result {
+		@apply flex w-full cursor-pointer flex-col gap-0.5 rounded-xl border border-dm-border bg-dm-elevated px-3 py-2 text-left transition;
+		@apply hover:border-dm-accent hover:bg-dm-surface;
+	}
+
+	.dm-chat-search-result-name {
+		@apply text-sm font-medium text-dm-fg;
+	}
+
+	.dm-chat-search-result-meta {
+		@apply text-xs text-dm-muted;
+	}
+
+	.dm-chat-sidebar-empty {
+		@apply px-1 text-sm text-dm-muted;
+	}
+
+	.dm-chat-create-group {
+		@apply mt-1 py-4;
+	}
+
+	.dm-chat-rooms {
+		@apply flex flex-col gap-2;
+	}
+
+	.dm-chat-room-link {
+		@apply flex flex-col gap-1 rounded-2xl border border-dm-border bg-dm-elevated px-4 py-3 text-dm-fg no-underline transition;
+		@apply hover:border-dm-accent hover:shadow-sm;
+	}
+
+	.dm-chat-room-link-active {
+		@apply border-dm-accent bg-dm-accent/10 shadow-sm;
+	}
+
+	.dm-chat-room-kind {
+		@apply text-xs font-semibold tracking-wide text-dm-muted uppercase;
+	}
+
+	.dm-chat-room-title {
+		@apply text-sm font-medium text-dm-fg;
+	}
+
+	.dm-chat-panel {
+		@apply flex min-h-[420px] flex-col rounded-2xl border border-dm-border bg-dm-elevated shadow-sm;
+	}
+
+	.dm-chat-panel-empty {
+		@apply items-center justify-center p-8;
+	}
+
+	.dm-chat-panel-header {
+		@apply border-b border-dm-border px-4 py-3;
+	}
+
+	.dm-chat-panel-title {
+		@apply text-base font-semibold text-dm-fg;
+	}
+
+	.dm-chat-messages {
+		@apply flex flex-1 flex-col gap-3 overflow-y-auto p-4;
+		max-height: 28rem;
+	}
+
+	.dm-chat-empty {
+		@apply text-sm text-dm-muted;
+	}
+
+	.dm-chat-message {
+		@apply max-w-[85%] rounded-2xl border border-dm-border bg-dm-surface px-4 py-3;
+	}
+
+	.dm-chat-message-own {
+		@apply ml-auto border-dm-accent/30 bg-dm-accent/10;
+	}
+
+	.dm-chat-message-header {
+		@apply mb-1 flex flex-wrap items-center gap-2;
+	}
+
+	.dm-chat-message-author {
+		@apply text-sm font-semibold text-dm-fg;
+	}
+
+	.dm-chat-message-time {
+		@apply text-xs text-dm-muted;
+	}
+
+	.dm-chat-message-body {
+		@apply text-sm leading-relaxed whitespace-pre-wrap text-dm-fg;
+	}
+
+	.dm-chat-compose {
+		@apply flex items-end gap-3 border-t border-dm-border p-4;
+	}
+
+	.dm-chat-compose-field {
+		@apply min-w-0 flex-1;
+	}
+
+	/* Tenant tickets */
+	.dm-ticket-filters {
+		@apply mb-6 flex flex-col gap-4;
+	}
+
+	.dm-ticket-date-form {
+		@apply m-0;
+	}
+
+	.dm-ticket-date-row {
+		@apply grid gap-4 sm:grid-cols-2;
+	}
+
+	.dm-ticket-filter-group {
+		@apply flex flex-col gap-2;
+	}
+
+	.dm-ticket-filter-label {
+		@apply text-sm font-medium text-dm-muted;
+	}
+
+	.dm-ticket-status-reported {
+		@apply border-dm-info/40 bg-dm-info/15 text-dm-info;
+	}
+
+	.dm-ticket-status-duplicate,
+	.dm-ticket-status-halted {
+		@apply border-dm-border bg-dm-surface text-dm-muted;
+	}
+
+	.dm-ticket-status-in_progress {
+		@apply border-dm-accent/40 bg-dm-accent/15 text-dm-accent;
+	}
+
+	.dm-ticket-status-resolved {
+		@apply border-dm-success/40 bg-dm-success/15 text-dm-success;
+	}
+
+	.dm-ticket-status-closed {
+		@apply border-dm-border bg-dm-surface/60 text-dm-muted;
+	}
+
+	/* Jobs */
+	.dm-job-grid {
+		@apply grid gap-4 sm:grid-cols-2 xl:grid-cols-3;
+	}
+
+	.dm-job-create-card {
+		@apply flex min-h-[180px] cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-dm-border bg-dm-surface/30 px-6 py-8 text-dm-muted transition sm:col-span-2 xl:col-span-3;
+		@apply hover:border-dm-accent hover:bg-dm-surface/60 hover:text-dm-accent;
+	}
+
+	.dm-job-create-icon {
+		@apply text-3xl font-light leading-none text-inherit;
+	}
+
+	.dm-job-create-label {
+		@apply text-sm font-medium text-inherit;
+	}
+
+	.dm-job-card {
+		@apply flex min-h-[180px] flex-col gap-3 rounded-2xl border border-dm-border bg-dm-elevated p-5 text-dm-fg no-underline shadow-sm transition;
+		@apply hover:border-dm-accent hover:shadow-md;
+	}
+
+	.dm-job-card-badges {
+		@apply flex flex-wrap gap-2;
+	}
+
+	.dm-job-badge {
+		@apply rounded-full border px-2.5 py-0.5 text-xs font-semibold tracking-wide uppercase;
+	}
+
+	.dm-job-badge-priority-low {
+		@apply border-dm-border bg-dm-surface text-dm-muted;
+	}
+
+	.dm-job-badge-priority-medium {
+		@apply border-dm-accent/30 bg-dm-accent/10 text-dm-accent;
+	}
+
+	.dm-job-badge-priority-high {
+		@apply border-dm-error/30 bg-dm-error/10 text-dm-error;
+	}
+
+	.dm-job-badge-status-planned,
+	.dm-job-badge-status-scheduled {
+		@apply border-dm-border bg-dm-surface text-dm-muted;
+	}
+
+	.dm-job-badge-status-in-progress {
+		@apply border-dm-accent/40 bg-dm-accent/15 text-dm-accent;
+	}
+
+	.dm-job-badge-status-finished {
+		@apply border-dm-border bg-dm-surface/60 text-dm-muted;
+	}
+
+	.dm-job-badge-status-canceled {
+		@apply border-dm-error/30 bg-dm-error/10 text-dm-error;
+	}
+
+	.dm-job-card-title {
+		@apply text-lg font-semibold break-words text-dm-fg;
+	}
+
+	.dm-job-card-description {
+		@apply line-clamp-3 text-sm leading-relaxed break-words whitespace-pre-wrap text-dm-muted;
+	}
+
+	.dm-job-card-due {
+		@apply mt-auto text-sm font-semibold text-dm-fg;
+	}
+
+	.dm-job-card-meta {
+		@apply text-xs font-medium text-dm-muted;
+	}
+
+	/* Housing */
+	.dm-housing-list {
+		@apply flex w-full flex-col gap-4;
+	}
+
+	.dm-housing-create-card {
+		@apply flex w-full cursor-pointer items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-dm-border bg-dm-surface/30 px-6 py-5 text-dm-muted transition;
+		@apply hover:border-dm-accent hover:bg-dm-surface/60 hover:text-dm-accent;
+	}
+
+	.dm-housing-create-icon {
+		@apply text-3xl font-light leading-none text-inherit;
+	}
+
+	.dm-housing-create-label {
+		@apply text-sm font-medium text-inherit;
+	}
+
+	.dm-housing-card {
+		@apply flex flex-col gap-1 rounded-2xl border border-dm-border bg-dm-elevated px-5 py-4 text-dm-fg no-underline shadow-sm transition;
+		@apply hover:border-dm-accent hover:shadow-md;
+	}
+
+	.dm-housing-card-title {
+		@apply text-lg font-semibold break-words text-dm-fg;
+	}
+
+	.dm-housing-card-meta {
+		@apply text-sm font-medium text-dm-muted;
+	}
+
+	.dm-housing-section {
+		@apply min-w-0 space-y-4;
+	}
+
+	.dm-housing-section-title {
+		@apply text-xl font-semibold text-dm-fg;
 	}
 
 	.dm-filter-bar {

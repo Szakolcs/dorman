@@ -5,6 +5,7 @@ import (
 	cross_cutting "dorm-man/internal/cross-cutting"
 	doormanModule "dorm-man/internal/doorman"
 	maintenanceModule "dorm-man/internal/maintenance"
+	tenantportalModule "dorm-man/internal/tenantportal"
 	"dorm-man/internal/models"
 	"fmt"
 	"net/http"
@@ -50,6 +51,7 @@ func New() (*App, error) {
 	maintenanceModule.RegisterRoutes(e, db, auth)
 	administrationModule.RegisterRoutes(e, db, auth)
 	doormanModule.RegisterRoutes(e, db, auth)
+	tenantportalModule.RegisterRoutes(e, db, auth)
 	// forumModule.RegisterRoutes(e, db)
 	// chatModule.RegisterRoutes(e, db)
 

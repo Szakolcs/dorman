@@ -16,12 +16,12 @@ var (
 )
 
 type TicketFilter struct {
-	Status   models.Status   `json:"status"    query:"status"`
-	Category models.Category `json:"category"  query:"category"`
-	Severity models.Severity `json:"severity"  query:"severity"`
-	From     time.Time       `json:"from"      query:"from"`
-	To       time.Time       `json:"to"        query:"to"`
-	FlatID   *uuid.UUID      `json:"flat_id"   query:"flat_id"`
+	Statuses   []models.Status
+	Categories []models.Category
+	Severities []models.Severity
+	From       time.Time
+	To         time.Time
+	FlatID     *uuid.UUID
 }
 
 type CreateTicketRequest struct {

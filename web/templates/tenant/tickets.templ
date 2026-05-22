@@ -1,0 +1,229 @@
+package tenantviews
+
+import (
+	"dorm-man/internal/models"
+	maintenanceviews "dorm-man/web/templates/maintenance"
+	"dorm-man/web/templates/common/partials"
+
+	"github.com/google/uuid"
+)
+
+const ticketsPanelID = "tickets-panel"
+
+templ TicketsPage(tickets []models.Ticket, filter TicketListFilter) {
+	@Layout("My Tickets") {
+		@Navigation()
+		<div class="dm-page">
+			@partials.PageHeader("My Tickets", "Maintenance requests for your flat.")
+			@TicketsPanel(tickets, filter)
+			@TicketCreateModal()
+		</div>
+		<script src="/static/js/tickets.js"></script>
+	}
+}
+
+templ TicketsPanel(tickets []models.Ticket, filter TicketListFilter) {
+	<div id={ ticketsPanelID }>
+		@TicketFilters(filter)
+		@TicketList(tickets, filter)
+	</div>
+}
+
+templ TicketList(tickets []models.Ticket, filter TicketListFilter) {
+	<div class="dm-publication-list">
+		@TicketCreateCard()
+		for _, ticket := range tickets {
+			@TicketCard(ticket, filter)
+		}
+	</div>
+	if len(tickets) == 0 {
+		<p class="dm-empty">No tickets found.</p>
+	}
+}
+
+templ TicketCreateCard() {
+	<button
+		type="button"
+		class="dm-publication-create-card"
+		aria-label="Report an issue"
+		onclick="openTicketCreateModal()"
+	>
+		<span class="dm-publication-create-icon" aria-hidden="true">+</span>
+		<span class="dm-publication-create-label">Report an issue</span>
+	</button>
+}
+
+templ TicketCreateModal() {
+	<dialog id="ticket-create-dialog" class="dm-dialog">
+		<div class="dm-dialog-panel">
+			<header class="dm-dialog-header">
+				<h2 class="dm-dialog-title">Report an issue</h2>
+				<button
+					type="button"
+					class="dm-dialog-close"
+					aria-label="Close"
+					onclick="closeTicketCreateModal()"
+				>
+					&times;
+				</button>
+			</header>
+			@maintenanceviews.TicketCreateForm()
+		</div>
+	</dialog>
+}
+
+templ TicketFilters(filter TicketListFilter) {
+	<div class="dm-ticket-filters">
+		<form
+			hx-get="/tenant/tickets"
+			hx-target={ "#" + ticketsPanelID }
+			hx-swap="outerHTML"
+			hx-push-url="true"
+			hx-trigger="change"
+			class="dm-ticket-date-form"
+		>
+			for _, status := range filter.Statuses {
+				<input type="hidden" name="status" value={ status }/>
+			}
+			for _, severity := range filter.Severities {
+				<input type="hidden" name="severity" value={ severity }/>
+			}
+			<div class="dm-ticket-date-row">
+				<label class="dm-field">
+					<span class="dm-label">From</span>
+					<input type="date" name="from" value={ filter.From } class="dm-input"/>
+				</label>
+				<label class="dm-field">
+					<span class="dm-label">To</span>
+					<input type="date" name="to" value={ filter.To } class="dm-input"/>
+				</label>
+			</div>
+		</form>
+		@TicketFilterGroup("Status") {
+			for _, status := range AllTicketStatuses {
+				@TicketFilterButton(
+					filter.ToggleStatus(string(status)).URL(),
+					statusLabel(status),
+					filterValueActive(filter.Statuses, string(status)),
+				)
+			}
+		}
+		@TicketFilterGroup("Severity") {
+			for _, severity := range AllTicketSeverities {
+				@TicketFilterButton(
+					filter.ToggleSeverity(string(severity)).URL(),
+					severityLabel(severity),
+					filterValueActive(filter.Severities, string(severity)),
+				)
+			}
+		}
+	</div>
+}
+
+templ TicketFilterGroup(label string) {
+	<div class="dm-ticket-filter-group">
+		<p class="dm-ticket-filter-label">{ label }</p>
+		<div class="dm-tenant-kind-filters">
+			{ children... }
+		</div>
+	</div>
+}
+
+templ TicketFilterButton(href string, label string, active bool) {
+	<a
+		href={ templ.URL(href) }
+		hx-get={ templ.URL(href) }
+		hx-target={ "#" + ticketsPanelID }
+		hx-swap="outerHTML"
+		hx-push-url="true"
+		class={
+			templ.KV("dm-tenant-kind-filter", true),
+			templ.KV("dm-tenant-kind-filter-active", active),
+		}
+	>
+		{ label }
+	</a>
+}
+
+templ TicketCard(ticket models.Ticket, filter TicketListFilter) {
+	<article class="dm-publication-card dm-publication-card-tenant">
+		<div class="dm-publication-card-content">
+			<a
+				href={ templ.URL(filter.ToggleStatus(string(ticket.Status)).URL()) }
+				hx-get={ templ.URL(filter.ToggleStatus(string(ticket.Status)).URL()) }
+				hx-target={ "#" + ticketsPanelID }
+				hx-swap="outerHTML"
+				hx-push-url="true"
+				class={
+					templ.KV("dm-publication-card-kind", true),
+					templ.KV(ticketStatusClass(ticket.Status), true),
+				}
+				aria-label={ "Filter by " + statusLabel(ticket.Status) }
+			>
+				{ statusLabel(ticket.Status) }
+			</a>
+			<a
+				href={ templ.SafeURL("/tenant/tickets/" + ticket.ID.String()) }
+				class="dm-publication-card-body"
+			>
+				<h3 class="dm-publication-card-title">{ ticketCardTitle(ticket) }</h3>
+				if ticket.Description != "" && ticketCardTitle(ticket) != ticket.Description {
+					<p class="dm-publication-card-description">{ ticket.Description }</p>
+				}
+				<p class="dm-publication-card-stats">
+					{ severityLabel(ticket.Severity) } · { impactLabel(ticket.Impact) }
+				</p>
+				<p class="dm-publication-card-meta">
+					{ ticketReporterLabel(ticket) } · { ticket.CreatedAt.Format("2006-01-02 15:04") }
+				</p>
+			</a>
+		</div>
+	</article>
+}
+
+templ TicketDetailPage(ticket models.Ticket, viewerID uuid.UUID) {
+	@Layout("Ticket Detail") {
+		@Navigation()
+		<div class={ partials.Cls.Page }>
+			<a href="/tenant/tickets" class="dm-back-link">&larr; Back to tickets</a>
+			@partials.PageHeader("Ticket Detail", ticket.CreatedAt.Format("2006-01-02 15:04"))
+			@partials.Card("Details") {
+				<dl class="dm-detail-list">
+					<div class={ partials.Cls.DetailRow }>
+						<dt class={ partials.Cls.DetailLabel }>Status</dt>
+						<dd class={ partials.Cls.DetailValue }>{ statusLabel(ticket.Status) }</dd>
+					</div>
+					<div class={ partials.Cls.DetailRow }>
+						<dt class={ partials.Cls.DetailLabel }>Severity</dt>
+						<dd class={ partials.Cls.DetailValue }>{ severityLabel(ticket.Severity) }</dd>
+					</div>
+					<div class={ partials.Cls.DetailRow }>
+						<dt class={ partials.Cls.DetailLabel }>Impact</dt>
+						<dd class={ partials.Cls.DetailValue }>{ impactLabel(ticket.Impact) }</dd>
+					</div>
+					if ticket.CreatedByUser != nil {
+						<div class={ partials.Cls.DetailRow }>
+							<dt class={ partials.Cls.DetailLabel }>Reporter</dt>
+							<dd class={ partials.Cls.DetailValue }>{ ticket.CreatedByUser.Name }</dd>
+						</div>
+					}
+				</dl>
+				<p class="mt-4 whitespace-pre-wrap">{ ticket.Description }</p>
+				if ticket.Status == models.StatusReported && ticket.CreatedByUserID == viewerID {
+					<button
+						type="button"
+						class="dm-button dm-button-danger mt-4"
+						hx-delete={ "/tenant/tickets/" + ticket.ID.String() }
+						hx-confirm="Withdraw this ticket?"
+						hx-swap="none"
+					>
+						Withdraw Ticket
+					</button>
+				}
+			}
+			@partials.Card("Status History") {
+				@maintenanceviews.TicketStatusHistory(ticket.StatusTransitions)
+			}
+		</div>
+	}
+}

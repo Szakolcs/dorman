@@ -8,135 +8,215 @@ import (
 	"github.com/google/uuid"
 )
 
-templ HousingPage(buildings []models.Building, flats []models.Flat, sharedAreas []models.SharedArea, rooms []models.Room) {
+templ HousingPage(buildings []models.Building) {
 	@Layout("Housing") {
 		@Navigation()
-		<div class={ partials.Cls.Page }>
-			@PageHeader("Housing", "Buildings, flats, shared areas, and assignable rooms.")
-			<div class={ partials.Cls.SectionGrid }>
-				@partials.Card("Buildings") {
-					@BuildingsTable(buildings)
-				}
-				@partials.Card("Flats") {
-					@FlatsTable(flats)
-				}
-				@partials.Card("Shared areas") {
-					@SharedAreasTable(sharedAreas)
-				}
-				@partials.Card("Rooms") {
-					@RoomsTable(rooms)
+		<div class="dm-page">
+			@PageHeader("Housing", "Manage dormitory buildings and their flats and shared areas.")
+			<div class="dm-housing-list">
+				@BuildingCreateCard()
+				for _, building := range buildings {
+					@BuildingListItem(building)
 				}
 			</div>
+			if len(buildings) == 0 {
+				<p class="dm-empty">No buildings configured.</p>
+			}
+			@BuildingCreateModal()
 		</div>
+		<script src="/static/js/housing.js"></script>
 	}
 }
 
-templ BuildingsTable(buildings []models.Building) {
-	if len(buildings) == 0 {
-		<p class={ partials.Cls.Empty }>No buildings configured.</p>
-	} else {
-		<table class={ partials.Cls.Table }>
-			<thead class={ partials.Cls.TableHead }>
-				<tr class={ partials.Cls.TableTr }>
-					<th class={ partials.Cls.TableTh }>Name</th>
-					<th class={ partials.Cls.TableTh }>Code</th>
-					<th class={ partials.Cls.TableTh }></th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, building := range buildings {
-					<tr class={ partials.Cls.TableTr }>
-						<td class={ partials.Cls.TableTd }>{ building.Name }</td>
-						<td class={ partials.Cls.TableTd }>{ building.Code }</td>
-						<td class={ partials.Cls.TableTd }>
-							<a href={ templ.SafeURL("/administration/housing/building/" + building.ID.String()) } class={ partials.Cls.Link }>View</a>
-						</td>
-					</tr>
-				}
-			</tbody>
-		</table>
-	}
+templ BuildingCreateCard() {
+	<button
+		type="button"
+		class="dm-housing-create-card"
+		aria-label="Create building"
+		onclick="openBuildingCreateModal()"
+	>
+		<span class="dm-housing-create-icon" aria-hidden="true">+</span>
+		<span class="dm-housing-create-label">New building</span>
+	</button>
 }
 
-templ FlatsTable(flats []models.Flat) {
+templ BuildingListItem(building models.Building) {
+	<a
+		href={ templ.SafeURL("/administration/housing/building/" + building.ID.String()) }
+		class="dm-housing-card"
+	>
+		<h3 class="dm-housing-card-title">{ building.Name }</h3>
+		<p class="dm-housing-card-meta">Code { building.Code }</p>
+	</a>
+}
+
+templ BuildingCreateModal() {
+	<dialog id="building-create-dialog" class="dm-dialog">
+		<div class="dm-dialog-panel">
+			<header class="dm-dialog-header">
+				<h2 class="dm-dialog-title">Create building</h2>
+				<button
+					type="button"
+					class="dm-dialog-close"
+					aria-label="Close"
+					onclick="closeBuildingCreateModal()"
+				>
+					&times;
+				</button>
+			</header>
+			@BuildingCreateForm()
+		</div>
+	</dialog>
+}
+
+templ BuildingCreateForm() {
+	<form class="dm-form" method="post" hx-post="/administration/housing/buildings" hx-swap="none">
+		<label class="dm-field">
+			<span class="dm-label">Name</span>
+			<input type="text" name="name" required class="dm-input"/>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Code</span>
+			<input type="text" name="code" required class="dm-input"/>
+		</label>
+		<button type="submit" class="dm-button">Create building</button>
+	</form>
+}
+
+templ FlatsList(flats []models.Flat) {
+	<div class="dm-housing-list">
+		@FlatCreateCard()
+		for _, flat := range flats {
+			@FlatListItem(flat)
+		}
+	</div>
 	if len(flats) == 0 {
-		<p class={ partials.Cls.Empty }>No flats configured.</p>
-	} else {
-		<table class={ partials.Cls.Table }>
-			<thead class={ partials.Cls.TableHead }>
-				<tr class={ partials.Cls.TableTr }>
-					<th class={ partials.Cls.TableTh }>Name</th>
-					<th class={ partials.Cls.TableTh }>Floor</th>
-					<th class={ partials.Cls.TableTh }></th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, flat := range flats {
-					<tr class={ partials.Cls.TableTr }>
-						<td class={ partials.Cls.TableTd }>{ flat.Name }</td>
-						<td class={ partials.Cls.TableTd }>{ fmt.Sprintf("%d", flat.Floor) }</td>
-						<td class={ partials.Cls.TableTd }>
-							<a href={ templ.SafeURL("/administration/housing/flat/" + flat.ID.String()) } class={ partials.Cls.Link }>View</a>
-						</td>
-					</tr>
-				}
-			</tbody>
-		</table>
+		<p class="dm-empty">No flats in this building.</p>
 	}
 }
 
-templ SharedAreasTable(sharedAreas []models.SharedArea) {
+templ FlatCreateCard() {
+	<button
+		type="button"
+		class="dm-housing-create-card"
+		aria-label="Create flat"
+		onclick="openFlatCreateModal()"
+	>
+		<span class="dm-housing-create-icon" aria-hidden="true">+</span>
+		<span class="dm-housing-create-label">New flat</span>
+	</button>
+}
+
+templ FlatListItem(flat models.Flat) {
+	<a
+		href={ templ.SafeURL("/administration/housing/flat/" + flat.ID.String()) }
+		class="dm-housing-card"
+	>
+		<h3 class="dm-housing-card-title">{ flat.Name }</h3>
+		<p class="dm-housing-card-meta">Floor { fmt.Sprintf("%d", flat.Floor) }</p>
+	</a>
+}
+
+templ FlatCreateModal(buildingID uuid.UUID) {
+	<dialog id="flat-create-dialog" class="dm-dialog">
+		<div class="dm-dialog-panel">
+			<header class="dm-dialog-header">
+				<h2 class="dm-dialog-title">Create flat</h2>
+				<button
+					type="button"
+					class="dm-dialog-close"
+					aria-label="Close"
+					onclick="closeFlatCreateModal()"
+				>
+					&times;
+				</button>
+			</header>
+			<form
+				class="dm-form"
+				method="post"
+				hx-post={ templ.SafeURL("/administration/housing/building/" + buildingID.String() + "/flats") }
+				hx-swap="none"
+			>
+				<label class="dm-field">
+					<span class="dm-label">Name</span>
+					<input type="text" name="name" required class="dm-input"/>
+				</label>
+				<label class="dm-field">
+					<span class="dm-label">Floor</span>
+					<input type="number" name="floor" min="0" value="0" required class="dm-input"/>
+				</label>
+				<button type="submit" class="dm-button">Create flat</button>
+			</form>
+		</div>
+	</dialog>
+}
+
+templ SharedAreasList(sharedAreas []models.SharedArea) {
+	<div class="dm-housing-list">
+		@SharedAreaCreateCard()
+		for _, area := range sharedAreas {
+			@SharedAreaListItem(area)
+		}
+	</div>
 	if len(sharedAreas) == 0 {
-		<p class={ partials.Cls.Empty }>No shared areas configured.</p>
-	} else {
-		<table class={ partials.Cls.Table }>
-			<thead class={ partials.Cls.TableHead }>
-				<tr class={ partials.Cls.TableTr }>
-					<th class={ partials.Cls.TableTh }>Name</th>
-					<th class={ partials.Cls.TableTh }>Code</th>
-					<th class={ partials.Cls.TableTh }></th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, area := range sharedAreas {
-					<tr class={ partials.Cls.TableTr }>
-						<td class={ partials.Cls.TableTd }>{ area.Name }</td>
-						<td class={ partials.Cls.TableTd }>{ area.Code }</td>
-						<td class={ partials.Cls.TableTd }>
-							<a href={ templ.SafeURL("/administration/housing/shared/" + area.ID.String()) } class={ partials.Cls.Link }>View</a>
-						</td>
-					</tr>
-				}
-			</tbody>
-		</table>
+		<p class="dm-empty">No shared areas in this building.</p>
 	}
 }
 
-templ RoomsTable(rooms []models.Room) {
-	if len(rooms) == 0 {
-		<p class={ partials.Cls.Empty }>No rooms configured.</p>
-	} else {
-		<table class={ partials.Cls.Table }>
-			<thead class={ partials.Cls.TableHead }>
-				<tr class={ partials.Cls.TableTr }>
-					<th class={ partials.Cls.TableTh }>Number</th>
-					<th class={ partials.Cls.TableTh }>Capacity</th>
-					<th class={ partials.Cls.TableTh }></th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, room := range rooms {
-					<tr class={ partials.Cls.TableTr }>
-						<td class={ partials.Cls.TableTd }>{ room.Number }</td>
-						<td class={ partials.Cls.TableTd }>{ fmt.Sprintf("%d", room.Capacity) }</td>
-						<td class={ partials.Cls.TableTd }>
-							<a href={ templ.SafeURL("/administration/housing/room/" + room.ID.String()) } class={ partials.Cls.Link }>View</a>
-						</td>
-					</tr>
-				}
-			</tbody>
-		</table>
-	}
+templ SharedAreaCreateCard() {
+	<button
+		type="button"
+		class="dm-housing-create-card"
+		aria-label="Create shared area"
+		onclick="openSharedAreaCreateModal()"
+	>
+		<span class="dm-housing-create-icon" aria-hidden="true">+</span>
+		<span class="dm-housing-create-label">New shared area</span>
+	</button>
+}
+
+templ SharedAreaListItem(area models.SharedArea) {
+	<a
+		href={ templ.SafeURL("/administration/housing/shared/" + area.ID.String()) }
+		class="dm-housing-card"
+	>
+		<h3 class="dm-housing-card-title">{ area.Name }</h3>
+		<p class="dm-housing-card-meta">Code { area.Code }</p>
+	</a>
+}
+
+templ SharedAreaCreateModal(buildingID uuid.UUID) {
+	<dialog id="shared-area-create-dialog" class="dm-dialog">
+		<div class="dm-dialog-panel">
+			<header class="dm-dialog-header">
+				<h2 class="dm-dialog-title">Create shared area</h2>
+				<button
+					type="button"
+					class="dm-dialog-close"
+					aria-label="Close"
+					onclick="closeSharedAreaCreateModal()"
+				>
+					&times;
+				</button>
+			</header>
+			<form
+				class="dm-form"
+				method="post"
+				hx-post={ templ.SafeURL("/administration/housing/building/" + buildingID.String() + "/shared-areas") }
+				hx-swap="none"
+			>
+				<label class="dm-field">
+					<span class="dm-label">Name</span>
+					<input type="text" name="name" required class="dm-input"/>
+				</label>
+				<label class="dm-field">
+					<span class="dm-label">Code</span>
+					<input type="text" name="code" required class="dm-input"/>
+				</label>
+				<button type="submit" class="dm-button">Create shared area</button>
+			</form>
+		</div>
+	</dialog>
 }
 
 templ BuildingDetailPage(building models.Building) {
@@ -145,81 +225,373 @@ templ BuildingDetailPage(building models.Building) {
 		<div class={ partials.Cls.Page }>
 			@BackLink("/administration/housing", "Back to housing")
 			@PageHeader(building.Name, fmt.Sprintf("Building code: %s", building.Code))
+			@partials.Card("Building details") {
+				@BuildingUpdateForm(building)
+			}
 			<div class={ partials.Cls.SectionGrid }>
-				@partials.Card("Flats in this building") {
-					@FlatsTable(building.Flats)
-				}
-				@partials.Card("Shared areas") {
-					@SharedAreasTable(building.SharedAreas)
-				}
+				<section class="dm-housing-section">
+					<h2 class="dm-housing-section-title">Flats</h2>
+					@FlatsList(building.Flats)
+				</section>
+				<section class="dm-housing-section">
+					<h2 class="dm-housing-section-title">Shared areas</h2>
+					@SharedAreasList(building.SharedAreas)
+				</section>
 			</div>
+			@FlatCreateModal(building.ID)
+			@SharedAreaCreateModal(building.ID)
 		</div>
+		<script src="/static/js/housing.js"></script>
 	}
+}
+
+templ BuildingUpdateForm(building models.Building) {
+	<form
+		class="dm-form"
+		method="post"
+		hx-put={ templ.SafeURL("/administration/housing/building/" + building.ID.String()) }
+		hx-swap="none"
+	>
+		<label class="dm-field">
+			<span class="dm-label">Name</span>
+			<input type="text" name="name" value={ building.Name } required class="dm-input"/>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Code</span>
+			<input type="text" name="code" value={ building.Code } required class="dm-input"/>
+		</label>
+		<div class="dm-form-actions">
+			<button type="submit" class="dm-button">Save changes</button>
+			<button
+				type="button"
+				class="dm-button dm-button-danger"
+				hx-delete={ templ.SafeURL("/administration/housing/building/" + building.ID.String()) }
+				hx-swap="none"
+				hx-confirm="Delete this building and all related housing data?"
+			>
+				Delete building
+			</button>
+		</div>
+	</form>
 }
 
 templ FlatDetailPage(flat models.Flat) {
 	@Layout("Flat") {
 		@Navigation()
 		<div class={ partials.Cls.Page }>
-			@BackLink("/administration/housing", "Back to housing")
+			@BackLink(flatBackURL(flat), flatBackLabel(flat))
 			@PageHeader(flat.Name, fmt.Sprintf("Floor %d", flat.Floor))
-			@partials.Card("Rooms") {
-				@FlatRoomsTable(flat.Rooms)
+			@partials.Card("Flat details") {
+				@FlatUpdateForm(flat)
 			}
-			@partials.Card("Flat inventory") {
-				@InventoryTable(flat.Inventory)
-			}
+			<div class={ partials.Cls.SectionGrid }>
+				<section class="dm-housing-section">
+					<h2 class="dm-housing-section-title">Rooms</h2>
+					@RoomsList(flat.Rooms)
+				</section>
+				<section class="dm-housing-section">
+					<h2 class="dm-housing-section-title">Inventory</h2>
+					@FlatInventoryList(flat.ID, flat.Inventory)
+				</section>
+			</div>
+			@RoomCreateModal(flat.ID)
+			@FlatInventoryCreateModal(flat.ID)
 		</div>
+		<script src="/static/js/housing.js"></script>
 	}
 }
 
-templ FlatRoomsTable(rooms []models.Room) {
+templ FlatUpdateForm(flat models.Flat) {
+	<form
+		class="dm-form"
+		method="post"
+		hx-put={ templ.SafeURL("/administration/housing/flat/" + flat.ID.String()) }
+		hx-swap="none"
+	>
+		<label class="dm-field">
+			<span class="dm-label">Name</span>
+			<input type="text" name="name" value={ flat.Name } required class="dm-input"/>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Floor</span>
+			<input type="number" name="floor" min="0" value={ fmt.Sprintf("%d", flat.Floor) } required class="dm-input"/>
+		</label>
+		<div class="dm-form-actions">
+			<button type="submit" class="dm-button">Save changes</button>
+			<button
+				type="button"
+				class="dm-button dm-button-danger"
+				hx-delete={ templ.SafeURL("/administration/housing/flat/" + flat.ID.String()) }
+				hx-swap="none"
+				hx-confirm="Delete this flat and all related rooms?"
+			>
+				Delete flat
+			</button>
+		</div>
+	</form>
+}
+
+templ RoomsList(rooms []models.Room) {
+	<div class="dm-housing-list">
+		@RoomCreateCard()
+		for _, room := range rooms {
+			@RoomListItem(room)
+		}
+	</div>
 	if len(rooms) == 0 {
-		<p class={ partials.Cls.Empty }>No rooms in this flat.</p>
-	} else {
-		<table class={ partials.Cls.Table }>
-			<thead class={ partials.Cls.TableHead }>
-				<tr class={ partials.Cls.TableTr }>
-					<th class={ partials.Cls.TableTh }>Number</th>
-					<th class={ partials.Cls.TableTh }>Capacity</th>
-					<th class={ partials.Cls.TableTh }>Occupied</th>
-					<th class={ partials.Cls.TableTh }></th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, room := range rooms {
-					<tr class={ partials.Cls.TableTr }>
-						<td class={ partials.Cls.TableTd }>{ room.Number }</td>
-						<td class={ partials.Cls.TableTd }>{ fmt.Sprintf("%d", room.Capacity) }</td>
-						<td class={ partials.Cls.TableTd }>{ fmt.Sprintf("%d", len(room.Assignments)) }</td>
-						<td class={ partials.Cls.TableTd }>
-							<a href={ templ.SafeURL("/administration/housing/room/" + room.ID.String()) } class={ partials.Cls.Link }>View</a>
-						</td>
-					</tr>
-				}
-			</tbody>
-		</table>
+		<p class="dm-empty">No rooms in this flat.</p>
 	}
+}
+
+templ RoomCreateCard() {
+	<button
+		type="button"
+		class="dm-housing-create-card"
+		aria-label="Create room"
+		onclick="openRoomCreateModal()"
+	>
+		<span class="dm-housing-create-icon" aria-hidden="true">+</span>
+		<span class="dm-housing-create-label">New room</span>
+	</button>
+}
+
+templ RoomListItem(room models.Room) {
+	<a
+		href={ templ.SafeURL("/administration/housing/room/" + room.ID.String()) }
+		class="dm-housing-card"
+	>
+		<h3 class="dm-housing-card-title">Room { room.Number }</h3>
+		<p class="dm-housing-card-meta">{ roomOccupancyLabel(room) }</p>
+	</a>
+}
+
+templ RoomCreateModal(flatID uuid.UUID) {
+	<dialog id="room-create-dialog" class="dm-dialog">
+		<div class="dm-dialog-panel">
+			<header class="dm-dialog-header">
+				<h2 class="dm-dialog-title">Create room</h2>
+				<button
+					type="button"
+					class="dm-dialog-close"
+					aria-label="Close"
+					onclick="closeRoomCreateModal()"
+				>
+					&times;
+				</button>
+			</header>
+			<form
+				class="dm-form"
+				method="post"
+				hx-post={ templ.SafeURL("/administration/housing/flat/" + flatID.String() + "/rooms") }
+				hx-swap="none"
+			>
+				<label class="dm-field">
+					<span class="dm-label">Number</span>
+					<input type="text" name="number" required class="dm-input"/>
+				</label>
+				<label class="dm-field">
+					<span class="dm-label">Capacity</span>
+					<input type="number" name="capacity" min="1" value="1" required class="dm-input"/>
+				</label>
+				<button type="submit" class="dm-button">Create room</button>
+			</form>
+		</div>
+	</dialog>
+}
+
+templ FlatInventoryList(flatID uuid.UUID, items []models.InventoryItem) {
+	<div class="dm-housing-list">
+		@FlatInventoryCreateCard()
+		for _, item := range items {
+			@HousingInventoryListItem(item)
+		}
+	</div>
+	if len(items) == 0 {
+		<p class="dm-empty">No inventory items here.</p>
+	}
+}
+
+templ FlatInventoryCreateCard() {
+	<button
+		type="button"
+		class="dm-housing-create-card"
+		aria-label="Create inventory item"
+		onclick="openFlatInventoryCreateModal()"
+	>
+		<span class="dm-housing-create-icon" aria-hidden="true">+</span>
+		<span class="dm-housing-create-label">New inventory item</span>
+	</button>
+}
+
+templ FlatInventoryCreateModal(flatID uuid.UUID) {
+	<dialog id="flat-inventory-create-dialog" class="dm-dialog">
+		<div class="dm-dialog-panel">
+			<header class="dm-dialog-header">
+				<h2 class="dm-dialog-title">Create inventory item</h2>
+				<button
+					type="button"
+					class="dm-dialog-close"
+					aria-label="Close"
+					onclick="closeFlatInventoryCreateModal()"
+				>
+					&times;
+				</button>
+			</header>
+			@HousingInventoryCreateForm(flatID, uuid.Nil)
+		</div>
+	</dialog>
+}
+
+templ SharedAreaInventoryList(areaID uuid.UUID, items []models.InventoryItem) {
+	<div class="dm-housing-list">
+		@SharedAreaInventoryCreateCard()
+		for _, item := range items {
+			@HousingInventoryListItem(item)
+		}
+	</div>
+	if len(items) == 0 {
+		<p class="dm-empty">No inventory items here.</p>
+	}
+}
+
+templ SharedAreaInventoryCreateCard() {
+	<button
+		type="button"
+		class="dm-housing-create-card"
+		aria-label="Create inventory item"
+		onclick="openSharedAreaInventoryCreateModal()"
+	>
+		<span class="dm-housing-create-icon" aria-hidden="true">+</span>
+		<span class="dm-housing-create-label">New inventory item</span>
+	</button>
+}
+
+templ SharedAreaInventoryCreateModal(areaID uuid.UUID) {
+	<dialog id="shared-area-inventory-create-dialog" class="dm-dialog">
+		<div class="dm-dialog-panel">
+			<header class="dm-dialog-header">
+				<h2 class="dm-dialog-title">Create inventory item</h2>
+				<button
+					type="button"
+					class="dm-dialog-close"
+					aria-label="Close"
+					onclick="closeSharedAreaInventoryCreateModal()"
+				>
+					&times;
+				</button>
+			</header>
+			@HousingInventoryCreateForm(uuid.Nil, areaID)
+		</div>
+	</dialog>
+}
+
+templ HousingInventoryCreateForm(flatID uuid.UUID, sharedAreaID uuid.UUID) {
+	<form class="dm-form" method="post" hx-post="/administration/inventory" hx-swap="none">
+		if flatID != uuid.Nil {
+			<input type="hidden" name="flat_id" value={ flatID.String() }/>
+		}
+		if sharedAreaID != uuid.Nil {
+			<input type="hidden" name="shared_area_id" value={ sharedAreaID.String() }/>
+		}
+		<label class="dm-field">
+			<span class="dm-label">Name</span>
+			<input type="text" name="name" required class="dm-input"/>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Description</span>
+			<textarea name="description" rows="3" class="dm-textarea"></textarea>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Condition</span>
+			<select name="condition" class="dm-select">
+				<option value="new">new</option>
+				<option value="good" selected>good</option>
+				<option value="used">used</option>
+				<option value="damaged">damaged</option>
+				<option value="broken">broken</option>
+			</select>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Status</span>
+			<select name="status" class="dm-select">
+				<option value="in_stock">in_stock</option>
+				<option value="in_use" selected>in_use</option>
+				<option value="withdrawn">withdrawn</option>
+				<option value="destroyed">destroyed</option>
+			</select>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Purchase date</span>
+			<input type="date" name="purchase_date" class="dm-input"/>
+		</label>
+		<button type="submit" class="dm-button">Create item</button>
+	</form>
+}
+
+templ HousingInventoryListItem(item models.InventoryItem) {
+	<a
+		href={ templ.SafeURL("/administration/inventory/" + item.ID.String()) }
+		class="dm-housing-card"
+	>
+		<h3 class="dm-housing-card-title">{ item.Name }</h3>
+		<p class="dm-housing-card-meta">{ string(item.Condition) } · { string(item.Status) }</p>
+	</a>
 }
 
 templ SharedAreaDetailPage(sharedArea models.SharedArea) {
 	@Layout("Shared Area") {
 		@Navigation()
 		<div class={ partials.Cls.Page }>
-			@BackLink("/administration/housing", "Back to housing")
+			@BackLink(sharedAreaBackURL(sharedArea), sharedAreaBackLabel(sharedArea))
 			@PageHeader(sharedArea.Name, fmt.Sprintf("Area code: %s", sharedArea.Code))
-			@partials.Card("Inventory in shared area") {
-				@InventoryTable(sharedArea.Inventory)
+			@partials.Card("Shared area details") {
+				@SharedAreaUpdateForm(sharedArea)
 			}
+			<section class="dm-housing-section">
+				<h2 class="dm-housing-section-title">Inventory</h2>
+				@SharedAreaInventoryList(sharedArea.ID, sharedArea.Inventory)
+			</section>
+			@SharedAreaInventoryCreateModal(sharedArea.ID)
 		</div>
+		<script src="/static/js/housing.js"></script>
 	}
+}
+
+templ SharedAreaUpdateForm(sharedArea models.SharedArea) {
+	<form
+		class="dm-form"
+		method="post"
+		hx-put={ templ.SafeURL("/administration/housing/shared/" + sharedArea.ID.String()) }
+		hx-swap="none"
+	>
+		<label class="dm-field">
+			<span class="dm-label">Name</span>
+			<input type="text" name="name" value={ sharedArea.Name } required class="dm-input"/>
+		</label>
+		<label class="dm-field">
+			<span class="dm-label">Code</span>
+			<input type="text" name="code" value={ sharedArea.Code } required class="dm-input"/>
+		</label>
+		<div class="dm-form-actions">
+			<button type="submit" class="dm-button">Save changes</button>
+			<button
+				type="button"
+				class="dm-button dm-button-danger"
+				hx-delete={ templ.SafeURL("/administration/housing/shared/" + sharedArea.ID.String()) }
+				hx-swap="none"
+				hx-confirm="Delete this shared area?"
+			>
+				Delete shared area
+			</button>
+		</div>
+	</form>
 }
 
 templ RoomDetailPage(room models.Room, tenants []models.Tenant) {
 	@Layout("Room") {
 		@Navigation()
 		<div class={ partials.Cls.Page }>
-			@BackLink("/administration/housing", "Back to housing")
+			@BackLink(roomBackURL(room), roomBackLabel(room))
 			@PageHeader(fmt.Sprintf("Room %s", room.Number), fmt.Sprintf("Capacity %d", room.Capacity))
 			@partials.Card("Current assignments") {
 				@RoomAssignmentsTable(room.Assignments)
@@ -235,30 +607,32 @@ templ RoomAssignmentsTable(assignments []models.RoomAssignment) {
 	if len(assignments) == 0 {
 		<p class={ partials.Cls.Empty }>No active assignments for this room.</p>
 	} else {
-		<table class={ partials.Cls.Table }>
-			<thead class={ partials.Cls.TableHead }>
-				<tr class={ partials.Cls.TableTr }>
-					<th class={ partials.Cls.TableTh }>Tenant</th>
-					<th class={ partials.Cls.TableTh }>Student code</th>
-					<th class={ partials.Cls.TableTh }>Since</th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, assignment := range assignments {
+		@partials.TableWrap() {
+			<table class={ partials.Cls.Table }>
+				<thead class={ partials.Cls.TableHead }>
 					<tr class={ partials.Cls.TableTr }>
-						<td class={ partials.Cls.TableTd }>
-							if assignment.Tenant.User != nil {
-								{ assignment.Tenant.User.Name }
-							} else {
-								{ assignment.Tenant.StudentCode }
-							}
-						</td>
-						<td class={ partials.Cls.TableTd }>{ assignment.Tenant.StudentCode }</td>
-						<td class={ partials.Cls.TableTd }>{ assignment.EffectiveAt.Format("2006-01-02") }</td>
+						<th class={ partials.Cls.TableTh }>Tenant</th>
+						<th class={ partials.Cls.TableTh }>Student code</th>
+						<th class={ partials.Cls.TableTh }>Since</th>
 					</tr>
-				}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					for _, assignment := range assignments {
+						<tr class={ partials.Cls.TableTr }>
+							<td class={ partials.Cls.TableTd }>
+								if assignment.Tenant.User != nil {
+									{ assignment.Tenant.User.Name }
+								} else {
+									{ assignment.Tenant.StudentCode }
+								}
+							</td>
+							<td class={ partials.Cls.TableTd }>{ assignment.Tenant.StudentCode }</td>
+							<td class={ partials.Cls.TableTd }>{ assignment.EffectiveAt.Format("2006-01-02") }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
 	}
 }
 

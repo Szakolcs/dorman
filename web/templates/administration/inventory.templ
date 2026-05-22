@@ -2,7 +2,6 @@ package adminviews
 
 import (
 	"dorm-man/internal/models"
-	"dorm-man/web/templates/common/partials"
 )
 
 templ InventoryPage(
@@ -11,55 +10,92 @@ templ InventoryPage(
 	flats []models.Flat,
 	rooms []models.Room,
 	sharedAreas []models.SharedArea,
+	activeStatus string,
 ) {
 	@Layout("Inventory") {
 		@Navigation()
-		<div class={ partials.Cls.Page }>
+		<div class="dm-page">
 			@PageHeader("Inventory", "Track furniture, appliances, and shared equipment across the dormitory.")
-			@partials.Card("Add inventory item") {
-				@InventoryCreateForm(buildings, flats, rooms, sharedAreas)
+			<div class="dm-publication-list">
+				@InventoryCreateCard()
+				for _, item := range items {
+					@InventoryCard(item, activeStatus)
+				}
+			</div>
+			if len(items) == 0 {
+				<p class="dm-empty">No inventory items found.</p>
 			}
-			@partials.Card("Inventory items") {
-				@InventoryTable(items)
-			}
+			@InventoryCreateModal(buildings, flats, rooms, sharedAreas)
 		</div>
+		<script src="/static/js/inventory.js"></script>
 	}
 }
 
-templ InventoryTable(items []models.InventoryItem) {
-	if len(items) == 0 {
-		<p class={ partials.Cls.Empty }>No inventory items found.</p>
-	} else {
-		<table class={ partials.Cls.Table }>
-			<thead class={ partials.Cls.TableHead }>
-				<tr class={ partials.Cls.TableTr }>
-					<th class={ partials.Cls.TableTh }>Name</th>
-					<th class={ partials.Cls.TableTh }>Condition</th>
-					<th class={ partials.Cls.TableTh }>Status</th>
-					<th class={ partials.Cls.TableTh }>Purchased</th>
-					<th class={ partials.Cls.TableTh }></th>
-				</tr>
-			</thead>
-			<tbody>
-				for _, item := range items {
-					<tr class={ partials.Cls.TableTr }>
-						<td class={ partials.Cls.TableTd }>{ item.Name }</td>
-						<td class={ partials.Cls.TableTd }>{ string(item.Condition) }</td>
-						<td class={ partials.Cls.TableTd }>{ string(item.Status) }</td>
-						<td class={ partials.Cls.TableTd }>{ item.PurchaseDate.Format("2006-01-02") }</td>
-						<td class={ partials.Cls.TableTd }>
-							<a
-								href={ templ.SafeURL("/administration/inventory/" + item.ID.String()) }
-								class={ partials.Cls.Link }
-							>
-								View
-							</a>
-						</td>
-					</tr>
-				}
-			</tbody>
-		</table>
-	}
+templ InventoryCreateCard() {
+	<button
+		type="button"
+		class="dm-publication-create-card"
+		aria-label="Create inventory item"
+		onclick="openInventoryCreateModal()"
+	>
+		<span class="dm-publication-create-icon" aria-hidden="true">+</span>
+		<span class="dm-publication-create-label">New inventory item</span>
+	</button>
+}
+
+templ InventoryCard(item models.InventoryItem, activeStatus string) {
+	<article class="dm-publication-card">
+		<a
+			href={ templ.SafeURL(inventoryStatusFilterURL(string(item.Status), activeStatus)) }
+			class={
+				templ.KV("dm-publication-card-kind", true),
+				templ.KV("dm-publication-card-kind-active", activeStatus == string(item.Status)),
+				templ.KV(inventoryStatusClass(item.Status), true),
+			}
+			aria-label={ "Filter by " + inventoryStatusLabel(item.Status) }
+		>
+			{ inventoryStatusLabel(item.Status) }
+		</a>
+		<a
+			href={ templ.SafeURL("/administration/inventory/" + item.ID.String()) }
+			class="dm-publication-card-body"
+		>
+			<h3 class="dm-publication-card-title">{ item.Name }</h3>
+			if item.Description != "" {
+				<p class="dm-publication-card-description">{ item.Description }</p>
+			}
+			if inventoryLocationLabel(item) != "" {
+				<p class="dm-publication-card-stats">{ inventoryLocationLabel(item) }</p>
+			}
+			<p class="dm-publication-card-meta">
+				{ inventoryConditionLabel(item.Condition) } · Purchased { item.PurchaseDate.Format("2006-01-02") }
+			</p>
+		</a>
+	</article>
+}
+
+templ InventoryCreateModal(
+	buildings []models.Building,
+	flats []models.Flat,
+	rooms []models.Room,
+	sharedAreas []models.SharedArea,
+) {
+	<dialog id="inventory-create-dialog" class="dm-dialog">
+		<div class="dm-dialog-panel">
+			<header class="dm-dialog-header">
+				<h2 class="dm-dialog-title">Create inventory item</h2>
+				<button
+					type="button"
+					class="dm-dialog-close"
+					aria-label="Close"
+					onclick="closeInventoryCreateModal()"
+				>
+					&times;
+				</button>
+			</header>
+			@InventoryCreateForm(buildings, flats, rooms, sharedAreas)
+		</div>
+	</dialog>
 }
 
 templ InventoryCreateForm(
@@ -68,74 +104,104 @@ templ InventoryCreateForm(
 	rooms []models.Room,
 	sharedAreas []models.SharedArea,
 ) {
-	<form
-		class={ partials.Cls.FormGrid }
-		hx-post="/administration/inventory"
-		hx-swap="none"
-	>
-		<label class={ partials.Cls.Field + " md:col-span-2" }>
-			<span class={ partials.Cls.Label }>Name</span>
-			<input type="text" name="name" required class={ partials.Cls.Input }/>
+	<form class="dm-form" method="post" hx-post="/administration/inventory" hx-swap="none">
+		<label class="dm-field">
+			<span class="dm-label">Name</span>
+			<input type="text" name="name" required class="dm-input"/>
 		</label>
-		<label class={ partials.Cls.Field + " md:col-span-2" }>
-			<span class={ partials.Cls.Label }>Description</span>
-			<textarea name="description" rows="3" class={ partials.Cls.Textarea }></textarea>
+		<label class="dm-field">
+			<span class="dm-label">Description</span>
+			<textarea name="description" rows="4" class="dm-textarea"></textarea>
 		</label>
-		<label class={ partials.Cls.Field }>
-			<span class={ partials.Cls.Label }>Condition</span>
-			<select name="condition" class={ partials.Cls.Select }>
-				<option value="new">new</option>
-				<option value="good" selected>good</option>
-				<option value="used">used</option>
-				<option value="damaged">damaged</option>
-				<option value="broken">broken</option>
+		<label class="dm-field">
+			<span class="dm-label">Condition</span>
+			<select name="condition" class="dm-select">
+				<option value="new">New</option>
+				<option value="good" selected>Good</option>
+				<option value="used">Used</option>
+				<option value="damaged">Damaged</option>
+				<option value="broken">Broken</option>
 			</select>
 		</label>
-		<label class={ partials.Cls.Field }>
-			<span class={ partials.Cls.Label }>Status</span>
-			<select name="status" class={ partials.Cls.Select }>
-				<option value="in_stock">in_stock</option>
-				<option value="in_use" selected>in_use</option>
-				<option value="withdrawn">withdrawn</option>
-				<option value="destroyed">destroyed</option>
+		<label class="dm-field">
+			<span class="dm-label">Status</span>
+			<select name="status" class="dm-select">
+				<option value="in_stock">In stock</option>
+				<option value="in_use" selected>In use</option>
+				<option value="withdrawn">Withdrawn</option>
+				<option value="destroyed">Destroyed</option>
 			</select>
 		</label>
-		<label class={ partials.Cls.Field }>
-			<span class={ partials.Cls.Label }>Purchase date</span>
-			<input type="date" name="purchase_date" class={ partials.Cls.Input }/>
+		<label class="dm-field">
+			<span class="dm-label">Purchase date</span>
+			<input type="date" name="purchase_date" class="dm-input"/>
 		</label>
-		<label class={ partials.Cls.Field }>
-			<span class={ partials.Cls.Label }>Room (optional)</span>
+		<label class="dm-field">
+			<span class="dm-label">Room (optional)</span>
 			@RoomSelect(rooms)
 		</label>
-		<label class={ partials.Cls.Field }>
-			<span class={ partials.Cls.Label }>Flat (optional)</span>
+		<label class="dm-field">
+			<span class="dm-label">Flat (optional)</span>
 			@FlatSelect(flats)
 		</label>
-		<label class={ partials.Cls.Field }>
-			<span class={ partials.Cls.Label }>Building (optional)</span>
+		<label class="dm-field">
+			<span class="dm-label">Building (optional)</span>
 			@BuildingSelect(buildings)
 		</label>
-		<label class={ partials.Cls.Field }>
-			<span class={ partials.Cls.Label }>Shared area (optional)</span>
+		<label class="dm-field">
+			<span class="dm-label">Shared area (optional)</span>
 			@SharedAreaSelect(sharedAreas)
 		</label>
-		<div class="md:col-span-2">
-			<button type="submit" class={ partials.Cls.Button }>Create item</button>
-		</div>
+		<button type="submit" class="dm-button">Create item</button>
 	</form>
+}
+
+templ InventoryPageHeader(title string, subtitle string, status models.InventoryStatus, condition models.InventoryCondition) {
+	<header class="dm-page-header dm-page-header-row">
+		<div class="dm-page-header-text">
+			<h1 class="dm-page-title">{ title }</h1>
+			if subtitle != "" {
+				<p class="dm-page-subtitle">{ subtitle }</p>
+			}
+		</div>
+		<div class="dm-inventory-header-badges">
+			@InventoryStatusBadge(status)
+			@InventoryConditionBadge(condition)
+		</div>
+	</header>
+}
+
+templ InventoryStatusBadge(status models.InventoryStatus) {
+	<span
+		class={
+			templ.KV("dm-publication-status", true),
+			templ.KV(inventoryStatusClass(status), true),
+		}
+	>
+		{ inventoryStatusLabel(status) }
+	</span>
+}
+
+templ InventoryConditionBadge(condition models.InventoryCondition) {
+	<span
+		class={
+			templ.KV("dm-publication-status", true),
+			templ.KV(inventoryConditionClass(condition), true),
+		}
+	>
+		{ inventoryConditionLabel(condition) }
+	</span>
 }
 
 templ InventoryDetailPage(item models.InventoryItem) {
 	@Layout("Inventory Item") {
 		@Navigation()
-		<div class={ partials.Cls.Page }>
+		<div class="dm-page">
 			@BackLink("/administration/inventory", "Back to inventory")
-			@PageHeader(item.Name, item.Description)
-			@partials.Card("Details") {
+			@InventoryPageHeader(item.Name, item.Description, item.Status, item.Condition)
+			<div class="dm-card">
+				<h2 class="dm-card-title">Details</h2>
 				<dl>
-					@DetailRow("Condition", string(item.Condition))
-					@DetailRow("Status", string(item.Status))
 					@DetailRow("Purchased", item.PurchaseDate.Format("2006-01-02"))
 					if item.Room != nil {
 						@DetailRow("Room", item.Room.Number)
@@ -150,43 +216,42 @@ templ InventoryDetailPage(item models.InventoryItem) {
 						@DetailRow("Shared area", item.SharedArea.Name)
 					}
 				</dl>
-			}
-			@partials.Card("Update status") {
+			</div>
+			<div class="dm-form-actions">
 				<form
-					class="flex flex-wrap items-end gap-4"
+					class="dm-form dm-form-inline"
 					hx-put={ templ.SafeURL("/administration/inventory/" + item.ID.String() + "/status") }
 					hx-swap="none"
 				>
-					<label class={ partials.Cls.Field }>
-						<span class={ partials.Cls.Label }>Status</span>
-						<select name="status" class={ partials.Cls.Select }>
-							<option value="in_stock">in_stock</option>
-							<option value="in_use">in_use</option>
-							<option value="withdrawn">withdrawn</option>
-							<option value="destroyed">destroyed</option>
+					<label class="dm-field">
+						<span class="dm-label">Status</span>
+						<select name="status" class="dm-select">
+							<option value="in_stock" selected?={ item.Status == models.InventoryStatusInStock }>In stock</option>
+							<option value="in_use" selected?={ item.Status == models.InventoryStatusInUse }>In use</option>
+							<option value="withdrawn" selected?={ item.Status == models.InventoryStatusWithdrawn }>Withdrawn</option>
+							<option value="destroyed" selected?={ item.Status == models.InventoryStatusDestroyed }>Destroyed</option>
 						</select>
 					</label>
-					<label class={ partials.Cls.Field }>
-						<span class={ partials.Cls.Label }>Condition</span>
-						<select name="condition" class={ partials.Cls.Select }>
-							<option value="new">new</option>
-							<option value="good">good</option>
-							<option value="used">used</option>
-							<option value="damaged">damaged</option>
-							<option value="broken">broken</option>
+					<label class="dm-field">
+						<span class="dm-label">Condition</span>
+						<select name="condition" class="dm-select">
+							<option value="new" selected?={ item.Condition == models.InventoryConditionNew }>New</option>
+							<option value="good" selected?={ item.Condition == models.InventoryConditionGood }>Good</option>
+							<option value="used" selected?={ item.Condition == models.InventoryConditionUsed }>Used</option>
+							<option value="damaged" selected?={ item.Condition == models.InventoryConditionDamaged }>Damaged</option>
+							<option value="broken" selected?={ item.Condition == models.InventoryConditionBroken }>Broken</option>
 						</select>
 					</label>
-					<button type="submit" class={ partials.Cls.Button }>Save</button>
+					<button type="submit" class="dm-button">Save</button>
 				</form>
-			}
-			<form
-				hx-delete={ templ.SafeURL("/administration/inventory/" + item.ID.String()) }
-				hx-swap="none"
-			>
-				<button type="submit" class={ partials.Cls.ButtonDanger }>
-					Delete item
-				</button>
-			</form>
+				<form
+					hx-delete={ templ.SafeURL("/administration/inventory/" + item.ID.String()) }
+					hx-swap="none"
+					hx-confirm="Delete this inventory item?"
+				>
+					<button type="submit" class="dm-button dm-button-danger">Delete item</button>
+				</form>
+			</div>
 		</div>
 	}
 }

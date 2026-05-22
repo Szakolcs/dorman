@@ -7,23 +7,11 @@ import (
 templ TicketCreateForm() {
 	<form
 		hx-post="/tenant/tickets"
+		hx-target="#tickets-panel"
+		hx-swap="outerHTML"
+		hx-on::after-request="if(event.detail.successful) this.reset()"
 		class={ partials.Cls.Form }
 	>
-		<label for="category" class={ partials.Cls.Field }>
-			<span class={ partials.Cls.Label }>Category</span>
-			<select
-				id="category"
-				name="category"
-				class={ partials.Cls.Select }
-				required
-			>
-				<option value="">Select category</option>
-				<option value="yearly">Yearly</option>
-				<option value="monthly">Monthly</option>
-				<option value="weekly">Weekly</option>
-				<option value="incident">Incident</option>
-			</select>
-		</label>
 		<label for="severity" class={ partials.Cls.Field }>
 			<span class={ partials.Cls.Label }>Severity</span>
 			<select

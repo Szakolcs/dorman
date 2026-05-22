@@ -24,10 +24,16 @@ func NewService(store Store) *Service {
 // DashboardSummary aggregates the headline numbers shown on the admin home
 // page so the handler can render them with a single call.
 type DashboardSummary struct {
-	ActiveTenants int
-	OpenJobs      int
-	Buildings     int
-	RecentAudits  []models.Audit
+	ActiveTenants         int
+	AssignedActiveTenants int
+	OpenJobs              int
+	OverdueJobs           int
+	HighPriorityJobs      int
+	Buildings             int
+	HousingOccupied       int
+	HousingCapacity       int
+	Activities            int
+	RecentAudits          []models.Audit
 }
 
 func (s *Service) GetDashboardSummary() (DashboardSummary, error) {
@@ -36,21 +42,58 @@ func (s *Service) GetDashboardSummary() (DashboardSummary, error) {
 		return DashboardSummary{}, err
 	}
 	activeTenants := 0
+	assignedActiveTenants := 0
 	for _, t := range tenants {
-		if t.IsActive {
-			activeTenants++
+		if !t.IsActive {
+			continue
+		}
+		activeTenants++
+		for _, a := range t.RoomAssignments {
+			if a.EndedAt == nil {
+				assignedActiveTenants++
+				break
+			}
 		}
 	}
 
-	plannedFilter := JobsFilter{}
-	planned := models.JobStatusPlanned
-	plannedFilter.Status = &planned
-	jobs, err := s.store.getJobs(plannedFilter)
+	jobs, err := s.store.getJobs(JobsFilter{})
+	if err != nil {
+		return DashboardSummary{}, err
+	}
+	now := time.Now()
+	openJobs := 0
+	overdueJobs := 0
+	highPriorityJobs := 0
+	for _, job := range jobs {
+		if job.Status == models.JobStatusFinished || job.Status == models.JobStatusCanceled {
+			continue
+		}
+		openJobs++
+		if job.EndsAt.Before(now) {
+			overdueJobs++
+		}
+		if job.Priority == models.JobPriorityHigh {
+			highPriorityJobs++
+		}
+	}
+
+	buildings, err := s.store.getBuilding(BuildingFilter{})
 	if err != nil {
 		return DashboardSummary{}, err
 	}
 
-	buildings, err := s.store.getBuilding(BuildingFilter{})
+	rooms, err := s.store.getRoom(RoomFilter{})
+	if err != nil {
+		return DashboardSummary{}, err
+	}
+	housingCapacity := 0
+	housingOccupied := 0
+	for _, room := range rooms {
+		housingCapacity += room.Capacity
+		housingOccupied += len(room.Assignments)
+	}
+
+	activities, err := s.store.countActivities()
 	if err != nil {
 		return DashboardSummary{}, err
 	}
@@ -63,10 +106,16 @@ func (s *Service) GetDashboardSummary() (DashboardSummary, error) {
 	}
 
 	return DashboardSummary{
-		ActiveTenants: activeTenants,
-		OpenJobs:      len(jobs),
-		Buildings:     len(buildings),
-		RecentAudits:  audits,
+		ActiveTenants:         activeTenants,
+		AssignedActiveTenants: assignedActiveTenants,
+		OpenJobs:              openJobs,
+		OverdueJobs:           overdueJobs,
+		HighPriorityJobs:      highPriorityJobs,
+		Buildings:             len(buildings),
+		HousingOccupied:       housingOccupied,
+		HousingCapacity:       housingCapacity,
+		Activities:            activities,
+		RecentAudits:          audits,
 	}, nil
 }
 
@@ -444,6 +493,48 @@ func (s *Service) UpdateActivityState(actorID, id uuid.UUID, state models.Public
 	return s.store.updateActivityState(actorID, id, state)
 }
 
+func (s *Service) HasActivityBooking(userID, activityID uuid.UUID) (bool, error) {
+	if userID == uuid.Nil || activityID == uuid.Nil {
+		return false, ErrValidation
+	}
+	return s.store.hasActivityBooking(activityID, userID)
+}
+
+func (s *Service) BookActivity(userID, activityID uuid.UUID) error {
+	if userID == uuid.Nil || activityID == uuid.Nil {
+		return ErrValidation
+	}
+	return s.store.bookActivity(userID, activityID)
+}
+
+func (s *Service) CancelActivityBooking(userID, activityID uuid.UUID) error {
+	if userID == uuid.Nil || activityID == uuid.Nil {
+		return ErrValidation
+	}
+	return s.store.cancelActivityBooking(userID, activityID)
+}
+
+func (s *Service) GetEventAttendanceIntent(userID, eventID uuid.UUID) (models.EventAttendanceIntent, error) {
+	if userID == uuid.Nil || eventID == uuid.Nil {
+		return "", ErrValidation
+	}
+	return s.store.getEventAttendanceIntent(eventID, userID)
+}
+
+func (s *Service) SetEventAttendanceIntent(userID, eventID uuid.UUID, intent models.EventAttendanceIntent) error {
+	if userID == uuid.Nil || eventID == uuid.Nil {
+		return ErrValidation
+	}
+	switch intent {
+	case models.EventAttendanceInterested,
+		models.EventAttendanceNotInterested,
+		models.EventAttendanceBusy:
+	default:
+		return ErrValidation
+	}
+	return s.store.setEventAttendanceIntent(userID, eventID, intent)
+}
+
 func (s *Service) CreateEvent(actorID uuid.UUID, req CreateEventRequest) (models.Event, error) {
 	if actorID == uuid.Nil {
 		return models.Event{}, ErrUnauthorized
@@ -536,6 +627,198 @@ func (s *Service) GetBuilding(id uuid.UUID) (models.Building, error) {
 		return models.Building{}, ErrValidation
 	}
 	return s.store.getBuildingByID(id)
+}
+
+func (s *Service) CreateBuilding(actorID uuid.UUID, req CreateBuildingRequest) (models.Building, error) {
+	if actorID == uuid.Nil {
+		return models.Building{}, ErrUnauthorized
+	}
+	if strings.TrimSpace(req.Name) == "" || strings.TrimSpace(req.Code) == "" {
+		return models.Building{}, ErrValidation
+	}
+	building := models.Building{
+		Name: strings.TrimSpace(req.Name),
+		Code: strings.TrimSpace(req.Code),
+	}
+	if err := s.store.createBuilding(actorID, building); err != nil {
+		return models.Building{}, err
+	}
+	return building, nil
+}
+
+func (s *Service) UpdateBuilding(actorID, id uuid.UUID, req UpdateBuildingRequest) (models.Building, error) {
+	if actorID == uuid.Nil {
+		return models.Building{}, ErrUnauthorized
+	}
+	if id == uuid.Nil {
+		return models.Building{}, ErrValidation
+	}
+	building, err := s.store.getBuildingByID(id)
+	if err != nil {
+		return models.Building{}, err
+	}
+	if req.Name != nil {
+		name := strings.TrimSpace(*req.Name)
+		if name == "" {
+			return models.Building{}, ErrValidation
+		}
+		building.Name = name
+	}
+	if req.Code != nil {
+		code := strings.TrimSpace(*req.Code)
+		if code == "" {
+			return models.Building{}, ErrValidation
+		}
+		building.Code = code
+	}
+	if err := s.store.updateBuilding(actorID, building); err != nil {
+		return models.Building{}, err
+	}
+	return building, nil
+}
+
+func (s *Service) DeleteBuilding(actorID, id uuid.UUID) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if id == uuid.Nil {
+		return ErrValidation
+	}
+	return s.store.deleteBuilding(actorID, id)
+}
+
+func (s *Service) CreateFlat(actorID uuid.UUID, req CreateFlatRequest) (models.Flat, error) {
+	if actorID == uuid.Nil {
+		return models.Flat{}, ErrUnauthorized
+	}
+	if req.BuildingID == uuid.Nil || strings.TrimSpace(req.Name) == "" {
+		return models.Flat{}, ErrValidation
+	}
+	buildingID := req.BuildingID
+	flat := models.Flat{
+		BuildingID: &buildingID,
+		Name:       strings.TrimSpace(req.Name),
+		Floor:      req.Floor,
+	}
+	if err := s.store.createFlat(actorID, flat); err != nil {
+		return models.Flat{}, err
+	}
+	return flat, nil
+}
+
+func (s *Service) CreateSharedArea(actorID uuid.UUID, req CreateSharedAreaRequest) (models.SharedArea, error) {
+	if actorID == uuid.Nil {
+		return models.SharedArea{}, ErrUnauthorized
+	}
+	if req.BuildingID == uuid.Nil || strings.TrimSpace(req.Name) == "" || strings.TrimSpace(req.Code) == "" {
+		return models.SharedArea{}, ErrValidation
+	}
+	buildingID := req.BuildingID
+	area := models.SharedArea{
+		BuildingID: &buildingID,
+		Name:       strings.TrimSpace(req.Name),
+		Code:       strings.TrimSpace(req.Code),
+	}
+	if err := s.store.createSharedArea(actorID, area); err != nil {
+		return models.SharedArea{}, err
+	}
+	return area, nil
+}
+
+func (s *Service) UpdateFlat(actorID, id uuid.UUID, req UpdateFlatRequest) (models.Flat, error) {
+	if actorID == uuid.Nil {
+		return models.Flat{}, ErrUnauthorized
+	}
+	if id == uuid.Nil {
+		return models.Flat{}, ErrValidation
+	}
+	flat, err := s.store.getFlatByID(id)
+	if err != nil {
+		return models.Flat{}, err
+	}
+	if req.Name != nil {
+		name := strings.TrimSpace(*req.Name)
+		if name == "" {
+			return models.Flat{}, ErrValidation
+		}
+		flat.Name = name
+	}
+	if req.Floor != nil {
+		flat.Floor = *req.Floor
+	}
+	if err := s.store.updateFlat(actorID, flat); err != nil {
+		return models.Flat{}, err
+	}
+	return flat, nil
+}
+
+func (s *Service) DeleteFlat(actorID, id uuid.UUID) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if id == uuid.Nil {
+		return ErrValidation
+	}
+	return s.store.deleteFlat(actorID, id)
+}
+
+func (s *Service) UpdateSharedArea(actorID, id uuid.UUID, req UpdateSharedAreaRequest) (models.SharedArea, error) {
+	if actorID == uuid.Nil {
+		return models.SharedArea{}, ErrUnauthorized
+	}
+	if id == uuid.Nil {
+		return models.SharedArea{}, ErrValidation
+	}
+	area, err := s.store.getSharedAreaByID(id)
+	if err != nil {
+		return models.SharedArea{}, err
+	}
+	if req.Name != nil {
+		name := strings.TrimSpace(*req.Name)
+		if name == "" {
+			return models.SharedArea{}, ErrValidation
+		}
+		area.Name = name
+	}
+	if req.Code != nil {
+		code := strings.TrimSpace(*req.Code)
+		if code == "" {
+			return models.SharedArea{}, ErrValidation
+		}
+		area.Code = code
+	}
+	if err := s.store.updateSharedArea(actorID, area); err != nil {
+		return models.SharedArea{}, err
+	}
+	return area, nil
+}
+
+func (s *Service) DeleteSharedArea(actorID, id uuid.UUID) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if id == uuid.Nil {
+		return ErrValidation
+	}
+	return s.store.deleteSharedArea(actorID, id)
+}
+
+func (s *Service) CreateRoom(actorID uuid.UUID, req CreateRoomRequest) (models.Room, error) {
+	if actorID == uuid.Nil {
+		return models.Room{}, ErrUnauthorized
+	}
+	if req.FlatID == uuid.Nil || strings.TrimSpace(req.Number) == "" || req.Capacity < 1 {
+		return models.Room{}, ErrValidation
+	}
+	room := models.Room{
+		FlatID:   req.FlatID,
+		Number:   strings.TrimSpace(req.Number),
+		Capacity: req.Capacity,
+	}
+	if err := s.store.createRoom(actorID, room); err != nil {
+		return models.Room{}, err
+	}
+	return room, nil
 }
 
 func (s *Service) GetFlat(id uuid.UUID) (models.Flat, error) {

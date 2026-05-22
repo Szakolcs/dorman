@@ -30,14 +30,14 @@ func applyTicketFilters(q *gorm.DB, filter TicketFilter) *gorm.DB {
 	if filter.FlatID != nil {
 		q = q.Where("flat_id = ?", filter.FlatID)
 	}
-	if filter.Status != "" {
-		q = q.Where("status = ?", filter.Status)
+	if len(filter.Statuses) > 0 {
+		q = q.Where("status IN ?", filter.Statuses)
 	}
-	if filter.Category != "" {
-		q = q.Where("category = ?", filter.Category)
+	if len(filter.Categories) > 0 {
+		q = q.Where("category IN ?", filter.Categories)
 	}
-	if filter.Severity != "" {
-		q = q.Where("severity = ?", filter.Severity)
+	if len(filter.Severities) > 0 {
+		q = q.Where("severity IN ?", filter.Severities)
 	}
 	if !filter.From.IsZero() {
 		q = q.Where("created_at >= ?", filter.From)

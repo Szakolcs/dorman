@@ -103,6 +103,44 @@ type BuildingFilter struct {
 	Pagination
 }
 
+type CreateBuildingRequest struct {
+	Name string `json:"name" form:"name"`
+	Code string `json:"code" form:"code"`
+}
+
+type UpdateBuildingRequest struct {
+	Name *string `json:"name,omitempty" form:"name"`
+	Code *string `json:"code,omitempty" form:"code"`
+}
+
+type CreateFlatRequest struct {
+	BuildingID uuid.UUID `json:"building_id" form:"building_id"`
+	Name       string    `json:"name"         form:"name"`
+	Floor      int       `json:"floor"        form:"floor"`
+}
+
+type CreateSharedAreaRequest struct {
+	BuildingID uuid.UUID `json:"building_id" form:"building_id"`
+	Name       string    `json:"name"         form:"name"`
+	Code       string    `json:"code"         form:"code"`
+}
+
+type UpdateFlatRequest struct {
+	Name  *string `json:"name,omitempty"  form:"name"`
+	Floor *int    `json:"floor,omitempty" form:"floor"`
+}
+
+type UpdateSharedAreaRequest struct {
+	Name *string `json:"name,omitempty" form:"name"`
+	Code *string `json:"code,omitempty" form:"code"`
+}
+
+type CreateRoomRequest struct {
+	FlatID   uuid.UUID `json:"flat_id"  form:"flat_id"`
+	Number   string    `json:"number"   form:"number"`
+	Capacity int       `json:"capacity" form:"capacity"`
+}
+
 type FlatFilter struct {
 	Search     string     `json:"search"      query:"search"`
 	BuildingID *uuid.UUID `json:"building_id" query:"building_id"`

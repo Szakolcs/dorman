@@ -201,11 +201,17 @@ templ EventCreateForm(sharedAreas []models.SharedArea) {
 		</label>
 		<label class="dm-field">
 			<span class="dm-label">Starts at</span>
-			<input type="datetime-local" name="starts_at" required class="dm-input"/>
+			<div class="dm-datetime-fields">
+				<input type="date" name="starts_at_date" required class="dm-input"/>
+				<input type="time" name="starts_at_time" required class="dm-input"/>
+			</div>
 		</label>
 		<label class="dm-field">
 			<span class="dm-label">Ends at</span>
-			<input type="datetime-local" name="ends_at" required class="dm-input"/>
+			<div class="dm-datetime-fields">
+				<input type="date" name="ends_at_date" required class="dm-input"/>
+				<input type="time" name="ends_at_time" required class="dm-input"/>
+			</div>
 		</label>
 		<label class="dm-field">
 			<span class="dm-label">Shared area (optional)</span>

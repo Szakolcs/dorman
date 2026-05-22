@@ -25,6 +25,39 @@ func (s *Service) ListTicketsByUser(userID uuid.UUID, filter TicketFilter) ([]mo
 	return s.store.ListTicketsByUser(userID, filter)
 }
 
+func (s *Service) ListTicketsForTenantFlat(userID uuid.UUID, filter TicketFilter) ([]models.Ticket, error) {
+	if userID == uuid.Nil {
+		return nil, ErrValidation
+	}
+	location, err := s.store.GetTenantLocation(userID)
+	if err != nil {
+		return nil, err
+	}
+	if location.FlatID == nil {
+		return []models.Ticket{}, nil
+	}
+	filter.FlatID = location.FlatID
+	return s.store.ListTickets(filter)
+}
+
+func (s *Service) TenantCanAccessTicket(userID uuid.UUID, ticket models.Ticket) (bool, error) {
+	if userID == uuid.Nil || ticket.FlatID == nil {
+		return false, nil
+	}
+	location, err := s.store.GetTenantLocation(userID)
+	if err != nil {
+		return false, err
+	}
+	if location.FlatID == nil {
+		return false, nil
+	}
+	return *ticket.FlatID == *location.FlatID, nil
+}
+
+func (s *Service) GetTenantLocation(userID uuid.UUID) (TenantLocation, error) {
+	return s.store.GetTenantLocation(userID)
+}
+
 func (s *Service) GetTicketByID(id uuid.UUID) (models.Ticket, error) {
 	if id == uuid.Nil {
 		return models.Ticket{}, ErrValidation

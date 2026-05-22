@@ -20,6 +20,16 @@ templ StatCard(label string, value string) {
 	</div>
 }
 
+templ LinkStatCard(label string, value string, href string, detail string) {
+	<a href={ templ.URL(href) } class="dm-stat dm-stat-link">
+		<p class={ partials.Cls.StatLabel }>{ label }</p>
+		<p class={ partials.Cls.StatValue }>{ value }</p>
+		if detail != "" {
+			<p class="dm-stat-detail">{ detail }</p>
+		}
+	</a>
+}
+
 templ BackLink(href string, label string) {
 	<a href={ templ.URL(href) } class={ partials.Cls.BackLink }>
 		&larr; { label }

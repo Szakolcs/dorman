@@ -3,7 +3,6 @@ package maintenance
 import (
 	"errors"
 	"net/http"
-	"time"
 
 	"dorm-man/internal/models"
 	maintenanceviews "dorm-man/web/templates/maintenance"
@@ -34,7 +33,7 @@ func (h *Handler) dashboardPage(c echo.Context) error {
 }
 
 func (h *Handler) ticketsPage(c echo.Context) error {
-	filter, err := h.ticketFilter(c)
+	filter, err := ParseTicketFilter(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -116,7 +115,7 @@ func (h *Handler) tenantTicketsPage(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	filter, err := h.ticketFilter(c)
+	filter, err := ParseTicketFilter(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -181,34 +180,6 @@ func (h *Handler) tenantDeleteTicket(c echo.Context) error {
 	}
 	c.Response().Header().Set("HX-Redirect", "/tenant")
 	return c.NoContent(http.StatusOK)
-}
-
-func (h *Handler) ticketFilter(c echo.Context) (TicketFilter, error) {
-	filter := TicketFilter{}
-	if status := c.QueryParam("status"); status != "" {
-		filter.Status = models.Status(status)
-	}
-	if category := c.QueryParam("category"); category != "" {
-		filter.Category = models.Category(category)
-	}
-	if severity := c.QueryParam("severity"); severity != "" {
-		filter.Severity = models.Severity(severity)
-	}
-	if from := c.QueryParam("from"); from != "" {
-		t, err := time.Parse(time.DateOnly, from)
-		if err != nil {
-			return TicketFilter{}, ErrValidation
-		}
-		filter.From = t
-	}
-	if to := c.QueryParam("to"); to != "" {
-		t, err := time.Parse(time.DateOnly, to)
-		if err != nil {
-			return TicketFilter{}, ErrValidation
-		}
-		filter.To = t
-	}
-	return filter, nil
 }
 
 func renderComponent(c echo.Context, component templ.Component) error {

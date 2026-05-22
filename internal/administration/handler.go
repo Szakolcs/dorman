@@ -77,6 +77,16 @@ func queryUUID(c echo.Context, key string) (uuid.UUID, error) {
 	return id, nil
 }
 
+func parseDateAndTime(dateValue, timeValue string) *time.Time {
+	if dateValue == "" {
+		return nil
+	}
+	if timeValue == "" {
+		timeValue = "00:00"
+	}
+	return parseDate(dateValue + "T" + timeValue)
+}
+
 func parseDate(s string) *time.Time {
 	if s == "" {
 		return nil
@@ -163,8 +173,14 @@ func (h *Handler) dashboardPage(c echo.Context) error {
 		c,
 		adminviews.DashboardPage(
 			summary.ActiveTenants,
+			summary.AssignedActiveTenants,
 			summary.OpenJobs,
+			summary.OverdueJobs,
+			summary.HighPriorityJobs,
 			summary.Buildings,
+			summary.HousingOccupied,
+			summary.HousingCapacity,
+			summary.Activities,
 			summary.RecentAudits,
 		),
 	)
@@ -258,7 +274,7 @@ func (h *Handler) inventoryPage(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return renderComponent(c, adminviews.InventoryPage(items, buildings, flats, rooms, sharedAreas))
+	return renderComponent(c, adminviews.InventoryPage(items, buildings, flats, rooms, sharedAreas, c.QueryParam("status")))
 }
 
 func (h *Handler) inventoryDetailPage(c echo.Context) error {
@@ -275,7 +291,6 @@ func (h *Handler) inventoryDetailPage(c echo.Context) error {
 
 func (h *Handler) createInventoryItem(c echo.Context) error {
 	actor, err := actorID(c)
-	fmt.Println("actor", actor)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -309,8 +324,18 @@ func (h *Handler) createInventoryItem(c echo.Context) error {
 	if _, err := h.service.CreateInventoryItem(actor, req); err != nil {
 		return h.writeError(c, err)
 	}
-	c.Response().Header().Set("HX-Redirect", "/administration/inventory")
+	c.Response().Header().Set("HX-Redirect", inventoryCreateRedirect(req))
 	return c.NoContent(http.StatusOK)
+}
+
+func inventoryCreateRedirect(req CreateInventoryItemRequest) string {
+	if req.FlatID != nil {
+		return "/administration/housing/flat/" + req.FlatID.String()
+	}
+	if req.SharedAreaID != nil {
+		return "/administration/housing/shared/" + req.SharedAreaID.String()
+	}
+	return "/administration/inventory"
 }
 
 func derefTime(t *time.Time) time.Time {
@@ -365,11 +390,18 @@ func (h *Handler) deleteInventoryItem(c echo.Context) error {
 // ---------------------------------------------------------------------------
 
 func (h *Handler) jobsPage(c echo.Context) error {
+	pagination := parsePagination(c)
+	if pagination.Sort == "" {
+		pagination.Sort = "ends_at"
+	}
+	if pagination.Order == "" {
+		pagination.Order = "asc"
+	}
 	filter := JobsFilter{
 		Search:     c.QueryParam("search"),
 		From:       parseDate(c.QueryParam("from")),
 		To:         parseDate(c.QueryParam("to")),
-		Pagination: parsePagination(c),
+		Pagination: pagination,
 	}
 	if v := c.QueryParam("priority"); v != "" {
 		p := models.JobPriority(v)
@@ -406,8 +438,8 @@ func (h *Handler) createJob(c echo.Context) error {
 	req := CreateJobRequest{
 		Title:       c.FormValue("title"),
 		Description: c.FormValue("description"),
-		StartsAt:    derefTime(parseDate(c.FormValue("starts_at"))),
-		EndsAt:      derefTime(parseDate(c.FormValue("ends_at"))),
+		StartsAt:    derefTime(parseDateAndTime(c.FormValue("starts_at_date"), c.FormValue("starts_at_time"))),
+		EndsAt:      derefTime(parseDateAndTime(c.FormValue("ends_at_date"), c.FormValue("ends_at_time"))),
 		Priority:    models.JobPriority(c.FormValue("priority")),
 		Status:      models.JobStatus(c.FormValue("status")),
 	}
@@ -650,8 +682,8 @@ func (h *Handler) createEvent(c echo.Context) error {
 		Title:       c.FormValue("title"),
 		Description: c.FormValue("description"),
 		State:       models.PublicationState(c.FormValue("state")),
-		StartsAt:    derefTime(parseDate(c.FormValue("starts_at"))),
-		EndsAt:      derefTime(parseDate(c.FormValue("ends_at"))),
+		StartsAt:    derefTime(parseDateAndTime(c.FormValue("starts_at_date"), c.FormValue("starts_at_time"))),
+		EndsAt:      derefTime(parseDateAndTime(c.FormValue("ends_at_date"), c.FormValue("ends_at_time"))),
 	}
 	if v := c.FormValue("shared_area_id"); v != "" {
 		if id, err := uuid.Parse(v); err == nil {
@@ -703,19 +735,27 @@ func (h *Handler) updateEventState(c echo.Context) error {
 // ---------------------------------------------------------------------------
 
 func (h *Handler) housingPage(c echo.Context) error {
-	overview, err := h.service.GetHousingOverview()
+	buildings, err := h.service.ListBuildings()
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return renderComponent(
-		c,
-		adminviews.HousingPage(
-			overview.Buildings,
-			overview.Flats,
-			overview.SharedAreas,
-			overview.Rooms,
-		),
-	)
+	return renderComponent(c, adminviews.HousingPage(buildings))
+}
+
+func (h *Handler) createBuilding(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := CreateBuildingRequest{
+		Name: c.FormValue("name"),
+		Code: c.FormValue("code"),
+	}
+	if _, err := h.service.CreateBuilding(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing")
+	return c.NoContent(http.StatusOK)
 }
 
 func (h *Handler) buildingDetail(c echo.Context) error {
@@ -730,6 +770,85 @@ func (h *Handler) buildingDetail(c echo.Context) error {
 	return renderComponent(c, adminviews.BuildingDetailPage(b))
 }
 
+func (h *Handler) updateBuilding(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := UpdateBuildingRequest{
+		Name: optString(c.FormValue("name")),
+		Code: optString(c.FormValue("code")),
+	}
+	if _, err := h.service.UpdateBuilding(actor, id, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/building/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) deleteBuilding(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.DeleteBuilding(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) createFlat(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	buildingID, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	floor, _ := strconv.Atoi(c.FormValue("floor"))
+	req := CreateFlatRequest{
+		BuildingID: buildingID,
+		Name:       c.FormValue("name"),
+		Floor:      floor,
+	}
+	if _, err := h.service.CreateFlat(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/building/"+buildingID.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) createSharedArea(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	buildingID, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := CreateSharedAreaRequest{
+		BuildingID: buildingID,
+		Name:       c.FormValue("name"),
+		Code:       c.FormValue("code"),
+	}
+	if _, err := h.service.CreateSharedArea(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/building/"+buildingID.String())
+	return c.NoContent(http.StatusOK)
+}
+
 func (h *Handler) flatDetail(c echo.Context) error {
 	id, err := paramUUID(c, "id")
 	if err != nil {
@@ -742,6 +861,79 @@ func (h *Handler) flatDetail(c echo.Context) error {
 	return renderComponent(c, adminviews.FlatDetailPage(f))
 }
 
+func (h *Handler) updateFlat(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := UpdateFlatRequest{Name: optString(c.FormValue("name"))}
+	if v := c.FormValue("floor"); v != "" {
+		floor, err := strconv.Atoi(v)
+		if err != nil {
+			return h.writeError(c, ErrValidation)
+		}
+		req.Floor = &floor
+	}
+	if _, err := h.service.UpdateFlat(actor, id, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/flat/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) deleteFlat(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	flat, err := h.service.GetFlat(id)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.DeleteFlat(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	if flat.BuildingID != nil {
+		c.Response().Header().Set("HX-Redirect", "/administration/housing/building/"+flat.BuildingID.String())
+	} else {
+		c.Response().Header().Set("HX-Redirect", "/administration/housing")
+	}
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) createRoom(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	flatID, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	capacity, _ := strconv.Atoi(c.FormValue("capacity"))
+	if capacity < 1 {
+		capacity = 1
+	}
+	req := CreateRoomRequest{
+		FlatID:   flatID,
+		Number:   c.FormValue("number"),
+		Capacity: capacity,
+	}
+	if _, err := h.service.CreateRoom(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/flat/"+flatID.String())
+	return c.NoContent(http.StatusOK)
+}
+
 func (h *Handler) sharedAreaDetail(c echo.Context) error {
 	id, err := paramUUID(c, "id")
 	if err != nil {
@@ -752,6 +944,50 @@ func (h *Handler) sharedAreaDetail(c echo.Context) error {
 		return h.writeError(c, err)
 	}
 	return renderComponent(c, adminviews.SharedAreaDetailPage(sa))
+}
+
+func (h *Handler) updateSharedArea(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := UpdateSharedAreaRequest{
+		Name: optString(c.FormValue("name")),
+		Code: optString(c.FormValue("code")),
+	}
+	if _, err := h.service.UpdateSharedArea(actor, id, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/shared/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) deleteSharedArea(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	area, err := h.service.GetSharedArea(id)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.DeleteSharedArea(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	if area.BuildingID != nil {
+		c.Response().Header().Set("HX-Redirect", "/administration/housing/building/"+area.BuildingID.String())
+	} else {
+		c.Response().Header().Set("HX-Redirect", "/administration/housing")
+	}
+	return c.NoContent(http.StatusOK)
 }
 
 func (h *Handler) roomDetail(c echo.Context) error {

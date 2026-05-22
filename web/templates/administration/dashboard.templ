@@ -6,15 +6,41 @@ import (
 	"fmt"
 )
 
-templ DashboardPage(activeTenants int, openJobs int, buildings int, recentAudits []models.Audit) {
+templ DashboardPage(
+	activeTenants int,
+	assignedActiveTenants int,
+	openJobs int,
+	overdueJobs int,
+	highPriorityJobs int,
+	buildings int,
+	housingOccupied int,
+	housingCapacity int,
+	activities int,
+	recentAudits []models.Audit,
+) {
 	@Layout("Administration") {
 		@Navigation()
 		<div class={ partials.Cls.Page }>
 			@PageHeader("Administration Dashboard", "Overview of dormitory operations and recent changes.")
 			<div class={ partials.Cls.StatGrid }>
-				@StatCard("Active tenants", fmt.Sprintf("%d", activeTenants))
-				@StatCard("Open jobs", fmt.Sprintf("%d", openJobs))
-				@StatCard("Buildings", fmt.Sprintf("%d", buildings))
+				@LinkStatCard(
+					"Active tenants",
+					fmt.Sprintf("%d", activeTenants),
+					"/administration/tenants",
+					fmt.Sprintf("%d assigned", assignedActiveTenants),
+				)
+				@LinkStatCard(
+					"Open jobs",
+					fmt.Sprintf("%d", openJobs),
+					"/administration/jobs",
+					fmt.Sprintf("%d overdue · %d high priority", overdueJobs, highPriorityJobs),
+				)
+				@LinkStatCard(
+					"Buildings",
+					fmt.Sprintf("%d / %d", housingOccupied, housingCapacity),
+					"/administration/housing",
+					fmt.Sprintf("%d buildings · %d activities", buildings, activities),
+				)
 			</div>
 			@partials.Card("Recent audit events") {
 				@AuditTable(recentAudits)

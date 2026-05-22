@@ -20,12 +20,4 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB, auth echo.MiddlewareFunc) {
 	staff.GET("/tickets/:id", h.ticketDetailPage)
 	staff.PUT("/tickets/:id", h.updateTicket)
 	staff.DELETE("/tickets/:id", h.deleteTicket)
-
-	tenant := e.Group("/tenant")
-	tenant.Use(auth, middleware.RequireRole("tenant", "dev"))
-	tenant.GET("", h.tenantDashboardPage)
-	tenant.GET("/tickets", h.tenantTicketsPage)
-	tenant.POST("/tickets", h.createTicket)
-	tenant.GET("/tickets/:id", h.tenantTicketDetailPage)
-	tenant.DELETE("/tickets/:id", h.tenantDeleteTicket)
 }
