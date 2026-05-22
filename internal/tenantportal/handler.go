@@ -399,18 +399,6 @@ func (h *Handler) renderChatOpened(c echo.Context, tenant models.Tenant, room mo
 	return renderComponent(c, tenantviews.ChatOpenedUpdate(result, room, messages, tenant.ID))
 }
 
-func (h *Handler) renderChatPanel(c echo.Context, tenant models.Tenant, roomID uuid.UUID) error {
-	messages, err := h.chatMessagesForRoom(tenant.ID, roomID)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	title, err := h.chat.RoomDisplayTitle(tenant.ID, roomID)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return renderComponent(c, tenantviews.ChatPanel(roomID, messages, tenant.ID, title))
-}
-
 func (h *Handler) renderChatPanelOpened(c echo.Context, tenant models.Tenant, roomID uuid.UUID) error {
 	messages, err := h.chatMessagesForRoom(tenant.ID, roomID)
 	if err != nil {
