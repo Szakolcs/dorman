@@ -1,7 +1,7 @@
 package cross_cutting
 
 import (
-	models "dorm-man/internal/models/crosscutting"
+	"dorm-man/internal/models"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"

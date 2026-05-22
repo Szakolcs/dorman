@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"dorm-man/internal/models"
 	"errors"
 
 	"dorm-man/internal/administration"
@@ -16,9 +17,9 @@ import (
 type Store interface {
 	Transaction(fn func(Store) error) error
 
-	GetTenant(tenantID uuid.UUID) (adm.Tenant, error)
-	GetTenantByUserID(userID uuid.UUID) (adm.Tenant, error)
-	GetFlat(flatID uuid.UUID) (adm.Flat, error)
+	GetTenant(tenantID uuid.UUID) (models.Tenant, error)
+	GetTenantByUserID(userID uuid.UUID) (models.Tenant, error)
+	GetFlat(flatID uuid.UUID) (models.Flat, error)
 	HasActiveAssignmentInFlat(tenantID, flatID uuid.UUID) (bool, error)
 
 	GetRoom(roomID uuid.UUID) (cm.ChatRoom, error)
@@ -63,35 +64,35 @@ func (s *GormStore) Transaction(fn func(Store) error) error {
 	})
 }
 
-func (s *GormStore) GetTenant(tenantID uuid.UUID) (adm.Tenant, error) {
+func (s *GormStore) GetTenant(tenantID uuid.UUID) (models.Tenant, error) {
 	tenant, err := s.housing.GetTenant(tenantID)
 	if errors.Is(err, administration.ErrNotFound) {
-		return adm.Tenant{}, ErrTenantNotFound
+		return models.Tenant{}, ErrTenantNotFound
 	}
 	return tenant, err
 }
 
-func (s *GormStore) GetTenantByUserID(userID uuid.UUID) (adm.Tenant, error) {
-	var tenant adm.Tenant
+func (s *GormStore) GetTenantByUserID(userID uuid.UUID) (models.Tenant, error) {
+	var tenant models.Tenant
 	err := s.db.Where("user_id = ?", userID).First(&tenant).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return adm.Tenant{}, ErrTenantNotFound
+		return models.Tenant{}, ErrTenantNotFound
 	}
 	return tenant, err
 }
 
-func (s *GormStore) GetFlat(flatID uuid.UUID) (adm.Flat, error) {
-	var flat adm.Flat
+func (s *GormStore) GetFlat(flatID uuid.UUID) (models.Flat, error) {
+	var flat models.Flat
 	err := s.db.First(&flat, "id = ?", flatID).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return adm.Flat{}, ErrNotFound
+		return models.Flat{}, ErrNotFound
 	}
 	return flat, err
 }
 
 func (s *GormStore) HasActiveAssignmentInFlat(tenantID, flatID uuid.UUID) (bool, error) {
 	var count int64
-	err := s.db.Model(&adm.RoomAssignment{}).
+	err := s.db.Model(&models.RoomAssignment{}).
 		Joins("JOIN rooms ON rooms.id = room_assignments.room_id").
 		Where("room_assignments.tenant_id = ? AND room_assignments.ended_at IS NULL AND rooms.flat_id = ?", tenantID, flatID).
 		Count(&count).Error

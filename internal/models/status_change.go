@@ -1,13 +1,9 @@
-package maintenance
+package models
 
-import (
-	"dorm-man/internal/models/crosscutting"
-
-	"github.com/google/uuid"
-)
+import "github.com/google/uuid"
 
 type StatusChange struct {
-	crosscutting.BaseModel
+	BaseModel
 	TicketID   uuid.UUID `gorm:"type:uuid;not null;index"`
 	FromStatus *Status   `gorm:"type:varchar(20);index"`
 	ToStatus   Status    `gorm:"type:varchar(20);not null;index"`

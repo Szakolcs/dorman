@@ -139,13 +139,6 @@ func (h *Handler) createTicket(c echo.Context) error {
 		Impact:      models.Impact(c.FormValue("impact")),
 		Description: c.FormValue("description"),
 	}
-	if roomRaw := c.FormValue("room_id"); roomRaw != "" {
-		roomID, err := uuid.Parse(roomRaw)
-		if err != nil {
-			return h.writeError(c, ErrValidation)
-		}
-		req.RoomID = &roomID
-	}
 
 	ticket, err := h.service.CreateTicket(actorID, req)
 	if err != nil {

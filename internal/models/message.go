@@ -1,9 +1,6 @@
-package chat
+package models
 
 import (
-	"dorm-man/internal/models/administration"
-	"dorm-man/internal/models/crosscutting"
-
 	"github.com/google/uuid"
 )
 
@@ -11,11 +8,11 @@ import (
 // SenderTenantID points at administration.Tenant. The (RoomID, CreatedAt)
 // composite index is the natural one for paginating a chat backlog.
 type Message struct {
-	crosscutting.BaseModel
+	BaseModel
 	RoomID         uuid.UUID `gorm:"type:uuid;not null;index:idx_room_created;index"`
 	SenderTenantID uuid.UUID `gorm:"type:uuid;not null;index"`
 	Body           string    `gorm:"type:text;not null"`
 
-	Room   *Room                  `gorm:"foreignKey:RoomID;references:ID"`
-	Sender *administration.Tenant `gorm:"foreignKey:SenderTenantID;references:ID"`
+	Room   *Room   `gorm:"foreignKey:RoomID;references:ID"`
+	Sender *Tenant `gorm:"foreignKey:SenderTenantID;references:ID"`
 }

@@ -1,18 +1,16 @@
-package doorman
+package models
 
 import (
 	"time"
-
-	"dorm-man/internal/models/crosscutting"
 
 	"github.com/google/uuid"
 )
 
 type TenantEntry struct {
-	crosscutting.BaseModel
+	BaseModel
 	UserID      uuid.UUID    `gorm:"type:uuid;not null;index"`
 	Status      AccessStatus `gorm:"type:varchar(20);not null;default:'scheduled';index"`
 	TimeOfEntry time.Time    `gorm:"not null;default:CURRENT_TIMESTAMP"`
 
-	User *crosscutting.User `gorm:"foreignKey:UserID;references:ID"`
+	User *User `gorm:"foreignKey:UserID;references:ID"`
 }

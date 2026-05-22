@@ -1,10 +1,7 @@
-package forum
+package models
 
 import (
 	"time"
-
-	"dorm-man/internal/models/chat"
-	"dorm-man/internal/models/crosscutting"
 
 	"github.com/google/uuid"
 )
@@ -19,7 +16,7 @@ type Event struct {
 	EndsAt       time.Time  `gorm:"not null;index"`
 	ChatRoomID   *uuid.UUID `gorm:"type:uuid;uniqueIndex"`
 
-	ChatRoom    *chat.Room        `gorm:"foreignKey:ChatRoomID;references:ID"`
+	ChatRoom    *Room             `gorm:"foreignKey:ChatRoomID;references:ID"`
 	Attendances []EventAttendance `gorm:"foreignKey:EventID"`
 	Comments    []EventComment    `gorm:"foreignKey:EventID"`
 }
@@ -28,22 +25,22 @@ type Event struct {
 // or busy) for an event. Each (event, user) pair is unique so users can
 // change their mind by updating the existing row.
 type EventAttendance struct {
-	crosscutting.BaseModel
+	BaseModel
 	EventID uuid.UUID             `gorm:"type:uuid;not null;index;uniqueIndex:idx_event_user_attendance"`
 	UserID  uuid.UUID             `gorm:"type:uuid;not null;index;uniqueIndex:idx_event_user_attendance"`
 	Intent  EventAttendanceIntent `gorm:"type:varchar(20);not null;index"`
 
-	Event *Event             `gorm:"foreignKey:EventID;references:ID"`
-	User  *crosscutting.User `gorm:"foreignKey:UserID;references:ID"`
+	Event *Event `gorm:"foreignKey:EventID;references:ID"`
+	User  *User  `gorm:"foreignKey:UserID;references:ID"`
 }
 
 // EventComment is a free-form comment posted by a user against an Event.
 type EventComment struct {
-	crosscutting.BaseModel
+	BaseModel
 	EventID  uuid.UUID `gorm:"type:uuid;not null;index"`
 	AuthorID uuid.UUID `gorm:"type:uuid;not null;index"`
 	Body     string    `gorm:"type:text;not null"`
 
-	Event  *Event             `gorm:"foreignKey:EventID;references:ID"`
-	Author *crosscutting.User `gorm:"foreignKey:AuthorID;references:ID"`
+	Event  *Event `gorm:"foreignKey:EventID;references:ID"`
+	Author *User  `gorm:"foreignKey:AuthorID;references:ID"`
 }

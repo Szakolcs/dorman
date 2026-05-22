@@ -2,6 +2,7 @@ package chat
 
 import (
 	"bytes"
+	"dorm-man/internal/models"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -526,7 +527,7 @@ func (s *Service) SyncFlatMembershipForTenant(tenantID, flatID uuid.UUID, eventT
 	return s.logSync(tenantID, flatID, eventType, map[string]any{"action": "removed"})
 }
 
-func (s *Service) ensureFlatRoom(flat adm.Flat) (cm.ChatRoom, error) {
+func (s *Service) ensureFlatRoom(flat models.Flat) (cm.ChatRoom, error) {
 	if room, err := s.store.GetFlatRoom(flat.ID); err == nil {
 		return room, nil
 	} else if !errors.Is(err, ErrNotFound) {
@@ -612,7 +613,7 @@ func messageAfter(later, earlier cm.ChatMessage) bool {
 	return later.CreatedAt.Equal(earlier.CreatedAt) && bytes.Compare(later.ID[:], earlier.ID[:]) > 0
 }
 
-func displayName(tenant adm.Tenant, profile cm.ChatTenantProfile) string {
+func displayName(tenant models.Tenant, profile cm.ChatTenantProfile) string {
 	if profile.Nickname != nil {
 		n := strings.TrimSpace(*profile.Nickname)
 		if n != "" {
@@ -640,7 +641,7 @@ func conversationDisplay(room cm.ChatRoom, selfID uuid.UUID, profiles map[uuid.U
 	case cm.ChatRoomKindGroup:
 		return room.Title, room.AvatarStorageKey, nil
 	case cm.ChatRoomKindDirect:
-		var other adm.Tenant
+		var other models.Tenant
 		switch {
 		case room.TenantLowID != nil && *room.TenantLowID != selfID && room.TenantLow != nil:
 			other = *room.TenantLow

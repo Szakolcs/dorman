@@ -1,10 +1,10 @@
 package administration
 
 import (
+	"dorm-man/internal/models"
 	"errors"
 	"time"
 
-	models "dorm-man/internal/models/administration"
 	"dorm-man/internal/models/forum"
 
 	"github.com/google/uuid"

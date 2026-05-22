@@ -1,15 +1,13 @@
-package administration
+package models
 
 import (
 	"time"
-
-	"dorm-man/internal/models/crosscutting"
 
 	"github.com/google/uuid"
 )
 
 type RoomAssignment struct {
-	crosscutting.BaseModel
+	BaseModel
 	TenantID    uuid.UUID  `gorm:"type:uuid;not null;index;uniqueIndex:idx_active_tenant_assignment,where:ended_at IS NULL"`
 	RoomID      uuid.UUID  `gorm:"type:uuid;not null;index"`
 	EffectiveAt time.Time  `gorm:"not null;default:CURRENT_TIMESTAMP;index"`

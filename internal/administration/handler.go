@@ -1,13 +1,13 @@
 package administration
 
 import (
+	"dorm-man/internal/models"
 	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	models "dorm-man/internal/models/administration"
 	"dorm-man/internal/models/forum"
 	adminviews "dorm-man/web/templates/administration"
 

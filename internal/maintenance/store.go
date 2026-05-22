@@ -2,19 +2,18 @@ package maintenance
 
 import (
 	"dorm-man/internal/administration"
-	adm "dorm-man/internal/models/administration"
-	models "dorm-man/internal/models/maintenance"
+	models2 "dorm-man/internal/models"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type Store interface {
-	ListTickets(filter TicketFilter) ([]models.Ticket, error)
-	ListTicketsByUser(userID uuid.UUID, filter TicketFilter) ([]models.Ticket, error)
-	GetTicketByID(id uuid.UUID) (models.Ticket, error)
-	CreateTicket(actorID uuid.UUID, ticket models.Ticket) error
-	UpdateTicket(actorID uuid.UUID, ticket models.Ticket, note string) error
+	ListTickets(filter TicketFilter) ([]models2.Ticket, error)
+	ListTicketsByUser(userID uuid.UUID, filter TicketFilter) ([]models2.Ticket, error)
+	GetTicketByID(id uuid.UUID) (models2.Ticket, error)
+	CreateTicket(actorID uuid.UUID, ticket models2.Ticket) error
+	UpdateTicket(actorID uuid.UUID, ticket models2.Ticket, note string) error
 	DeleteTicket(actorID, id uuid.UUID) error
 	GetTenantLocation(userID uuid.UUID) (TenantLocation, error)
 }
@@ -49,9 +48,9 @@ func applyTicketFilters(q *gorm.DB, filter TicketFilter) *gorm.DB {
 	return q
 }
 
-func (s *GormStore) ListTickets(filter TicketFilter) ([]models.Ticket, error) {
-	q := applyTicketFilters(s.db.Model(&models.Ticket{}), filter)
-	var tickets []models.Ticket
+func (s *GormStore) ListTickets(filter TicketFilter) ([]models2.Ticket, error) {
+	q := applyTicketFilters(s.db.Model(&models2.Ticket{}), filter)
+	var tickets []models2.Ticket
 	err := q.
 		Preload("CreatedByUser").
 		Order("created_at DESC").
@@ -60,12 +59,12 @@ func (s *GormStore) ListTickets(filter TicketFilter) ([]models.Ticket, error) {
 	return tickets, err
 }
 
-func (s *GormStore) ListTicketsByUser(userID uuid.UUID, filter TicketFilter) ([]models.Ticket, error) {
+func (s *GormStore) ListTicketsByUser(userID uuid.UUID, filter TicketFilter) ([]models2.Ticket, error) {
 	q := applyTicketFilters(
-		s.db.Model(&models.Ticket{}).Where("created_by_user_id = ?", userID),
+		s.db.Model(&models2.Ticket{}).Where("created_by_user_id = ?", userID),
 		filter,
 	)
-	var tickets []models.Ticket
+	var tickets []models2.Ticket
 	err := q.
 		Preload("CreatedByUser").
 		Order("created_at DESC").
@@ -74,8 +73,8 @@ func (s *GormStore) ListTicketsByUser(userID uuid.UUID, filter TicketFilter) ([]
 	return tickets, err
 }
 
-func (s *GormStore) GetTicketByID(id uuid.UUID) (models.Ticket, error) {
-	var ticket models.Ticket
+func (s *GormStore) GetTicketByID(id uuid.UUID) (models2.Ticket, error) {
+	var ticket models2.Ticket
 	err := s.db.
 		Preload("CreatedByUser").
 		Preload("StatusTransitions", func(db *gorm.DB) *gorm.DB {
@@ -85,19 +84,19 @@ func (s *GormStore) GetTicketByID(id uuid.UUID) (models.Ticket, error) {
 		Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return models.Ticket{}, ErrNotFound
+			return models2.Ticket{}, ErrNotFound
 		}
-		return models.Ticket{}, err
+		return models2.Ticket{}, err
 	}
 	return ticket, nil
 }
 
-func (s *GormStore) CreateTicket(actorID uuid.UUID, ticket models.Ticket) error {
+func (s *GormStore) CreateTicket(actorID uuid.UUID, ticket models2.Ticket) error {
 	return administration.AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
 		if err := tx.Create(&ticket).Error; err != nil {
 			return err
 		}
-		change := models.StatusChange{
+		change := models2.StatusChange{
 			TicketID: ticket.ID,
 			ToStatus: ticket.Status,
 			Note:     "Ticket created",
@@ -106,9 +105,9 @@ func (s *GormStore) CreateTicket(actorID uuid.UUID, ticket models.Ticket) error 
 	})
 }
 
-func (s *GormStore) UpdateTicket(actorID uuid.UUID, ticket models.Ticket, note string) error {
+func (s *GormStore) UpdateTicket(actorID uuid.UUID, ticket models2.Ticket, note string) error {
 	return administration.AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		var existing models.Ticket
+		var existing models2.Ticket
 		if err := tx.First(&existing, "id = ?", ticket.ID).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
 				return ErrNotFound
@@ -122,7 +121,7 @@ func (s *GormStore) UpdateTicket(actorID uuid.UUID, ticket models.Ticket, note s
 		}
 
 		if ticket.Status != fromStatus {
-			change := models.StatusChange{
+			change := models2.StatusChange{
 				TicketID:   ticket.ID,
 				FromStatus: &fromStatus,
 				ToStatus:   ticket.Status,
@@ -138,7 +137,7 @@ func (s *GormStore) UpdateTicket(actorID uuid.UUID, ticket models.Ticket, note s
 
 func (s *GormStore) DeleteTicket(actorID, id uuid.UUID) error {
 	return administration.AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
-		result := tx.Delete(&models.Ticket{}, "id = ?", id)
+		result := tx.Delete(&models2.Ticket{}, "id = ?", id)
 		if result.Error != nil {
 			return result.Error
 		}
@@ -150,7 +149,7 @@ func (s *GormStore) DeleteTicket(actorID, id uuid.UUID) error {
 }
 
 func (s *GormStore) GetTenantLocation(userID uuid.UUID) (TenantLocation, error) {
-	var tenant adm.Tenant
+	var tenant models2.Tenant
 	err := s.db.
 		Preload("RoomAssignments", "ended_at IS NULL").
 		Preload("RoomAssignments.Room").
@@ -168,7 +167,7 @@ func (s *GormStore) GetTenantLocation(userID uuid.UUID) (TenantLocation, error) 
 		if assignment.EndedAt != nil {
 			continue
 		}
-		var room adm.Room
+		var room models2.Room
 		if err := s.db.First(&room, "id = ?", assignment.RoomID).Error; err != nil {
 			continue
 		}

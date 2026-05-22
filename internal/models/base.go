@@ -1,4 +1,4 @@
-package crosscutting
+package models
 
 import (
 	"time"

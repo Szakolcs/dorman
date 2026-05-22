@@ -1,10 +1,6 @@
-package chat
+package models
 
-import (
-	"dorm-man/internal/models/crosscutting"
-)
-
-// Room is a chatroom. Memberships are limited to tenants (see Membership);
+// ChatRoom is a chatroom. Memberships are limited to tenants (see Membership);
 // the room itself stays domain-agnostic so forum.Event can link to one via
 // its ChatRoomID without creating an import cycle.
 //
@@ -12,8 +8,8 @@ import (
 // participating tenant UUIDs joined in lexicographic order ("<lo>:<hi>").
 // The unique index guarantees that any pair of tenants has at most one
 // direct chat. Group and event rooms keep this NULL.
-type Room struct {
-	crosscutting.BaseModel
+type ChatRoom struct {
+	BaseModel
 	Kind          RoomKind `gorm:"type:varchar(20);not null;index"`
 	Title         string   `gorm:"index"`
 	Topic         string   `gorm:"type:text"`

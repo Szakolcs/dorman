@@ -1,14 +1,11 @@
-package administration
+package models
 
 import (
-	"dorm-man/internal/models/crosscutting"
-	"dorm-man/internal/models/maintenance"
-
 	"github.com/google/uuid"
 )
 
 type Building struct {
-	crosscutting.BaseModel
+	BaseModel
 	Name string `gorm:"not null;uniqueIndex"`
 	Code string `gorm:"not null;uniqueIndex"`
 
@@ -17,19 +14,19 @@ type Building struct {
 }
 
 type Flat struct {
-	crosscutting.BaseModel
+	BaseModel
 	BuildingID *uuid.UUID `gorm:"type:uuid;index"`
 	Name       string     `gorm:"not null;index"`
 	Floor      int        `gorm:"not null;default:0"`
 
-	Building           *Building            `gorm:"foreignKey:BuildingID;references:ID"`
-	Rooms              []Room               `gorm:"foreignKey:FlatID"`
-	Inventory          []InventoryItem      `gorm:"foreignKey:FlatID"`
-	MaintenanceTickets []maintenance.Ticket `gorm:"foreignKey:FlatID"`
+	Building           *Building       `gorm:"foreignKey:BuildingID;references:ID"`
+	Rooms              []Room          `gorm:"foreignKey:FlatID"`
+	Inventory          []InventoryItem `gorm:"foreignKey:FlatID"`
+	MaintenanceTickets []Ticket        `gorm:"foreignKey:FlatID"`
 }
 
 type Room struct {
-	crosscutting.BaseModel
+	BaseModel
 	FlatID   uuid.UUID `gorm:"type:uuid;not null;index"`
 	Number   string    `gorm:"not null;index"`
 	Capacity int       `gorm:"not null;default:1"`
@@ -43,7 +40,7 @@ type Room struct {
 // so reverse relations live on the forum side and can be queried with
 // db.Where("shared_area_id = ?", id).
 type SharedArea struct {
-	crosscutting.BaseModel
+	BaseModel
 	BuildingID *uuid.UUID `gorm:"type:uuid"`
 	Name       string     `gorm:"not null;uniqueIndex"`
 	Code       string     `gorm:"not null;uniqueIndex"`

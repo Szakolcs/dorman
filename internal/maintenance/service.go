@@ -1,6 +1,7 @@
 package maintenance
 
 import (
+	models2 "dorm-man/internal/models"
 	models "dorm-man/internal/models/maintenance"
 
 	"github.com/google/uuid"
@@ -14,49 +15,44 @@ func NewService(store Store) *Service {
 	return &Service{store: store}
 }
 
-func (s *Service) ListTickets(filter TicketFilter) ([]models.Ticket, error) {
+func (s *Service) ListTickets(filter TicketFilter) ([]models2.Ticket, error) {
 	return s.store.ListTickets(filter)
 }
 
-func (s *Service) ListTicketsByUser(userID uuid.UUID, filter TicketFilter) ([]models.Ticket, error) {
+func (s *Service) ListTicketsByUser(userID uuid.UUID, filter TicketFilter) ([]models2.Ticket, error) {
 	if userID == uuid.Nil {
 		return nil, ErrValidation
 	}
 	return s.store.ListTicketsByUser(userID, filter)
 }
 
-func (s *Service) GetTicketByID(id uuid.UUID) (models.Ticket, error) {
+func (s *Service) GetTicketByID(id uuid.UUID) (models2.Ticket, error) {
 	if id == uuid.Nil {
-		return models.Ticket{}, ErrValidation
+		return models2.Ticket{}, ErrValidation
 	}
 	return s.store.GetTicketByID(id)
 }
 
-func (s *Service) CreateTicket(actorID uuid.UUID, req CreateTicketRequest) (models.Ticket, error) {
+func (s *Service) CreateTicket(actorID uuid.UUID, req CreateTicketRequest) (models2.Ticket, error) {
 	if req.Description == "" {
-		return models.Ticket{}, ErrValidation
+		return models2.Ticket{}, ErrValidation
 	}
 	if req.Category == "" || req.Severity == "" || req.Impact == "" {
-		return models.Ticket{}, ErrValidation
+		return models2.Ticket{}, ErrValidation
 	}
 
 	location, err := s.store.GetTenantLocation(actorID)
 	if err != nil {
-		return models.Ticket{}, err
+		return models2.Ticket{}, err
 	}
 
-	roomID := req.RoomID
-	if roomID == nil {
-		roomID = location.RoomID
-	}
 	flatID := req.FlatID
 	if flatID == nil {
 		flatID = location.FlatID
 	}
 
-	ticket := models.Ticket{
+	ticket := models2.Ticket{
 		FlatID:          flatID,
-		RoomID:          roomID,
 		Category:        req.Category,
 		Severity:        req.Severity,
 		Impact:          req.Impact,
@@ -65,22 +61,22 @@ func (s *Service) CreateTicket(actorID uuid.UUID, req CreateTicketRequest) (mode
 		CreatedByUserID: actorID,
 	}
 	if err := s.store.CreateTicket(actorID, ticket); err != nil {
-		return models.Ticket{}, err
+		return models2.Ticket{}, err
 	}
 	return s.store.GetTicketByID(ticket.ID)
 }
 
-func (s *Service) UpdateTicket(actorID uuid.UUID, req UpdateTicketRequest) (models.Ticket, error) {
+func (s *Service) UpdateTicket(actorID uuid.UUID, req UpdateTicketRequest) (models2.Ticket, error) {
 	if req.TicketID == uuid.Nil {
-		return models.Ticket{}, ErrValidation
+		return models2.Ticket{}, ErrValidation
 	}
 	if req.Status == "" {
-		return models.Ticket{}, ErrValidation
+		return models2.Ticket{}, ErrValidation
 	}
 
 	existing, err := s.store.GetTicketByID(req.TicketID)
 	if err != nil {
-		return models.Ticket{}, err
+		return models2.Ticket{}, err
 	}
 
 	if req.Category != "" {
@@ -98,7 +94,7 @@ func (s *Service) UpdateTicket(actorID uuid.UUID, req UpdateTicketRequest) (mode
 	existing.Status = req.Status
 
 	if err := s.store.UpdateTicket(actorID, existing, req.Note); err != nil {
-		return models.Ticket{}, err
+		return models2.Ticket{}, err
 	}
 	return s.store.GetTicketByID(existing.ID)
 }

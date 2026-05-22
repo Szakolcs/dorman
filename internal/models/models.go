@@ -1,4 +1,4 @@
-package administration
+package models
 
 // All returns all administration-owned model pointers in migration order
 // (FK dependencies first). Activity and Event live in the forum package.
@@ -13,5 +13,22 @@ func All() []any {
 		&InventoryItem{},
 		&OperationalJob{},
 		&Audit{},
+		Room{},
+		Membership{},
+		Message{},
+		Ignore{}, User{},
+		Role{},
+		Permission{},
+		Operation{},
+		TenantEntry{},
+		GuestEntry{},
+		Publication{},
+		Activity{},
+		Event{},
+		EventAttendance{},
+		EventComment{},
+		ActivityBooking{},
+		Ticket{},
+		StatusChange{},
 	}
 }

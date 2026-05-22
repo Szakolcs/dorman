@@ -1,11 +1,10 @@
 package cross_cutting
 
 import (
+	"dorm-man/internal/models"
 	"errors"
 	"strings"
 	"time"
-
-	models "dorm-man/internal/models/crosscutting"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"

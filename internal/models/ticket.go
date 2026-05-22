@@ -1,14 +1,9 @@
-package maintenance
+package models
 
-import (
-	"dorm-man/internal/models/administration"
-	"dorm-man/internal/models/crosscutting"
-
-	"github.com/google/uuid"
-)
+import "github.com/google/uuid"
 
 type Ticket struct {
-	crosscutting.BaseModel
+	BaseModel
 	FlatID          *uuid.UUID `gorm:"type:uuid;index"`
 	Category        Category   `gorm:"type:varchar(20);not null;index"`
 	Severity        Severity   `gorm:"type:varchar(20);not null;index"`
@@ -17,7 +12,7 @@ type Ticket struct {
 	Description     string     `gorm:"type:text;not null"`
 	CreatedByUserID uuid.UUID  `gorm:"type:uuid;not null;index"`
 
-	CreatedByUser     *crosscutting.User   `gorm:"foreignKey:CreatedByUserID;references:ID"`
-	Flat              *administration.Flat `gorm:"foreignKey:FlatID;references:ID"`
-	StatusTransitions []StatusChange       `gorm:"foreignKey:TicketID"`
+	CreatedByUser     *User          `gorm:"foreignKey:CreatedByUserID;references:ID"`
+	Flat              *Flat          `gorm:"foreignKey:FlatID;references:ID"`
+	StatusTransitions []StatusChange `gorm:"foreignKey:TicketID"`
 }

@@ -3,11 +3,11 @@ package app
 import (
 	cross_cutting "dorm-man/internal/cross-cutting"
 	maintenanceModule "dorm-man/internal/maintenance"
+	administrationModels "dorm-man/internal/models"
 	"fmt"
 	"net/http"
 
 	"dorm-man/internal/config"
-	administrationModels "dorm-man/internal/models/administration"
 	chatModels "dorm-man/internal/models/chat"
 	crosscuttingModels "dorm-man/internal/models/crosscutting"
 	doormanModels "dorm-man/internal/models/doorman"

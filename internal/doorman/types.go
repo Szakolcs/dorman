@@ -1,8 +1,7 @@
 package doorman
 
 import (
-	adm "dorm-man/internal/models/administration"
-	"dorm-man/internal/models/crosscutting"
+	adm "dorm-man/internal/models"
 	models "dorm-man/internal/models/doorman"
 	"errors"
 	"time"
@@ -23,10 +22,10 @@ var (
 )
 
 type GuestData struct {
-	GuestID    uuid.UUID          `json:"guest_id"`
-	HostTenant *crosscutting.User `json:"host_tenant"`
-	GuestName  string             `json:"guest_name"`
-	IDNotes    string             `json:"id_notes"`
+	GuestID    uuid.UUID `json:"guest_id"`
+	HostTenant *adm.User `json:"host_tenant"`
+	GuestName  string    `json:"guest_name"`
+	IDNotes    string    `json:"id_notes"`
 }
 
 type GuestRegisterRequest struct {

@@ -1,9 +1,7 @@
 package doorman
 
 import (
-	adm "dorm-man/internal/models/administration"
-	"dorm-man/internal/models/crosscutting"
-	models "dorm-man/internal/models/doorman"
+	adm "dorm-man/internal/models"
 
 	"github.com/google/uuid"
 )
@@ -21,11 +19,11 @@ func (s *Service) GetTenants() ([]adm.Tenant, error) {
 	return s.store.getTenants()
 }
 
-func (s *Service) ListTenantAccess(filter TenantAccessFilter) ([]models.TenantEntry, error) {
+func (s *Service) ListTenantAccess(filter TenantAccessFilter) ([]adm.TenantEntry, error) {
 	return s.store.ListTenantAccess(filter)
 }
 
-func (s *Service) ListGuests(filter GuestFilter) ([]models.GuestEntry, error) {
+func (s *Service) ListGuests(filter GuestFilter) ([]adm.GuestEntry, error) {
 	return s.store.ListGuests(filter)
 }
 
@@ -37,8 +35,8 @@ func (s *Service) RegisterGuest(req GuestRegisterRequest) (*GuestRegisterRespons
 		return nil, ErrValidation
 	}
 	guest := GuestData{
-		HostTenant: &crosscutting.User{
-			BaseModel: crosscutting.BaseModel{ID: req.HostTenantID},
+		HostTenant: &adm.User{
+			BaseModel: adm.BaseModel{ID: req.HostTenantID},
 		},
 		GuestName: req.GuestName,
 		IDNotes:   req.IDNotes,

@@ -1,15 +1,13 @@
-package administration
+package models
 
 import (
 	"time"
-
-	"dorm-man/internal/models/crosscutting"
 
 	"github.com/google/uuid"
 )
 
 type Tenant struct {
-	crosscutting.BaseModel
+	BaseModel
 	UserID       *uuid.UUID       `gorm:"type:uuid;index"`
 	StudentCode  string           `gorm:"uniqueIndex;not null"`
 	Degree       *DegreeType      `gorm:"type:varchar(10);index"`
@@ -20,6 +18,6 @@ type Tenant struct {
 	IsActive     bool             `gorm:"not null;default:true;index"`
 	RegisteredAt time.Time        `gorm:"not null;default:CURRENT_TIMESTAMP"`
 
-	User            *crosscutting.User `gorm:"foreignKey:UserID;references:ID"`
-	RoomAssignments []RoomAssignment   `gorm:"foreignKey:TenantID"`
+	User            *User            `gorm:"foreignKey:UserID;references:ID"`
+	RoomAssignments []RoomAssignment `gorm:"foreignKey:TenantID"`
 }

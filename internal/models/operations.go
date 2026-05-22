@@ -1,13 +1,11 @@
-package administration
+package models
 
 import (
 	"time"
-
-	"dorm-man/internal/models/crosscutting"
 )
 
 type OperationalJob struct {
-	crosscutting.BaseModel
+	BaseModel
 	Title       string      `gorm:"not null;index"`
 	Description string      `gorm:"type:text"`
 	StartsAt    time.Time   `gorm:"not null;index"`

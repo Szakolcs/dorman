@@ -1,8 +1,6 @@
-package forum
+package models
 
 import (
-	"dorm-man/internal/models/crosscutting"
-
 	"github.com/google/uuid"
 )
 
@@ -22,10 +20,10 @@ type Activity struct {
 // ActivityBooking is a single user reserving a spot on an Activity. The
 // (ActivityID, UserID) pair is unique so a user cannot double-book.
 type ActivityBooking struct {
-	crosscutting.BaseModel
+	BaseModel
 	ActivityID uuid.UUID `gorm:"type:uuid;not null;index;uniqueIndex:idx_activity_user_booking"`
 	UserID     uuid.UUID `gorm:"type:uuid;not null;index;uniqueIndex:idx_activity_user_booking"`
 
-	Activity *Activity          `gorm:"foreignKey:ActivityID;references:ID"`
-	User     *crosscutting.User `gorm:"foreignKey:UserID;references:ID"`
+	Activity *Activity `gorm:"foreignKey:ActivityID;references:ID"`
+	User     *User     `gorm:"foreignKey:UserID;references:ID"`
 }
