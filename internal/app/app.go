@@ -1,16 +1,18 @@
 package app
 
 import (
-	"dorm-man/internal/cross-cutting"
+	cross_cutting "dorm-man/internal/cross-cutting"
+	maintenanceModule "dorm-man/internal/maintenance"
 	"fmt"
 	"net/http"
 
 	"dorm-man/internal/config"
 	administrationModels "dorm-man/internal/models/administration"
 	chatModels "dorm-man/internal/models/chat"
-	crosscuttingModels "dorm-man/internal/models/cross-cutting"
+	crosscuttingModels "dorm-man/internal/models/crosscutting"
 	doormanModels "dorm-man/internal/models/doorman"
 	forumModels "dorm-man/internal/models/forum"
+	maintenanceModels "dorm-man/internal/models/maintenance"
 
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
@@ -36,6 +38,7 @@ func New() (*App, error) {
 	toMigrate = append(toMigrate, forumModels.All()...)
 	toMigrate = append(toMigrate, chatModels.All()...)
 	toMigrate = append(toMigrate, doormanModels.All()...)
+	toMigrate = append(toMigrate, maintenanceModels.All()...)
 	if err := db.AutoMigrate(toMigrate...); err != nil {
 		return nil, fmt.Errorf("auto migrate models: %w", err)
 	}
@@ -45,6 +48,7 @@ func New() (*App, error) {
 	e.Static("/static", "web/static")
 
 	cross_cutting.RegisterRoutes(e, db)
+	maintenanceModule.RegisterRoutes(e, db)
 	//administration.RegisterRoutes(e, db)
 	//chat.RegisterRoutes(e, db)
 	//doorman.RegisterRoutes(e, db)

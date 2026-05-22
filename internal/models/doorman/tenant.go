@@ -1,17 +1,11 @@
-package models
+package doorman
 
 import (
-	crosscutting "dorm-man/internal/models/cross-cutting"
 	"time"
 
+	"dorm-man/internal/models/crosscutting"
+
 	"github.com/google/uuid"
-)
-
-type AccessStatus string
-
-const (
-	CheckedIn  AccessStatus = "checked_in"
-	CheckedOut AccessStatus = "checked_out"
 )
 
 type TenantEntry struct {
@@ -20,5 +14,5 @@ type TenantEntry struct {
 	Status      AccessStatus `gorm:"type:varchar(20);not null;default:'scheduled';index"`
 	TimeOfEntry time.Time    `gorm:"not null;default:CURRENT_TIMESTAMP"`
 
-	User *crosscutting.User `gorm:"foreignKey:HostTenantID;references:ID"`
+	User *crosscutting.User `gorm:"foreignKey:UserID;references:ID"`
 }

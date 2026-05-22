@@ -24,7 +24,6 @@ func RequireRole(roles ...string) echo.MiddlewareFunc {
 					return next(c)
 				}
 			}
-
 			return echo.NewHTTPError(http.StatusForbidden, "access denied")
 		}
 	}

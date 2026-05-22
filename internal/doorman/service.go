@@ -2,6 +2,7 @@ package doorman
 
 import (
 	adm "dorm-man/internal/models/administration"
+	"dorm-man/internal/models/crosscutting"
 	models "dorm-man/internal/models/doorman"
 
 	"github.com/google/uuid"
@@ -29,16 +30,18 @@ func (s *Service) ListGuests(filter GuestFilter) ([]models.GuestEntry, error) {
 }
 
 func (s *Service) RegisterGuest(req GuestRegisterRequest) (*GuestRegisterResponse, error) {
-	if req.HostTenant == nil {
+	if req.HostTenantID == uuid.Nil {
 		return nil, ErrTenantNotFound
 	}
 	if req.GuestName == "" {
 		return nil, ErrValidation
 	}
 	guest := GuestData{
-		HostTenant: req.HostTenant,
-		GuestName:  req.GuestName,
-		IDNotes:    req.IDNotes,
+		HostTenant: &crosscutting.User{
+			BaseModel: crosscutting.BaseModel{ID: req.HostTenantID},
+		},
+		GuestName: req.GuestName,
+		IDNotes:   req.IDNotes,
 	}
 	err := s.store.RegisterGuest(guest)
 	if err != nil {

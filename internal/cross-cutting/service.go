@@ -1,7 +1,7 @@
 package cross_cutting
 
 import (
-	models "dorm-man/internal/models/cross-cutting"
+	models "dorm-man/internal/models/crosscutting"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -46,7 +46,7 @@ func (s *Service) Login(userCred LoginRequest) (LoginResponse, error) {
 func createToken(user models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"id":       user.ID,
+			"id":       user.ID.String(),
 			"username": user.Name,
 			"exp":      time.Now().Add(time.Hour * 24).Unix(),
 			"role":     user.Role.Name,

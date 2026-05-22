@@ -10,7 +10,7 @@ import (
 func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 	store := NewStore(db)
 	service := NewService(store)
-	handler := &Handler{service: service}
+	handler := NewHandler(service)
 
 	admin := e.Group("/administration")
 	admin.Use(middleware.RequireRole("admin", "dev"))
@@ -44,5 +44,8 @@ func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
 	admin.POST("/housing/room/mass_assign", handler.massAssignment)
 	admin.PUT("/housing/room/assign", handler.updateAssignment)
 	admin.DELETE("/housing/room/assign", handler.deleteAssignment)
+	admin.GET("/register", handler.registerUserPage)
+	admin.POST("/register/new", handler.registerUser)
+	admin.PUT("/register/update", handler.updateUser)
 	admin.GET("/audit", handler.auditPage)
 }

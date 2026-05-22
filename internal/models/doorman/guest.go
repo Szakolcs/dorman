@@ -1,8 +1,8 @@
-package models
+package doorman
 
 import (
 	adm "dorm-man/internal/models/administration"
-	crosscutting "dorm-man/internal/models/cross-cutting"
+	"dorm-man/internal/models/crosscutting"
 
 	"github.com/google/uuid"
 )

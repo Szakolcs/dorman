@@ -1,37 +1,24 @@
-package models
+package chat
 
 import (
-	platform "dorm-man/internal/models/cross-cutting"
-	"time"
-
-	adm "dorm-man/internal/models/administration"
-
-	"github.com/google/uuid"
+	"dorm-man/internal/models/crosscutting"
 )
 
-type ChatRoomKind string
+// Room is a chatroom. Memberships are limited to tenants (see Membership);
+// the room itself stays domain-agnostic so forum.Event can link to one via
+// its ChatRoomID without creating an import cycle.
+//
+// DirectPairKey is set only for RoomKindDirect rooms and contains the two
+// participating tenant UUIDs joined in lexicographic order ("<lo>:<hi>").
+// The unique index guarantees that any pair of tenants has at most one
+// direct chat. Group and event rooms keep this NULL.
+type Room struct {
+	crosscutting.BaseModel
+	Kind          RoomKind `gorm:"type:varchar(20);not null;index"`
+	Title         string   `gorm:"index"`
+	Topic         string   `gorm:"type:text"`
+	DirectPairKey *string  `gorm:"type:varchar(80);uniqueIndex"`
 
-const (
-	ChatRoomKindFlat   ChatRoomKind = "flat"
-	ChatRoomKindDirect ChatRoomKind = "direct"
-	ChatRoomKindGroup  ChatRoomKind = "group"
-)
-
-// ChatRoom is a conversation container: flat (system), direct (pair), or group (user-created).
-type ChatRoom struct {
-	platform.BaseModel
-	Kind               ChatRoomKind `gorm:"type:varchar(20);not null;index"`
-	Title              string       `gorm:"not null;default:''"`
-	AvatarStorageKey   string       `gorm:"type:varchar(512)"`
-	FlatID             *uuid.UUID   `gorm:"type:uuid;uniqueIndex"`
-	TenantLowID        *uuid.UUID   `gorm:"type:uuid;uniqueIndex:idx_chat_direct_pair,priority:1"`
-	TenantHighID       *uuid.UUID   `gorm:"type:uuid;uniqueIndex:idx_chat_direct_pair,priority:2"`
-	LastMessageAt      *time.Time   `gorm:"index"`
-	LastMessagePreview string       `gorm:"type:varchar(500)"`
-
-	Flat       *adm.Flat        `gorm:"foreignKey:FlatID;references:ID"`
-	TenantLow  *adm.Tenant      `gorm:"foreignKey:TenantLowID;references:ID"`
-	TenantHigh *adm.Tenant      `gorm:"foreignKey:TenantHighID;references:ID"`
-	Members    []ChatRoomMember `gorm:"foreignKey:RoomID"`
-	Messages   []ChatMessage    `gorm:"foreignKey:RoomID"`
+	Memberships []Membership `gorm:"foreignKey:RoomID"`
+	Messages    []Message    `gorm:"foreignKey:RoomID"`
 }

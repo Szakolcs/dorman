@@ -2,7 +2,7 @@ package doorman
 
 import (
 	adm "dorm-man/internal/models/administration"
-	crosscutting "dorm-man/internal/models/cross-cutting"
+	"dorm-man/internal/models/crosscutting"
 	models "dorm-man/internal/models/doorman"
 	"errors"
 	"time"
@@ -24,16 +24,15 @@ var (
 
 type GuestData struct {
 	GuestID    uuid.UUID          `json:"guest_id"`
-	HostTenant *crosscutting.User `json:"host_tenant_id"`
+	HostTenant *crosscutting.User `json:"host_tenant"`
 	GuestName  string             `json:"guest_name"`
 	IDNotes    string             `json:"id_notes"`
 }
 
 type GuestRegisterRequest struct {
-	crosscutting.BaseModel
-	HostTenant *crosscutting.User `json:"host_tenant_id"`
-	GuestName  string             `json:"guest_name"`
-	IDNotes    string             `json:"id_notes"`
+	HostTenantID uuid.UUID `json:"host_tenant_id" form:"host_tenant_id"`
+	GuestName    string    `json:"guest_name"     form:"guest_name"`
+	IDNotes      string    `json:"id_notes"       form:"id_notes"`
 }
 
 type GuestRegisterResponse struct {
@@ -45,9 +44,10 @@ type TenantData struct {
 	CheckedIn  time.Time   `json:"checked_in"`
 	CheckedOut time.Time   `json:"checked_out"`
 }
+
 type TenantAccessRequest struct {
-	TenantID     uuid.UUID           `json:"tenant_id"`
-	AccessStatus models.AccessStatus `json:"accessstatus"`
+	TenantID     uuid.UUID           `json:"tenant_id"     query:"id"`
+	AccessStatus models.AccessStatus `json:"access_status" query:"direction"`
 }
 
 type TenantAccessResponse struct {
@@ -55,15 +55,15 @@ type TenantAccessResponse struct {
 }
 
 type GuestFilter struct {
-	TenantID uuid.UUID           `json:"tenant_id"`
-	From     time.Time           `json:"from"`
-	To       time.Time           `json:"to"`
-	Status   models.AccessStatus `json:"status"`
+	TenantID uuid.UUID           `json:"tenant_id" query:"tenant_id"`
+	From     time.Time           `json:"from"      query:"from"`
+	To       time.Time           `json:"to"        query:"to"`
+	Status   models.AccessStatus `json:"status"    query:"status"`
 }
 
 type TenantAccessFilter struct {
-	TenantID uuid.UUID           `json:"tenant_id"`
-	From     time.Time           `json:"from"`
-	To       time.Time           `json:"to"`
-	Status   models.AccessStatus `json:"status"`
+	TenantID uuid.UUID           `json:"tenant_id" query:"tenant_id"`
+	From     time.Time           `json:"from"      query:"from"`
+	To       time.Time           `json:"to"        query:"to"`
+	Status   models.AccessStatus `json:"status"    query:"status"`
 }

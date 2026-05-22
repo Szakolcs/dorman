@@ -1,13 +1,14 @@
-package models
+package administration
 
 import (
-	platform "dorm-man/internal/models/cross-cutting"
+	"dorm-man/internal/models/crosscutting"
+	"dorm-man/internal/models/maintenance"
 
 	"github.com/google/uuid"
 )
 
 type Building struct {
-	platform.BaseModel
+	crosscutting.BaseModel
 	Name string `gorm:"not null;uniqueIndex"`
 	Code string `gorm:"not null;uniqueIndex"`
 
@@ -16,19 +17,19 @@ type Building struct {
 }
 
 type Flat struct {
-	platform.BaseModel
+	crosscutting.BaseModel
 	BuildingID *uuid.UUID `gorm:"type:uuid;index"`
 	Name       string     `gorm:"not null;index"`
 	Floor      int        `gorm:"not null;default:0"`
 
-	Building           *Building           `gorm:"foreignKey:BuildingID;references:ID"`
-	Rooms              []Room              `gorm:"foreignKey:FlatID"`
-	Inventory          []InventoryItem     `gorm:"foreignKey:FlatID"`
-	MaintenanceTickets []MaintenanceTicket `gorm:"foreignKey:FlatID"`
+	Building           *Building            `gorm:"foreignKey:BuildingID;references:ID"`
+	Rooms              []Room               `gorm:"foreignKey:FlatID"`
+	Inventory          []InventoryItem      `gorm:"foreignKey:FlatID"`
+	MaintenanceTickets []maintenance.Ticket `gorm:"foreignKey:FlatID"`
 }
 
 type Room struct {
-	platform.BaseModel
+	crosscutting.BaseModel
 	FlatID   uuid.UUID `gorm:"type:uuid;not null;index"`
 	Number   string    `gorm:"not null;index"`
 	Capacity int       `gorm:"not null;default:1"`
@@ -37,14 +38,16 @@ type Room struct {
 	Assignments []RoomAssignment `gorm:"foreignKey:RoomID"`
 }
 
+// SharedArea is intentionally agnostic about the forum/chat domains: the
+// Activity/Event tables in `forum` already carry SharedAreaID foreign keys,
+// so reverse relations live on the forum side and can be queried with
+// db.Where("shared_area_id = ?", id).
 type SharedArea struct {
-	platform.BaseModel
-	BuildingID *uuid.UUID `gorm:"type:uuid;"`
+	crosscutting.BaseModel
+	BuildingID *uuid.UUID `gorm:"type:uuid"`
 	Name       string     `gorm:"not null;uniqueIndex"`
 	Code       string     `gorm:"not null;uniqueIndex"`
 
-	Building   *Building       `gorm:"foreignKey:BuildingID;references:ID"`
-	Activities []Activity      `gorm:"foreignKey:SharedAreaID"`
-	Events     []Event         `gorm:"foreignKey:SharedAreaID"`
-	Inventory  []InventoryItem `gorm:"foreignKey:SharedAreaID"`
+	Building  *Building       `gorm:"foreignKey:BuildingID;references:ID"`
+	Inventory []InventoryItem `gorm:"foreignKey:SharedAreaID"`
 }

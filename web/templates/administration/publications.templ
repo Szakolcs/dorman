@@ -1,157 +1,27 @@
-package administration
+package adminviews
 
-import "fmt"
+import "dorm-man/internal/models/forum"
 
-import "dorm-man/web/templates/common/components"
-import "dorm-man/web/templates/common/partials"
-
-templ PublicationsPage(data PublicationsPageData) {
-	@components.AppDocument("Administration - Publications", PublicationsContent(data))
-}
-
-templ PublicationsContent(data PublicationsPageData) {
-	@partials.AdministrationNav()
-	@components.PageHeader(
-		"Official Publications",
-		"Draft and publish official news, activities, and events for tenant-facing visibility.",
-	)
-	@components.Section("News", NewsSection(data))
-	@components.Section("Activities", ActivitiesSection(data))
-	@components.Section("Events", EventsSection(data))
-}
-
-templ NewsSection(data PublicationsPageData) {
-	@components.DataTable([]string{"Title", "State", "Publish Date", "Author"}, NewsRows(data))
-	@components.PaginationNavNamed("/administration/publications", data.NewsPagination, data.NewsPreserve, "news_page", "news_page_size")
-	<form method="post" action="/administration/publications/news" class="mt-4 flex max-w-xl flex-col gap-2">
-		<label for="news-title" class="text-sm font-medium text-dm-fg">Title</label>
-		<input id="news-title" name="title" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
-
-		<label for="news-body" class="text-sm font-medium text-dm-fg">Body</label>
-		<textarea id="news-body" name="body" class="min-h-24 rounded border border-dm-border bg-dm-bg px-3 py-2"></textarea>
-
-		<label for="news-tags" class="text-sm font-medium text-dm-fg">Tags</label>
-		<input id="news-tags" name="tags" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
-
-		<label for="news-state" class="text-sm font-medium text-dm-fg">State</label>
-		<select id="news-state" name="state" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
-			<option value="draft">draft</option>
-			<option value="published">published</option>
-			<option value="archived">archived</option>
-		</select>
-
-		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Create News</button>
-	</form>
-}
-
-templ NewsRows(data PublicationsPageData) {
-	if len(data.News) == 0 {
-		<tr>
-			<td colspan="4">No official news posts yet.</td>
-		</tr>
-	}
-	for _, p := range data.News {
-		<tr>
-			<td>{ p.Title }</td>
-			<td>{ string(p.State) }</td>
-			<td>{ publishDate(p.PublishedAt) }</td>
-			<td>{ userName(p.AuthorUser) }</td>
-		</tr>
+templ PublicationsPage(publications []forum.Publication) {
+	@Layout("Publications") {
+		@Navigation()
 	}
 }
 
-templ ActivitiesSection(data PublicationsPageData) {
-	@components.DataTable([]string{"Title", "Location", "Capacity", "State"}, ActivityRows(data))
-	@components.PaginationNavNamed("/administration/publications", data.ActivitiesPagination, data.ActivitiesPreserve, "activities_page", "activities_page_size")
-	<form method="post" action="/administration/publications/activities" class="mt-4 flex max-w-xl flex-col gap-2">
-		<label for="activity-title" class="text-sm font-medium text-dm-fg">Title</label>
-		<input id="activity-title" name="title" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
-
-		<label for="activity-description" class="text-sm font-medium text-dm-fg">Description</label>
-		<textarea id="activity-description" name="description" class="min-h-24 rounded border border-dm-border bg-dm-bg px-3 py-2"></textarea>
-
-		<label for="activity-location" class="text-sm font-medium text-dm-fg">Location</label>
-		<input id="activity-location" name="location" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
-
-		<label for="activity-capacity" class="text-sm font-medium text-dm-fg">Capacity</label>
-		<input id="activity-capacity" name="capacity" type="number" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
-
-		<label for="activity-state" class="text-sm font-medium text-dm-fg">State</label>
-		<select id="activity-state" name="state" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
-			<option value="draft">draft</option>
-			<option value="published">published</option>
-			<option value="archived">archived</option>
-		</select>
-
-		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Create Activity</button>
-	</form>
-}
-
-templ ActivityRows(data PublicationsPageData) {
-	if len(data.Activities) == 0 {
-		<tr>
-			<td colspan="4">No activities yet.</td>
-		</tr>
-	}
-	for _, a := range data.Activities {
-		<tr>
-			<td>{ a.Title }</td>
-			<td>{ a.Location }</td>
-			<td>{ fmt.Sprintf("%d", a.Capacity) }</td>
-			<td>{ string(a.State) }</td>
-		</tr>
+templ NewsDetailPage(news forum.Publication) {
+	@Layout("News") {
+		@Navigation()
 	}
 }
 
-templ EventsSection(data PublicationsPageData) {
-	@components.DataTable([]string{"Title", "Location", "Starts", "Ends", "Capacity", "State"}, EventRows(data))
-	@components.PaginationNavNamed("/administration/publications", data.EventsPagination, data.EventsPreserve, "events_page", "events_page_size")
-	<form method="post" action="/administration/publications/events" class="mt-4 flex max-w-xl flex-col gap-2">
-		<label for="event-title" class="text-sm font-medium text-dm-fg">Title</label>
-		<input id="event-title" name="title" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
-
-		<label for="event-description" class="text-sm font-medium text-dm-fg">Description</label>
-		<textarea id="event-description" name="description" class="min-h-24 rounded border border-dm-border bg-dm-bg px-3 py-2"></textarea>
-
-		<label for="event-location" class="text-sm font-medium text-dm-fg">Location</label>
-		<input id="event-location" name="location" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
-
-		<label for="event-starts-at" class="text-sm font-medium text-dm-fg">Starts At</label>
-		<input id="event-starts-at" name="starts_at" type="datetime-local" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
-
-		<label for="event-ends-at" class="text-sm font-medium text-dm-fg">Ends At</label>
-		<input id="event-ends-at" name="ends_at" type="datetime-local" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
-
-		<label for="event-capacity" class="text-sm font-medium text-dm-fg">Capacity</label>
-		<input id="event-capacity" name="capacity" type="number" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
-
-		<label for="event-state" class="text-sm font-medium text-dm-fg">State</label>
-		<select id="event-state" name="state" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
-			<option value="draft">draft</option>
-			<option value="published">published</option>
-			<option value="postponed">postponed</option>
-			<option value="canceled">canceled</option>
-			<option value="archived">archived</option>
-		</select>
-
-		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Create Event</button>
-	</form>
+templ ActivityDetailPage(activity forum.Activity) {
+	@Layout("Activity") {
+		@Navigation()
+	}
 }
 
-templ EventRows(data PublicationsPageData) {
-	if len(data.Events) == 0 {
-		<tr>
-			<td colspan="6">No events yet.</td>
-		</tr>
-	}
-	for _, e := range data.Events {
-		<tr>
-			<td>{ e.Title }</td>
-			<td>{ e.Location }</td>
-			<td>{ e.StartsAt.Format("2006-01-02 15:04") }</td>
-			<td>{ e.EndsAt.Format("2006-01-02 15:04") }</td>
-			<td>{ fmt.Sprintf("%d", e.Capacity) }</td>
-			<td>{ string(e.State) }</td>
-		</tr>
+templ EventDetailPage(event forum.Event) {
+	@Layout("Event") {
+		@Navigation()
 	}
 }

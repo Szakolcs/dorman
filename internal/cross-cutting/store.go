@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	models "dorm-man/internal/models/cross-cutting"
+	models "dorm-man/internal/models/crosscutting"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -27,9 +27,9 @@ func (s *GormStore) GetUserByNickname(nickname string) (models.User, error) {
 	var user models.User
 
 	err := s.db.
-		Preload("Roles").
-		Preload("Roles.Permission").
-		Preload("Roles.Permission.Operation").
+		Preload("Role").
+		Preload("Role.Permission").
+		Preload("Role.Permission.Operation").
 		Where("LOWER(nickname) = ?", strings.ToLower(strings.TrimSpace(nickname))).
 		First(&user).Error
 

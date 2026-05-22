@@ -1,16 +1,15 @@
 package administration
 
 import (
-	"errors"
-	"fmt"
+	"strings"
 	"time"
 
-	"dorm-man/internal/pagination"
 	models "dorm-man/internal/models/administration"
-	forummodels "dorm-man/internal/models/forum"
+	"dorm-man/internal/models/crosscutting"
+	"dorm-man/internal/models/forum"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Service struct {
@@ -21,615 +20,695 @@ func NewService(store Store) *Service {
 	return &Service{store: store}
 }
 
-func (s *Service) ResolvePrincipal(actorID uuid.UUID) (Principal, error) {
-	return s.store.LoadPrincipal(actorID)
+// ---------------------------------------------------------------------------
+// dashboard
+// ---------------------------------------------------------------------------
+
+// DashboardSummary aggregates the headline numbers shown on the admin home
+// page so the handler can render them with a single call.
+type DashboardSummary struct {
+	ActiveTenants int
+	OpenJobs      int
+	Buildings     int
+	RecentAudits  []models.Audit
 }
 
-func (s *Service) ListStaffUsers() ([]models.User, error) {
-	return s.store.ListStaffUsers()
-}
-
-func (s *Service) ListUnassignedActiveTenants() ([]models.Tenant, error) {
-	return s.store.ListUnassignedActiveTenants()
-}
-
-func (s *Service) ListTenants(filter TenantListFilter) ([]models.Tenant, int64, error) {
-	return s.store.ListTenants(filter)
-}
-
-func (s *Service) RegisterTenant(principal Principal, tenant models.Tenant) (models.Tenant, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return models.Tenant{}, ErrUnauthorized
+func (s *Service) GetDashboardSummary() (DashboardSummary, error) {
+	tenants, err := s.store.getTenantsAll()
+	if err != nil {
+		return DashboardSummary{}, err
 	}
-	if tenant.StudentCode == "" || tenant.Name == "" {
+	activeTenants := 0
+	for _, t := range tenants {
+		if t.IsActive {
+			activeTenants++
+		}
+	}
+
+	plannedFilter := JobsFilter{}
+	planned := models.JobStatusPlanned
+	plannedFilter.Status = &planned
+	jobs, err := s.store.getJobs(plannedFilter)
+	if err != nil {
+		return DashboardSummary{}, err
+	}
+
+	buildings, err := s.store.getBuilding(BuildingFilter{})
+	if err != nil {
+		return DashboardSummary{}, err
+	}
+
+	audits, err := s.store.getAuditLogs(AuditLogFilter{
+		Pagination: Pagination{Page: 1, PerPage: 5},
+	})
+	if err != nil {
+		return DashboardSummary{}, err
+	}
+
+	return DashboardSummary{
+		ActiveTenants: activeTenants,
+		OpenJobs:      len(jobs),
+		Buildings:     len(buildings),
+		RecentAudits:  audits,
+	}, nil
+}
+
+// ---------------------------------------------------------------------------
+// tenants
+// ---------------------------------------------------------------------------
+
+func (s *Service) ListTenants(filter TenantFilter) ([]models.Tenant, error) {
+	return s.store.getTenants(filter)
+}
+
+func (s *Service) GetTenant(id uuid.UUID) (models.Tenant, error) {
+	if id == uuid.Nil {
 		return models.Tenant{}, ErrValidation
 	}
-	if tenant.IsActive && tenant.Nationality == nil {
-		return models.Tenant{}, ErrStudentStatusInvalid
-	}
-
-	created, err := s.store.CreateTenant(tenant)
-	if err != nil {
-		return models.Tenant{}, err
-	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "tenant.register", "tenant", created.ID, models.AuditOutcomeSuccess))
-	return created, nil
+	return s.store.getTenantByID(id)
 }
 
-func (s *Service) SetTenantActive(principal Principal, tenantID uuid.UUID, active bool) (models.Tenant, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return models.Tenant{}, ErrUnauthorized
-	}
-	tenant, err := s.store.UpdateTenantStatus(tenantID, active)
-	if err != nil {
-		return models.Tenant{}, err
-	}
-	action := "tenant.deactivate"
-	if active {
-		action = "tenant.activate"
-	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, action, "tenant", tenant.ID, models.AuditOutcomeSuccess))
-	return tenant, nil
+// ---------------------------------------------------------------------------
+// inventory
+// ---------------------------------------------------------------------------
+
+func (s *Service) ListInventory(filter InventoryFilter) ([]models.InventoryItem, error) {
+	return s.store.getInventory(filter)
 }
 
-func (s *Service) GetTenant(tenantID uuid.UUID) (models.Tenant, error) {
-	return s.store.GetTenant(tenantID)
+func (s *Service) GetInventoryItem(id uuid.UUID) (models.InventoryItem, error) {
+	if id == uuid.Nil {
+		return models.InventoryItem{}, ErrValidation
+	}
+	return s.store.getInventoryByID(id)
 }
 
-func (s *Service) ListRooms(filter RoomListFilter) ([]models.Room, int64, error) {
-	storeFilter := filter
-	if filter.State != "" {
-		storeFilter.Params = pagination.Params{Page: 1, PageSize: 0}
+func (s *Service) CreateInventoryItem(actorID uuid.UUID, req CreateInventoryItemRequest) (models.InventoryItem, error) {
+	if actorID == uuid.Nil {
+		return models.InventoryItem{}, ErrUnauthorized
 	}
-	rooms, total, err := s.store.ListRooms(storeFilter)
-	if err != nil {
-		return nil, 0, err
+	if strings.TrimSpace(req.Name) == "" {
+		return models.InventoryItem{}, ErrValidation
 	}
-	if filter.State == "" {
-		return rooms, total, nil
+	if req.PurchaseDate.IsZero() {
+		req.PurchaseDate = time.Now()
 	}
+	if req.Condition == "" {
+		req.Condition = models.InventoryConditionGood
+	}
+	if req.Status == "" {
+		req.Status = models.InventoryStatusInUse
+	}
+	item := models.InventoryItem{
+		Name:         req.Name,
+		Description:  req.Description,
+		RoomID:       req.RoomID,
+		FlatID:       req.FlatID,
+		BuildingID:   req.BuildingID,
+		SharedAreaID: req.SharedAreaID,
+		Condition:    req.Condition,
+		Status:       req.Status,
+		PurchaseDate: req.PurchaseDate,
+	}
+	if err := s.store.createInventoryItem(actorID, item); err != nil {
+		return models.InventoryItem{}, err
+	}
+	return item, nil
+}
 
-	filtered := make([]models.Room, 0, len(rooms))
-	for _, room := range rooms {
-		occupancy, err := s.store.GetActiveAssignmentCount(room.ID)
-		if err != nil {
-			return nil, 0, err
+func (s *Service) UpdateInventoryItemStatus(actorID uuid.UUID, req UpdateInventoryStatusRequest) (models.InventoryItem, error) {
+	if actorID == uuid.Nil {
+		return models.InventoryItem{}, ErrUnauthorized
+	}
+	if req.ID == uuid.Nil {
+		return models.InventoryItem{}, ErrValidation
+	}
+	item, err := s.store.getInventoryByID(req.ID)
+	if err != nil {
+		return models.InventoryItem{}, err
+	}
+	if !isInventoryStatusTransitionValid(item.Status, req.Status) {
+		return models.InventoryItem{}, ErrStateTransition
+	}
+	now := time.Now()
+	item.Status = req.Status
+	if req.Condition != nil {
+		item.Condition = *req.Condition
+	}
+	switch req.Status {
+	case models.InventoryStatusInUse:
+		if item.InUseDate == nil {
+			item.InUseDate = &now
 		}
-		switch filter.State {
-		case "occupied":
-			if occupancy > 0 {
-				filtered = append(filtered, room)
-			}
-		case "available":
-			if occupancy < int64(room.Capacity) {
-				filtered = append(filtered, room)
-			}
-		case "maintenance-needed":
-			hasDamagedInventory := false
-			for _, item := range room.InventoryItems {
-				if item.Condition == models.InventoryConditionDamaged || item.Condition == models.InventoryConditionBroken {
-					hasDamagedInventory = true
-					break
-				}
-			}
-			if hasDamagedInventory {
-				filtered = append(filtered, room)
-			}
-		default:
-			filtered = append(filtered, room)
-		}
+	case models.InventoryStatusWithdrawn, models.InventoryStatusDestroyed:
+		item.WithdrawDate = &now
 	}
-	return filtered, int64(len(filtered)), nil
+	if err := s.store.updateInventoryItem(actorID, item); err != nil {
+		return models.InventoryItem{}, err
+	}
+	return item, nil
 }
 
-func (s *Service) GetRoom(roomID uuid.UUID) (models.Room, error) {
-	return s.store.GetRoom(roomID)
+// isInventoryStatusTransitionValid encodes the lifecycle: in_stock -> in_use,
+// in_stock|in_use -> withdrawn, anything -> destroyed. Withdrawn/destroyed are
+// terminal.
+func isInventoryStatusTransitionValid(from, to models.InventoryStatus) bool {
+	if from == to {
+		return true
+	}
+	switch from {
+	case models.InventoryStatusInStock:
+		return to == models.InventoryStatusInUse ||
+			to == models.InventoryStatusWithdrawn ||
+			to == models.InventoryStatusDestroyed
+	case models.InventoryStatusInUse:
+		return to == models.InventoryStatusInStock ||
+			to == models.InventoryStatusWithdrawn ||
+			to == models.InventoryStatusDestroyed
+	default:
+		return false
+	}
 }
 
-func (s *Service) RoomOccupancy(roomID uuid.UUID) (int64, error) {
-	return s.store.GetActiveAssignmentCount(roomID)
+func (s *Service) DeleteInventoryItem(actorID, id uuid.UUID) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if id == uuid.Nil {
+		return ErrValidation
+	}
+	return s.store.deleteInventoryItem(actorID, id)
 }
 
-func (s *Service) AssignTenant(principal Principal, tenantID, roomID uuid.UUID) (models.RoomAssignment, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
+// ---------------------------------------------------------------------------
+// operational jobs
+// ---------------------------------------------------------------------------
+
+func (s *Service) ListJobs(filter JobsFilter) ([]models.OperationalJob, error) {
+	return s.store.getJobs(filter)
+}
+
+func (s *Service) GetJob(id uuid.UUID) (models.OperationalJob, error) {
+	if id == uuid.Nil {
+		return models.OperationalJob{}, ErrValidation
+	}
+	return s.store.getJobByID(id)
+}
+
+func (s *Service) CreateJob(actorID uuid.UUID, req CreateJobRequest) (models.OperationalJob, error) {
+	if actorID == uuid.Nil {
+		return models.OperationalJob{}, ErrUnauthorized
+	}
+	if strings.TrimSpace(req.Title) == "" {
+		return models.OperationalJob{}, ErrValidation
+	}
+	if !req.StartsAt.IsZero() && !req.EndsAt.IsZero() && req.EndsAt.Before(req.StartsAt) {
+		return models.OperationalJob{}, ErrValidation
+	}
+	if req.Priority == "" {
+		req.Priority = models.JobPriorityMedium
+	}
+	if req.Status == "" {
+		req.Status = models.JobStatusPlanned
+	}
+	job := models.OperationalJob{
+		Title:       req.Title,
+		Description: req.Description,
+		StartsAt:    req.StartsAt,
+		EndsAt:      req.EndsAt,
+		Priority:    req.Priority,
+		Status:      req.Status,
+	}
+	if err := s.store.createJob(actorID, job); err != nil {
+		return models.OperationalJob{}, err
+	}
+	return job, nil
+}
+
+func (s *Service) UpdateJob(actorID uuid.UUID, req UpdateJobRequest) (models.OperationalJob, error) {
+	if actorID == uuid.Nil {
+		return models.OperationalJob{}, ErrUnauthorized
+	}
+	if req.ID == uuid.Nil {
+		return models.OperationalJob{}, ErrValidation
+	}
+	job, err := s.store.getJobByID(req.ID)
+	if err != nil {
+		return models.OperationalJob{}, err
+	}
+	if req.Title != nil {
+		job.Title = *req.Title
+	}
+	if req.Description != nil {
+		job.Description = *req.Description
+	}
+	if req.StartsAt != nil {
+		job.StartsAt = *req.StartsAt
+	}
+	if req.EndsAt != nil {
+		job.EndsAt = *req.EndsAt
+	}
+	if req.Priority != nil {
+		job.Priority = *req.Priority
+	}
+	if req.Status != nil {
+		if !isJobStatusTransitionValid(job.Status, *req.Status) {
+			return models.OperationalJob{}, ErrStateTransition
+		}
+		job.Status = *req.Status
+	}
+	if !job.StartsAt.IsZero() && !job.EndsAt.IsZero() && job.EndsAt.Before(job.StartsAt) {
+		return models.OperationalJob{}, ErrValidation
+	}
+	if err := s.store.updateJob(actorID, job); err != nil {
+		return models.OperationalJob{}, err
+	}
+	return job, nil
+}
+
+// isJobStatusTransitionValid mirrors a typical scheduling lifecycle:
+// planned <-> scheduled -> in_progress -> finished, plus canceled from any
+// non-terminal state.
+func isJobStatusTransitionValid(from, to models.JobStatus) bool {
+	if from == to {
+		return true
+	}
+	if to == models.JobStatusCanceled &&
+		from != models.JobStatusFinished &&
+		from != models.JobStatusCanceled {
+		return true
+	}
+	switch from {
+	case models.JobStatusPlanned:
+		return to == models.JobStatusScheduled || to == models.JobStatusInProgress
+	case models.JobStatusScheduled:
+		return to == models.JobStatusPlanned || to == models.JobStatusInProgress
+	case models.JobStatusInProgress:
+		return to == models.JobStatusFinished
+	default:
+		return false
+	}
+}
+
+func (s *Service) DeleteJob(actorID, id uuid.UUID) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if id == uuid.Nil {
+		return ErrValidation
+	}
+	return s.store.deleteJob(actorID, id)
+}
+
+// ---------------------------------------------------------------------------
+// publications (news / activities / events)
+// ---------------------------------------------------------------------------
+
+func (s *Service) ListPublications(filter PublicationFilter) ([]forum.Publication, error) {
+	return s.store.getPublications(filter)
+}
+
+// PublicationDetail is a discriminated union for the publication detail page.
+// Exactly one of News/Activity/Event is non-nil based on Kind.
+type PublicationDetail struct {
+	Kind     PublicationKind
+	News     *forum.Publication
+	Activity *forum.Activity
+	Event    *forum.Event
+}
+
+// GetPublication tries each typed table until one matches the id.
+func (s *Service) GetPublication(id uuid.UUID) (PublicationDetail, error) {
+	if id == uuid.Nil {
+		return PublicationDetail{}, ErrValidation
+	}
+	if news, err := s.store.getNewsByID(id); err == nil {
+		return PublicationDetail{Kind: PublicationKindNews, News: &news}, nil
+	}
+	if act, err := s.store.getActivityByID(id); err == nil {
+		return PublicationDetail{Kind: PublicationKindActivity, Activity: &act}, nil
+	}
+	if evt, err := s.store.getEventByID(id); err == nil {
+		return PublicationDetail{Kind: PublicationKindEvent, Event: &evt}, nil
+	}
+	return PublicationDetail{}, ErrNotFound
+}
+
+func (s *Service) CreateNews(actorID uuid.UUID, req CreateNewsRequest) (forum.Publication, error) {
+	if actorID == uuid.Nil {
+		return forum.Publication{}, ErrUnauthorized
+	}
+	if strings.TrimSpace(req.Title) == "" {
+		return forum.Publication{}, ErrValidation
+	}
+	if req.State == "" {
+		req.State = forum.PublicationStateDraft
+	}
+	pub := forum.Publication{
+		Post: forum.Post{
+			Title:       req.Title,
+			Description: req.Description,
+			State:       req.State,
+			AuthorID:    actorID,
+		},
+	}
+	if err := s.store.createPublication(actorID, pub); err != nil {
+		return forum.Publication{}, err
+	}
+	return pub, nil
+}
+
+func (s *Service) ArchiveNews(actorID, id uuid.UUID) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if id == uuid.Nil {
+		return ErrValidation
+	}
+	return s.store.archiveNews(actorID, id)
+}
+
+func (s *Service) CreateActivity(actorID uuid.UUID, req CreateActivityRequest) (forum.Activity, error) {
+	if actorID == uuid.Nil {
+		return forum.Activity{}, ErrUnauthorized
+	}
+	if strings.TrimSpace(req.Title) == "" {
+		return forum.Activity{}, ErrValidation
+	}
+	if req.Capacity < 1 {
+		return forum.Activity{}, ErrValidation
+	}
+	if req.State == "" {
+		req.State = forum.PublicationStateDraft
+	}
+	act := forum.Activity{
+		Post: forum.Post{
+			Title:       req.Title,
+			Description: req.Description,
+			State:       req.State,
+			AuthorID:    actorID,
+		},
+		SharedAreaID: req.SharedAreaID,
+		Capacity:     req.Capacity,
+	}
+	if err := s.store.createActivity(actorID, act); err != nil {
+		return forum.Activity{}, err
+	}
+	return act, nil
+}
+
+func (s *Service) ArchiveActivity(actorID, id uuid.UUID) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if id == uuid.Nil {
+		return ErrValidation
+	}
+	return s.store.archiveActivity(actorID, id)
+}
+
+func (s *Service) CreateEvent(actorID uuid.UUID, req CreateEventRequest) (forum.Event, error) {
+	if actorID == uuid.Nil {
+		return forum.Event{}, ErrUnauthorized
+	}
+	if strings.TrimSpace(req.Title) == "" {
+		return forum.Event{}, ErrValidation
+	}
+	if req.StartsAt.IsZero() || req.EndsAt.IsZero() || req.EndsAt.Before(req.StartsAt) {
+		return forum.Event{}, ErrValidation
+	}
+	if req.State == "" {
+		req.State = forum.PublicationStateDraft
+	}
+	evt := forum.Event{
+		Post: forum.Post{
+			Title:       req.Title,
+			Description: req.Description,
+			State:       req.State,
+			AuthorID:    actorID,
+		},
+		SharedAreaID: req.SharedAreaID,
+		StartsAt:     req.StartsAt,
+		EndsAt:       req.EndsAt,
+	}
+	if err := s.store.createEvent(actorID, evt); err != nil {
+		return forum.Event{}, err
+	}
+	return evt, nil
+}
+
+func (s *Service) ArchiveEvent(actorID, id uuid.UUID) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if id == uuid.Nil {
+		return ErrValidation
+	}
+	return s.store.archiveEvent(actorID, id)
+}
+
+// ---------------------------------------------------------------------------
+// housing — buildings / flats / shared areas / rooms
+// ---------------------------------------------------------------------------
+
+// HousingOverview bundles every top-level housing entity for the housing index page.
+type HousingOverview struct {
+	Buildings   []models.Building
+	Flats       []models.Flat
+	SharedAreas []models.SharedArea
+	Rooms       []models.Room
+}
+
+func (s *Service) GetHousingOverview() (HousingOverview, error) {
+	bs, err := s.store.getBuilding(BuildingFilter{})
+	if err != nil {
+		return HousingOverview{}, err
+	}
+	fs, err := s.store.getFlat(FlatFilter{})
+	if err != nil {
+		return HousingOverview{}, err
+	}
+	sas, err := s.store.getSharedArea(SharedAreaFilter{})
+	if err != nil {
+		return HousingOverview{}, err
+	}
+	rs, err := s.store.getRoom(RoomFilter{})
+	if err != nil {
+		return HousingOverview{}, err
+	}
+	return HousingOverview{
+		Buildings:   bs,
+		Flats:       fs,
+		SharedAreas: sas,
+		Rooms:       rs,
+	}, nil
+}
+
+func (s *Service) GetBuilding(id uuid.UUID) (models.Building, error) {
+	if id == uuid.Nil {
+		return models.Building{}, ErrValidation
+	}
+	return s.store.getBuildingByID(id)
+}
+
+func (s *Service) GetFlat(id uuid.UUID) (models.Flat, error) {
+	if id == uuid.Nil {
+		return models.Flat{}, ErrValidation
+	}
+	return s.store.getFlatByID(id)
+}
+
+func (s *Service) GetSharedArea(id uuid.UUID) (models.SharedArea, error) {
+	if id == uuid.Nil {
+		return models.SharedArea{}, ErrValidation
+	}
+	return s.store.getSharedAreaByID(id)
+}
+
+func (s *Service) GetRoom(id uuid.UUID) (models.Room, error) {
+	if id == uuid.Nil {
+		return models.Room{}, ErrValidation
+	}
+	return s.store.getRoomByID(id)
+}
+
+// ---------------------------------------------------------------------------
+// room assignments
+// ---------------------------------------------------------------------------
+
+func (s *Service) AssignRoom(actorID uuid.UUID, req AssignRoomRequest) (models.RoomAssignment, error) {
+	if actorID == uuid.Nil {
 		return models.RoomAssignment{}, ErrUnauthorized
 	}
-
-	room, err := s.store.GetRoom(roomID)
-	if err != nil {
-		return models.RoomAssignment{}, err
+	if req.TenantID == uuid.Nil || req.RoomID == uuid.Nil {
+		return models.RoomAssignment{}, ErrValidation
 	}
-
-	tenant, err := s.store.GetTenant(tenantID)
+	tenant, err := s.store.getTenantByID(req.TenantID)
 	if err != nil {
 		return models.RoomAssignment{}, err
 	}
 	if !tenant.IsActive {
-		return models.RoomAssignment{}, ErrValidation
+		return models.RoomAssignment{}, ErrStudentStatusInvalid
 	}
-
-	var created models.RoomAssignment
-	err = s.store.WithTx(func(tx *gorm.DB) error {
-		count, countErr := s.store.GetActiveAssignmentCount(room.ID)
-		if countErr != nil {
-			return countErr
-		}
-		if count >= int64(room.Capacity) {
-			return ErrCapacityConflict
-		}
-
-		if closeErr := s.store.CloseActiveAssignmentByTenant(tx, tenant.ID, time.Now().UTC()); closeErr != nil {
-			return closeErr
-		}
-
-		assignment := models.RoomAssignment{
-			TenantID:        tenant.ID,
-			RoomID:          room.ID,
-			EffectiveAt:     time.Now().UTC(),
-			CreatedByUserID: principal.UserID,
-		}
-		var createErr error
-		created, createErr = s.store.CreateAssignment(tx, assignment)
-		return createErr
-	})
+	room, err := s.store.getRoomByID(req.RoomID)
 	if err != nil {
 		return models.RoomAssignment{}, err
 	}
-
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "room.assignment", "room_assignment", created.ID, models.AuditOutcomeSuccess))
-	return created, nil
+	active := 0
+	for _, a := range room.Assignments {
+		if a.EndedAt == nil {
+			active++
+		}
+	}
+	if active >= room.Capacity {
+		return models.RoomAssignment{}, ErrCapacityConflict
+	}
+	effectiveAt := time.Now()
+	if req.EffectiveAt != nil {
+		effectiveAt = *req.EffectiveAt
+	}
+	assignment := models.RoomAssignment{
+		TenantID:    req.TenantID,
+		RoomID:      req.RoomID,
+		EffectiveAt: effectiveAt,
+	}
+	if err := s.store.createRoomAssignment(actorID, assignment); err != nil {
+		return models.RoomAssignment{}, err
+	}
+	return assignment, nil
 }
 
-func (s *Service) GenerateAllocationPlan() (AssignmentPlan, error) {
-	tenants, err := s.store.ListUnassignedActiveTenants()
-	if err != nil {
-		return AssignmentPlan{}, err
+func (s *Service) MassAssignRooms(actorID uuid.UUID, req MassAssignRequest) ([]models.RoomAssignment, error) {
+	if actorID == uuid.Nil {
+		return nil, ErrUnauthorized
 	}
-	rooms, err := s.store.ListAllRoomsForPlanning()
-	if err != nil {
-		return AssignmentPlan{}, err
+	if len(req.Assignments) == 0 {
+		return nil, ErrValidation
 	}
-
-	type roomCapacity struct {
-		id       uuid.UUID
-		capacity int64
-		used     int64
-	}
-	roomCaps := make([]roomCapacity, 0, len(rooms))
-	for _, room := range rooms {
-		used, countErr := s.store.GetActiveAssignmentCount(room.ID)
-		if countErr != nil {
-			return AssignmentPlan{}, countErr
+	out := make([]models.RoomAssignment, 0, len(req.Assignments))
+	for _, a := range req.Assignments {
+		assignment, err := s.AssignRoom(actorID, a)
+		if err != nil {
+			return out, err
 		}
-		roomCaps = append(roomCaps, roomCapacity{id: room.ID, capacity: int64(room.Capacity), used: used})
+		out = append(out, assignment)
 	}
-
-	items := make([]AssignmentPlanItem, 0, len(tenants))
-	roomIdx := 0
-	for _, tenant := range tenants {
-		for roomIdx < len(roomCaps) && roomCaps[roomIdx].used >= roomCaps[roomIdx].capacity {
-			roomIdx++
-		}
-		if roomIdx >= len(roomCaps) {
-			break
-		}
-		items = append(items, AssignmentPlanItem{TenantID: tenant.ID, RoomID: roomCaps[roomIdx].id})
-		roomCaps[roomIdx].used++
-	}
-
-	return AssignmentPlan{Items: items}, nil
+	return out, nil
 }
 
-func (s *Service) ApproveAllocationPlan(principal Principal, plan AssignmentPlan) error {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
+func (s *Service) UpdateAssignment(actorID uuid.UUID, req UpdateAssignmentRequest) (models.RoomAssignment, error) {
+	if actorID == uuid.Nil {
+		return models.RoomAssignment{}, ErrUnauthorized
+	}
+	if req.ID == uuid.Nil {
+		return models.RoomAssignment{}, ErrValidation
+	}
+	a, err := s.store.getRoomAssignmentByID(req.ID)
+	if err != nil {
+		return models.RoomAssignment{}, err
+	}
+	if req.RoomID != nil {
+		a.RoomID = *req.RoomID
+	}
+	if req.EffectiveAt != nil {
+		a.EffectiveAt = *req.EffectiveAt
+	}
+	if req.EndedAt != nil {
+		a.EndedAt = req.EndedAt
+	}
+	if err := s.store.updateRoomAssignment(actorID, a); err != nil {
+		return models.RoomAssignment{}, err
+	}
+	return a, nil
+}
+
+func (s *Service) DeleteAssignment(actorID, id uuid.UUID) error {
+	if actorID == uuid.Nil {
 		return ErrUnauthorized
 	}
-	return s.store.WithTx(func(tx *gorm.DB) error {
-		for _, item := range plan.Items {
-			count, err := s.store.GetActiveAssignmentCount(item.RoomID)
-			if err != nil {
-				return err
-			}
-			room, err := s.store.GetRoom(item.RoomID)
-			if err != nil {
-				return err
-			}
-			if count >= int64(room.Capacity) {
-				return fmt.Errorf("%w: room %s", ErrCapacityConflict, room.ID)
-			}
-			if err := s.store.CloseActiveAssignmentByTenant(tx, item.TenantID, time.Now().UTC()); err != nil {
-				return err
-			}
-			_, err = s.store.CreateAssignment(tx, models.RoomAssignment{
-				TenantID:        item.TenantID,
-				RoomID:          item.RoomID,
-				EffectiveAt:     time.Now().UTC(),
-				CreatedByUserID: principal.UserID,
-			})
-			if err != nil {
-				return err
-			}
+	if id == uuid.Nil {
+		return ErrValidation
+	}
+	return s.store.deleteRoomAssignment(actorID, id)
+}
+
+// ---------------------------------------------------------------------------
+// users (registration / update)
+// ---------------------------------------------------------------------------
+
+func (s *Service) RegisterUser(actorID uuid.UUID, req RegisterUserRequest) (crosscutting.User, error) {
+	if actorID == uuid.Nil {
+		return crosscutting.User{}, ErrUnauthorized
+	}
+	if strings.TrimSpace(req.Email) == "" ||
+		strings.TrimSpace(req.Nickname) == "" ||
+		strings.TrimSpace(req.Password) == "" {
+		return crosscutting.User{}, ErrValidation
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return crosscutting.User{}, err
+	}
+	user := crosscutting.User{
+		Name:         req.Name,
+		Email:        strings.ToLower(strings.TrimSpace(req.Email)),
+		Nickname:     strings.TrimSpace(req.Nickname),
+		PasswordHash: string(hash),
+		AvatarURL:    req.AvatarURL,
+		PhotoUrl:     req.PhotoURL,
+		RoleID:       req.RoleID.String(),
+	}
+	if err := s.store.registerUser(actorID, user); err != nil {
+		return crosscutting.User{}, err
+	}
+	return user, nil
+}
+
+func (s *Service) UpdateUser(actorID uuid.UUID, req UpdateUserRequest) (crosscutting.User, error) {
+	if actorID == uuid.Nil {
+		return crosscutting.User{}, ErrUnauthorized
+	}
+	if req.ID == uuid.Nil {
+		return crosscutting.User{}, ErrValidation
+	}
+	user := crosscutting.User{
+		BaseModel: crosscutting.BaseModel{ID: req.ID},
+	}
+	if req.Name != nil {
+		user.Name = *req.Name
+	}
+	if req.Email != nil {
+		user.Email = strings.ToLower(strings.TrimSpace(*req.Email))
+	}
+	if req.Nickname != nil {
+		user.Nickname = strings.TrimSpace(*req.Nickname)
+	}
+	if req.Password != nil && *req.Password != "" {
+		hash, err := bcrypt.GenerateFromPassword([]byte(*req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return crosscutting.User{}, err
 		}
-		return nil
-	})
+		user.PasswordHash = string(hash)
+	}
+	if req.AvatarURL != nil {
+		user.AvatarURL = *req.AvatarURL
+	}
+	if req.PhotoURL != nil {
+		user.PhotoUrl = *req.PhotoURL
+	}
+	if req.RoleID != nil {
+		user.RoleID = req.RoleID.String()
+	}
+	if err := s.store.updateUser(actorID, user); err != nil {
+		return crosscutting.User{}, err
+	}
+	return user, nil
 }
 
-func (s *Service) CreateInventoryItem(principal Principal, item models.InventoryItem) (models.InventoryItem, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker, models.RoleDirector) {
-		return models.InventoryItem{}, ErrUnauthorized
-	}
-	if item.LocationType == models.InventoryLocationRoom && item.RoomID == nil {
-		return models.InventoryItem{}, ErrValidation
-	}
-	if item.LocationType == models.InventoryLocationSharedArea && item.BuildingID == nil && item.FlatID == nil {
-		return models.InventoryItem{}, ErrValidation
-	}
-	created, err := s.store.CreateInventoryItem(item)
-	if err != nil {
-		return models.InventoryItem{}, err
-	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "inventory.create", "inventory_item", created.ID, models.AuditOutcomeSuccess))
-	return created, nil
-}
+// ---------------------------------------------------------------------------
+// audit
+// ---------------------------------------------------------------------------
 
-func (s *Service) UpdateInventoryStatus(principal Principal, id uuid.UUID, status models.InventoryStatus, condition models.InventoryCondition, withdrawDate *time.Time) (models.InventoryItem, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker, models.RoleDirector) {
-		return models.InventoryItem{}, ErrUnauthorized
-	}
-	item, err := s.store.UpdateInventoryStatus(id, status, condition, withdrawDate)
-	if err != nil {
-		return models.InventoryItem{}, err
-	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "inventory.status_change", "inventory_item", item.ID, models.AuditOutcomeSuccess))
-	return item, nil
-}
-
-func (s *Service) ListInventory(filter InventoryListFilter) ([]models.InventoryItem, int64, error) {
-	return s.store.ListInventory(filter)
-}
-
-func (s *Service) CreateMaintenanceTicket(principal Principal, ticket models.MaintenanceTicket) (models.MaintenanceTicket, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker, models.RoleDirector) {
-		return models.MaintenanceTicket{}, ErrUnauthorized
-	}
-	ticket.Status = models.MaintenanceStatusReported
-	created, err := s.store.CreateMaintenanceTicket(ticket)
-	if err != nil {
-		return models.MaintenanceTicket{}, err
-	}
-	_ = s.store.CreateTicketStatusChange(models.TicketStatusChange{
-		TicketID:    created.ID,
-		ActorUserID: principal.UserID,
-		FromStatus:  nil,
-		ToStatus:    models.MaintenanceStatusReported,
-		Note:        "ticket created",
-	})
-	return created, nil
-}
-
-func (s *Service) ApproveMaintenanceTicket(principal Principal, ticketID uuid.UUID, assigneeID *uuid.UUID, dueAt *time.Time) (models.MaintenanceTicket, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker, models.RoleDirector) {
-		return models.MaintenanceTicket{}, ErrUnauthorized
-	}
-	ticket, err := s.store.GetMaintenanceTicket(ticketID)
-	if err != nil {
-		return models.MaintenanceTicket{}, err
-	}
-	from := ticket.Status
-	if from != models.MaintenanceStatusReported {
-		return models.MaintenanceTicket{}, ErrStateTransition
-	}
-	ticket.Status = models.MaintenanceStatusInProgress
-	ticket.AssigneeUserID = assigneeID
-	ticket.DueAt = dueAt
-	updated, err := s.store.UpdateMaintenanceTicket(ticket)
-	if err != nil {
-		return models.MaintenanceTicket{}, err
-	}
-	_ = s.store.CreateTicketStatusChange(models.TicketStatusChange{
-		TicketID:    updated.ID,
-		ActorUserID: principal.UserID,
-		FromStatus:  &from,
-		ToStatus:    updated.Status,
-		Note:        "ticket approved",
-	})
-	return updated, nil
-}
-
-func (s *Service) TransitionMaintenanceTicket(principal Principal, ticketID uuid.UUID, toStatus models.MaintenanceStatus, note string) (models.MaintenanceTicket, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker, models.RoleDirector) {
-		return models.MaintenanceTicket{}, ErrUnauthorized
-	}
-	ticket, err := s.store.GetMaintenanceTicket(ticketID)
-	if err != nil {
-		return models.MaintenanceTicket{}, err
-	}
-	if !isAllowedTransition(ticket.Status, toStatus) {
-		return models.MaintenanceTicket{}, ErrStateTransition
-	}
-	from := ticket.Status
-	ticket.Status = toStatus
-	if toStatus == models.MaintenanceStatusResolved || toStatus == models.MaintenanceStatusClosed {
-		now := time.Now().UTC()
-		ticket.ClosedAt = &now
-	}
-	updated, err := s.store.UpdateMaintenanceTicket(ticket)
-	if err != nil {
-		return models.MaintenanceTicket{}, err
-	}
-	_ = s.store.CreateTicketStatusChange(models.TicketStatusChange{
-		TicketID:    updated.ID,
-		ActorUserID: principal.UserID,
-		FromStatus:  &from,
-		ToStatus:    toStatus,
-		Note:        note,
-	})
-	return updated, nil
-}
-
-func (s *Service) ListMaintenanceTickets(filter TicketListFilter) ([]models.MaintenanceTicket, int64, error) {
-	return s.store.ListMaintenanceTickets(filter)
-}
-
-func (s *Service) CreateOperationalJob(principal Principal, job models.OperationalJob, allowConflict bool) (CreateJobResult, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleDirector) {
-		return CreateJobResult{}, ErrUnauthorized
-	}
-	if !job.EndsAt.After(job.StartsAt) {
-		return CreateJobResult{}, ErrValidation
-	}
-	conflicts, err := s.store.ListJobConflicts(job.AssigneeUserID, job.StartsAt, job.EndsAt)
-	if err != nil {
-		return CreateJobResult{}, err
-	}
-	mapped := make([]JobConflict, 0, len(conflicts))
-	for _, conflict := range conflicts {
-		mapped = append(mapped, JobConflict{
-			JobID:    conflict.ID,
-			StartsAt: conflict.StartsAt,
-			EndsAt:   conflict.EndsAt,
-		})
-	}
-	if len(mapped) > 0 && !allowConflict {
-		return CreateJobResult{Conflicts: mapped}, ErrConcurrencyConflict
-	}
-	job.CreatedByUserID = &principal.UserID
-	created, err := s.store.CreateOperationalJob(job)
-	if err != nil {
-		return CreateJobResult{}, err
-	}
-	return CreateJobResult{Job: created, Conflicts: mapped}, nil
-}
-
-func (s *Service) ListOperationalJobs(filter JobListFilter) ([]models.OperationalJob, int64, error) {
-	return s.store.ListOperationalJobs(filter)
-}
-
-func (s *Service) CreateNews(principal Principal, input NewsUpsertInput) (forummodels.ForumPost, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return forummodels.ForumPost{}, ErrUnauthorized
-	}
-	post := forummodels.ForumPost{
-		AuthorUserID: principal.UserID,
-		Kind:         forummodels.ForumPostKindOfficialNews,
-		Source:       forummodels.ForumPostSourceAdministration,
-		State:        input.State,
-		Title:        input.Title,
-		Body:         input.Body,
-		Tags:         input.Tags,
-		PublishedAt:  input.PublishDate,
-	}
-	if post.State == "" {
-		post.State = forummodels.ForumPostStateDraft
-	}
-	created, err := s.store.CreateForumPost(post)
-	if err != nil {
-		return forummodels.ForumPost{}, err
-	}
-	if created.State == forummodels.ForumPostStatePublished {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", created.ID, models.AuditOutcomeSuccess))
-	}
-	return created, nil
-}
-
-func (s *Service) PublishNews(principal Principal, id uuid.UUID) (forummodels.ForumPost, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return forummodels.ForumPost{}, ErrUnauthorized
-	}
-	post, err := s.store.GetForumPost(id)
-	if err != nil {
-		return forummodels.ForumPost{}, err
-	}
-	now := time.Now().UTC()
-	post.State = forummodels.ForumPostStatePublished
-	post.PublishedAt = &now
-	updated, err := s.store.UpdateForumPost(post)
-	if err != nil {
-		return forummodels.ForumPost{}, err
-	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "news.publish", "forum_post", updated.ID, models.AuditOutcomeSuccess))
-	return updated, nil
-}
-
-func (s *Service) ListNews(filter PublicationListFilter) ([]forummodels.ForumPost, int64, error) {
-	return s.store.ListForumPosts(filter)
-}
-
-func (s *Service) ListAuditEvents(filter AuditListFilter) ([]models.AuditEvent, int64, error) {
-	return s.store.ListAuditEvents(filter)
-}
-
-func (s *Service) CreateActivity(principal Principal, input ActivityUpsertInput) (models.Activity, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return models.Activity{}, ErrUnauthorized
-	}
-	activity := models.Activity{
-		Title:       input.Title,
-		Description: input.Description,
-		BuildingID:  input.BuildingID,
-		Location:    input.Location,
-		Capacity:    input.Capacity,
-		State:       input.State,
-	}
-	if activity.State == "" {
-		activity.State = models.PublicationStateDraft
-	}
-	created, err := s.store.CreateActivity(activity)
-	if err != nil {
-		return models.Activity{}, err
-	}
-	if created.State == models.PublicationStatePublished {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "activity.publish", "activity", created.ID, models.AuditOutcomeSuccess))
-	}
-	return created, nil
-}
-
-func (s *Service) PublishActivity(principal Principal, id uuid.UUID) (models.Activity, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return models.Activity{}, ErrUnauthorized
-	}
-	activity, err := s.store.GetActivity(id)
-	if err != nil {
-		return models.Activity{}, err
-	}
-	activity.State = models.PublicationStatePublished
-	updated, err := s.store.UpdateActivity(activity)
-	if err != nil {
-		return models.Activity{}, err
-	}
-	_ = s.store.CreateAudit(newAudit(principal.UserID, "activity.publish", "activity", updated.ID, models.AuditOutcomeSuccess))
-	return updated, nil
-}
-
-func (s *Service) ListActivities(filter PublicationListFilter) ([]models.Activity, int64, error) {
-	return s.store.ListActivities(filter)
-}
-
-func (s *Service) CreateEvent(principal Principal, input EventUpsertInput) (models.Event, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return models.Event{}, ErrUnauthorized
-	}
-	if !input.EndsAt.After(input.StartsAt) {
-		return models.Event{}, ErrValidation
-	}
-	event := models.Event{
-		Title:           input.Title,
-		Description:     input.Description,
-		BuildingID:      input.BuildingID,
-		OrganizerUserID: input.OrganizerUserID,
-		Location:        input.Location,
-		StartsAt:        input.StartsAt,
-		EndsAt:          input.EndsAt,
-		Capacity:        input.Capacity,
-		State:           input.State,
-	}
-	if event.State == "" {
-		event.State = models.PublicationStateDraft
-	}
-	created, err := s.store.CreateEvent(event)
-	if err != nil {
-		return models.Event{}, err
-	}
-	if created.State == models.PublicationStatePublished {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "event.publish", "event", created.ID, models.AuditOutcomeSuccess))
-	}
-	return created, nil
-}
-
-func (s *Service) UpdateEventState(principal Principal, eventID uuid.UUID, state models.PublicationState) (models.Event, error) {
-	if !hasAnyRole(principal, models.RoleAdministrator, models.RoleOfficeWorker) {
-		return models.Event{}, ErrUnauthorized
-	}
-	switch state {
-	case models.PublicationStateDraft, models.PublicationStatePublished, models.PublicationStateArchived, models.PublicationStatePostponed, models.PublicationStateCanceled:
-	default:
-		return models.Event{}, ErrValidation
-	}
-
-	event, err := s.store.GetEvent(eventID)
-	if err != nil {
-		return models.Event{}, err
-	}
-	event.State = state
-	updated, err := s.store.UpdateEvent(event)
-	if err != nil {
-		return models.Event{}, err
-	}
-	if state == models.PublicationStatePublished || state == models.PublicationStatePostponed || state == models.PublicationStateCanceled {
-		_ = s.store.CreateAudit(newAudit(principal.UserID, "event.state_change", "event", updated.ID, models.AuditOutcomeSuccess))
-	}
-	return updated, nil
-}
-
-func (s *Service) ListEvents(filter PublicationListFilter) ([]models.Event, int64, error) {
-	return s.store.ListEvents(filter)
-}
-
-func hasAnyRole(principal Principal, required ...models.RoleName) bool {
-	for _, role := range principal.Roles {
-		for _, req := range required {
-			if role == req {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func newAudit(actorID uuid.UUID, action, targetType string, targetID uuid.UUID, outcome models.AuditOutcome) models.AuditEvent {
-	return models.AuditEvent{
-		ActorUserID: &actorID,
-		Action:      action,
-		TargetType:  targetType,
-		TargetID:    targetID,
-		Outcome:     outcome,
-		OccurredAt:  time.Now().UTC(),
-	}
-}
-
-func isAllowedTransition(from, to models.MaintenanceStatus) bool {
-	allowed := map[models.MaintenanceStatus]map[models.MaintenanceStatus]struct{}{
-		models.MaintenanceStatusReported: {
-			models.MaintenanceStatusInProgress: {},
-			models.MaintenanceStatusDuplicate:  {},
-		},
-		models.MaintenanceStatusInProgress: {
-			models.MaintenanceStatusHalted:   {},
-			models.MaintenanceStatusResolved: {},
-		},
-		models.MaintenanceStatusHalted: {
-			models.MaintenanceStatusInProgress: {},
-			models.MaintenanceStatusClosed:     {},
-		},
-		models.MaintenanceStatusResolved: {
-			models.MaintenanceStatusClosed: {},
-		},
-	}
-	next, ok := allowed[from]
-	if !ok {
-		return false
-	}
-	_, ok = next[to]
-	return ok
-}
-
-func classifyError(err error) string {
-	switch {
-	case err == nil:
-		return ""
-	case errors.Is(err, ErrValidation), errors.Is(err, ErrStudentStatusInvalid):
-		return "validation_error"
-	case errors.Is(err, ErrCapacityConflict):
-		return "capacity_conflict"
-	case errors.Is(err, ErrStateTransition):
-		return "state_transition_invalid"
-	case errors.Is(err, ErrUnauthorized):
-		return "authorization_denied"
-	case errors.Is(err, ErrNotFound):
-		return "not_found"
-	case errors.Is(err, ErrConcurrencyConflict):
-		return "concurrency_conflict"
-	default:
-		return "internal_error"
-	}
+func (s *Service) ListAuditLogs(filter AuditLogFilter) ([]models.Audit, error) {
+	return s.store.getAuditLogs(filter)
 }

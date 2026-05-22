@@ -1,6 +1,4 @@
-package models
-
-import crosscutting "dorm-man/internal/models/cross-cutting"
+package administration
 
 type DegreeType string
 
@@ -71,15 +69,4 @@ const (
 	JobStatusInProgress JobStatus = "in_progress"
 	JobStatusFinished   JobStatus = "finished"
 	JobStatusCanceled   JobStatus = "canceled"
-)
-
-type PublicationState = crosscutting.PublicationState
-
-const (
-	PublicationStateDraft     PublicationState = crosscutting.PublicationStateDraft
-	PublicationStatePublished PublicationState = crosscutting.PublicationStatePublished
-	PublicationStateArchived  PublicationState = crosscutting.PublicationStateArchived
-	PublicationStateCanceled  PublicationState = crosscutting.PublicationStateCanceled
-	PublicationStatePostponed PublicationState = crosscutting.PublicationStatePostponed
-	PublicationStateHidden    PublicationState = crosscutting.PublicationStateHidden
 )

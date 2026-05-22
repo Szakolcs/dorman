@@ -1,23 +1,21 @@
-package models
+package chat
 
 import (
-	platform "dorm-man/internal/models/cross-cutting"
-	"time"
-
-	adm "dorm-man/internal/models/administration"
+	"dorm-man/internal/models/administration"
+	"dorm-man/internal/models/crosscutting"
 
 	"github.com/google/uuid"
 )
 
-// ChatMessage is a persisted chat message in a room.
-type ChatMessage struct {
-	platform.BaseModel
-	RoomID          uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_chat_message_idempotent,priority:1;index"`
-	AuthorTenantID  uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_chat_message_idempotent,priority:2;index"`
-	Body            string    `gorm:"type:text;not null"`
-	EditedAt        *time.Time
-	ClientMessageID *uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_chat_message_idempotent,priority:3"`
+// Message is a single chat message in a Room. Only tenants can post, so
+// SenderTenantID points at administration.Tenant. The (RoomID, CreatedAt)
+// composite index is the natural one for paginating a chat backlog.
+type Message struct {
+	crosscutting.BaseModel
+	RoomID         uuid.UUID `gorm:"type:uuid;not null;index:idx_room_created;index"`
+	SenderTenantID uuid.UUID `gorm:"type:uuid;not null;index"`
+	Body           string    `gorm:"type:text;not null"`
 
-	Room         ChatRoom   `gorm:"foreignKey:RoomID;references:ID"`
-	AuthorTenant adm.Tenant `gorm:"foreignKey:AuthorTenantID;references:ID"`
+	Room   *Room                  `gorm:"foreignKey:RoomID;references:ID"`
+	Sender *administration.Tenant `gorm:"foreignKey:SenderTenantID;references:ID"`
 }

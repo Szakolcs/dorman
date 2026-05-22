@@ -3,7 +3,7 @@ package doormanviews
 import "dorm-man/web/templates/common/components"
 
 templ DoormanLayout(title string) {
-    component.Document(title) {
-        { children... }
-    }
+	@components.Document(title) {
+		{ children... }
+	}
 }

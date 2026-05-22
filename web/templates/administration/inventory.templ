@@ -1,97 +1,15 @@
-package administration
+package adminviews
 
-import "dorm-man/web/templates/common/components"
-import "dorm-man/web/templates/common/partials"
+import models "dorm-man/internal/models/administration"
 
-templ InventoryPage(data InventoryPageData) {
-	@components.AppDocument("Administration - Inventory", InventoryContent(data))
-}
-
-templ InventoryContent(data InventoryPageData) {
-	@partials.AdministrationNav()
-	@components.PageHeader(
-		"Inventory Management",
-		"Track room and shared-area inventory with lifecycle status for audit reconciliation.",
-	)
-	@components.Section("Inventory Report", InventoryTable(data))
-	@components.Section("Register Inventory Item", InventoryCreateForm(data))
-	@components.Section("Update Inventory Status", InventoryStatusForm(data))
-}
-
-templ InventoryTable(data InventoryPageData) {
-	@components.DataTable([]string{"Item", "Location Type", "Location", "Condition", "Status"}, InventoryRows(data))
-	@components.PaginationNav("/administration/inventory", data.Pagination, map[string]string{})
-}
-
-templ InventoryRows(data InventoryPageData) {
-	if len(data.Items) == 0 {
-		<tr>
-			<td colspan="5">No inventory items yet.</td>
-		</tr>
-	}
-	for _, item := range data.Items {
-		<tr>
-			<td>{ item.Name }</td>
-			<td>{ string(item.LocationType) }</td>
-			<td>{ inventoryLocation(item) }</td>
-			<td>{ string(item.Condition) }</td>
-			<td>{ string(item.Status) }</td>
-		</tr>
+templ InventoryPage(items []models.InventoryItem) {
+	@Layout("Inventory") {
+		@Navigation()
 	}
 }
 
-templ InventoryCreateForm(data InventoryPageData) {
-	<form method="post" action="/administration/inventory" class="flex max-w-xl flex-col gap-2">
-		<label for="inventory-name" class="text-sm font-medium text-dm-fg">Name</label>
-		<input id="inventory-name" name="name" type="text" class="rounded border border-dm-border bg-dm-bg px-3 py-2"/>
-
-		<label for="inventory-location-type" class="text-sm font-medium text-dm-fg">Location Type</label>
-		<select id="inventory-location-type" name="location_type" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
-			<option value="room">Room</option>
-			<option value="shared_area">Shared Area</option>
-		</select>
-
-		<label for="inventory-room-id" class="text-sm font-medium text-dm-fg">Room</label>
-		<select id="inventory-room-id" name="room_id" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
-			<option value="">—</option>
-			for _, room := range data.Rooms {
-				<option value={ room.ID.String() }>{ room.Number }</option>
-			}
-		</select>
-
-		<label for="inventory-condition" class="text-sm font-medium text-dm-fg">Condition</label>
-		<select id="inventory-condition" name="condition" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
-			<option value="new">new</option>
-			<option value="good">good</option>
-			<option value="used">used</option>
-			<option value="damaged">damaged</option>
-			<option value="broken">broken</option>
-		</select>
-
-		<button type="submit" class="w-fit cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-dm-on-accent hover:bg-dm-accent-hover">Create Item</button>
-	</form>
-}
-
-templ InventoryStatusForm(data InventoryPageData) {
-	for _, item := range data.Items {
-		<form method="post" action={ templ.SafeURL("/administration/inventory/" + item.ID.String() + "/status") } class="mb-4 flex max-w-none flex-wrap items-end gap-2 rounded border border-dm-border bg-dm-bg p-3">
-			<p class="w-full m-0"><strong>{ item.Name }</strong> ({ string(item.Status) })</p>
-			<label class="text-sm font-medium">Status</label>
-			<select name="status" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
-				<option value="in_stock">in_stock</option>
-				<option value="in_use">in_use</option>
-				<option value="withdrawn">withdrawn</option>
-				<option value="destroyed">destroyed</option>
-			</select>
-			<label class="text-sm font-medium">Condition</label>
-			<select name="condition" class="rounded border border-dm-border bg-dm-bg px-3 py-2">
-				<option value="new">new</option>
-				<option value="good">good</option>
-				<option value="used">used</option>
-				<option value="damaged">damaged</option>
-				<option value="broken">broken</option>
-			</select>
-			<button type="submit" class="cursor-pointer rounded border border-dm-accent bg-dm-accent px-3 py-2 text-sm text-dm-on-accent hover:bg-dm-accent-hover">Update</button>
-		</form>
+templ InventoryDetailPage(item models.InventoryItem) {
+	@Layout("Inventory Item") {
+		@Navigation()
 	}
 }

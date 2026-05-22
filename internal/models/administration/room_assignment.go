@@ -1,8 +1,9 @@
-package models
+package administration
 
 import (
-	crosscutting "dorm-man/internal/models/cross-cutting"
 	"time"
+
+	"dorm-man/internal/models/crosscutting"
 
 	"github.com/google/uuid"
 )

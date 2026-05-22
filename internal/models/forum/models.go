@@ -1,18 +1,14 @@
-package models
+package forum
 
-// All returns forum-owned model pointers in migration order (FK dependencies first).
+// All returns forum-owned model pointers in migration order
+// (FK dependencies first).
 func All() []any {
 	return []any{
-		&ForumPost{},
-		&ForumPostSchedule{},
-		&ForumPostUpdate{},
-		&ForumPoll{},
-		&ForumPollOption{},
-		&ForumPollVote{},
-		&ForumComment{},
-		&ForumReaction{},
-		&ForumAttendanceIntent{},
-		&ForumPostView{},
-		&ForumModerationAction{},
+		&Publication{},
+		&Activity{},
+		&Event{},
+		&EventAttendance{},
+		&EventComment{},
+		&ActivityBooking{},
 	}
 }

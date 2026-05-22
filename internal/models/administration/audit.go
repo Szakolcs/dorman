@@ -1,7 +1,7 @@
-package models
+package administration
 
 import (
-	crosscutting "dorm-man/internal/models/cross-cutting"
+	"dorm-man/internal/models/crosscutting"
 
 	"github.com/google/uuid"
 )
@@ -13,7 +13,7 @@ type Audit struct {
 	OldData   string    `gorm:"type:jsonb"`
 	NewData   string    `gorm:"type:jsonb"`
 	ChangedAt string    `gorm:"not null"`
-	ChangedBy uuid.UUID `gorm:"type: uuid;"`
+	ChangedBy uuid.UUID `gorm:"type:uuid"`
 
 	User crosscutting.User `gorm:"foreignKey:ChangedBy;references:ID"`
 }

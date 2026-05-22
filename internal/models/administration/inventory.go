@@ -1,14 +1,15 @@
-package models
+package administration
 
 import (
-	platform "dorm-man/internal/models/cross-cutting"
 	"time"
+
+	"dorm-man/internal/models/crosscutting"
 
 	"github.com/google/uuid"
 )
 
 type InventoryItem struct {
-	platform.BaseModel
+	crosscutting.BaseModel
 	Name         string             `gorm:"not null;index"`
 	Description  string             `gorm:"type:text"`
 	RoomID       *uuid.UUID         `gorm:"type:uuid;index"`

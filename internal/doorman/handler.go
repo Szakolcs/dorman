@@ -1,7 +1,6 @@
 package doorman
 
 import (
-	crosscutting "dorm-man/internal/models/cross-cutting"
 	models "dorm-man/internal/models/doorman"
 	doormanviews "dorm-man/web/templates/doorman/pages"
 	"errors"
@@ -37,56 +36,19 @@ func (h *Handler) dashboardPage(c echo.Context) error {
 }
 
 func (h *Handler) listGuest(c echo.Context) error {
-	filter := GuestFilter{}
-	tenantID := c.QueryParam("tenant_id")
-	if tenantID != "" {
-		id, err := uuid.Parse(tenantID)
-		if err == nil {
-			filter.TenantID = id
-		}
-	}
-	status := c.QueryParam("status")
-	if status != "" {
-		filter.Status = models.AccessStatus(status)
-	}
-	from := c.QueryParam("from")
-	if from != "" {
-		t, err := time.Parse(time.DateOnly, from)
-		if err == nil {
-			filter.From = t
-		}
-	}
-	to := c.QueryParam("to")
-	if to != "" {
-		t, err := time.Parse(time.DateOnly, to)
-		if err == nil {
-			filter.To = t
-		}
+	if _, err := guestFilter(c); err != nil {
+		return h.writeError(c, err)
 	}
 	c.Response().Header().Set("HX-Redirect", "/doorman/guests")
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) registerGuest(
-	c echo.Context,
-) error {
-	hostTenantID, err := uuid.Parse(
-		c.FormValue("host_tenant_id"),
-	)
-	if err != nil {
+func (h *Handler) registerGuest(c echo.Context) error {
+	var req GuestRegisterRequest
+	if err := c.Bind(&req); err != nil {
 		return h.writeError(c, ErrValidation)
 	}
-	req := GuestRegisterRequest{
-		HostTenant: &crosscutting.User{
-			BaseModel: crosscutting.BaseModel{
-				ID: hostTenantID,
-			},
-		},
-		GuestName: c.FormValue("guest_name"),
-		IDNotes:   c.FormValue("id_notes"),
-	}
-	_, err = h.service.RegisterGuest(req)
-	if err != nil {
+	if _, err := h.service.RegisterGuest(req); err != nil {
 		return h.writeError(c, err)
 	}
 	c.Response().Header().Set("HX-Redirect", "/doorman/guests")
@@ -109,31 +71,9 @@ func (h *Handler) deleteGuest(c echo.Context) error {
 }
 
 func (h *Handler) listTenantAccess(c echo.Context) error {
-	filter := TenantAccessFilter{}
-	tenantID := c.QueryParam("tenant_id")
-	if tenantID != "" {
-		id, err := uuid.Parse(tenantID)
-		if err == nil {
-			filter.TenantID = id
-		}
-	}
-	status := c.QueryParam("status")
-	if status != "" {
-		filter.Status = models.AccessStatus(status)
-	}
-	from := c.QueryParam("from")
-	if from != "" {
-		t, err := time.Parse(time.DateOnly, from)
-		if err == nil {
-			filter.From = t
-		}
-	}
-	to := c.QueryParam("to")
-	if to != "" {
-		t, err := time.Parse(time.DateOnly, to)
-		if err == nil {
-			filter.To = t
-		}
+	filter, err := tenantAccessFilter(c)
+	if err != nil {
+		return h.writeError(c, err)
 	}
 	entries, err := h.service.ListTenantAccess(filter)
 	if err != nil {
@@ -143,13 +83,11 @@ func (h *Handler) listTenantAccess(c echo.Context) error {
 }
 
 func (h *Handler) createTenantAccess(c echo.Context) error {
-	id, err := uuid.Parse(c.QueryParam("id"))
-	direction := c.QueryParam("direction")
-	req := TenantAccessRequest{
-		TenantID:     id,
-		AccessStatus: models.AccessStatus(direction),
+	var req TenantAccessRequest
+	if err := c.Bind(&req); err != nil {
+		return h.writeError(c, ErrValidation)
 	}
-	_, err = h.service.RegisterTenantAccess(req)
+	_, err := h.service.RegisterTenantAccess(req)
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -164,6 +102,64 @@ func (h *Handler) createTenantAccess(c echo.Context) error {
 	}
 	c.Response().Header().Set("HX-Redirect", "/doorman")
 	return c.NoContent(http.StatusOK)
+}
+
+func guestFilter(c echo.Context) (GuestFilter, error) {
+	filter := GuestFilter{}
+	if tenantID := c.QueryParam("tenant_id"); tenantID != "" {
+		id, err := uuid.Parse(tenantID)
+		if err != nil {
+			return GuestFilter{}, ErrValidation
+		}
+		filter.TenantID = id
+	}
+	if status := c.QueryParam("status"); status != "" {
+		filter.Status = models.AccessStatus(status)
+	}
+	if from := c.QueryParam("from"); from != "" {
+		t, err := time.Parse(time.DateOnly, from)
+		if err != nil {
+			return GuestFilter{}, ErrValidation
+		}
+		filter.From = t
+	}
+	if to := c.QueryParam("to"); to != "" {
+		t, err := time.Parse(time.DateOnly, to)
+		if err != nil {
+			return GuestFilter{}, ErrValidation
+		}
+		filter.To = t
+	}
+	return filter, nil
+}
+
+func tenantAccessFilter(c echo.Context) (TenantAccessFilter, error) {
+	filter := TenantAccessFilter{}
+	if tenantID := c.QueryParam("tenant_id"); tenantID != "" {
+		id, err := uuid.Parse(tenantID)
+		if err != nil {
+			return TenantAccessFilter{}, ErrValidation
+		}
+		filter.TenantID = id
+	}
+	if status := c.QueryParam("status"); status != "" {
+		filter.Status = models.AccessStatus(status)
+	}
+	if from := c.QueryParam("from"); from != "" {
+		t, err := time.Parse(time.DateOnly, from)
+		if err != nil {
+			return TenantAccessFilter{}, ErrValidation
+		}
+		filter.From = t
+	}
+	if to := c.QueryParam("to"); to != "" {
+		t, err := time.Parse(time.DateOnly, to)
+		if err != nil {
+			return TenantAccessFilter{}, ErrValidation
+		}
+		filter.To = t
+	}
+	return filter, nil
 }
 
 func renderComponent(c echo.Context, component templ.Component) error {
