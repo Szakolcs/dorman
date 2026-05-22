@@ -1,0 +1,33 @@
+package adminviews
+
+import models "dorm-man/internal/models/administration"
+
+templ HousingPage(buildings []models.Building, flats []models.Flat, sharedAreas []models.SharedArea, rooms []models.Room) {
+	@Layout("Housing") {
+		@Navigation()
+	}
+}
+
+templ BuildingDetailPage(building models.Building) {
+	@Layout("Building") {
+		@Navigation()
+	}
+}
+
+templ FlatDetailPage(flat models.Flat) {
+	@Layout("Flat") {
+		@Navigation()
+	}
+}
+
+templ SharedAreaDetailPage(sharedArea models.SharedArea) {
+	@Layout("Shared Area") {
+		@Navigation()
+	}
+}
+
+templ RoomDetailPage(room models.Room) {
+	@Layout("Room") {
+		@Navigation()
+	}
+}

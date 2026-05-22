@@ -1,0 +1,89 @@
+package maintenanceviews
+
+templ TicketCreateForm() {
+	<form
+		hx-post="/tenant/tickets"
+		class="space-y-4"
+	>
+		<div>
+			<label
+				for="category"
+				class="mb-1 block text-sm font-medium"
+			>
+				Category
+			</label>
+			<select
+				id="category"
+				name="category"
+				class="dm-input w-full"
+				required
+			>
+				<option value="">Select category</option>
+				<option value="yearly">Yearly</option>
+				<option value="monthly">Monthly</option>
+				<option value="weekly">Weekly</option>
+				<option value="incident">Incident</option>
+			</select>
+		</div>
+		<div>
+			<label
+				for="severity"
+				class="mb-1 block text-sm font-medium"
+			>
+				Severity
+			</label>
+			<select
+				id="severity"
+				name="severity"
+				class="dm-input w-full"
+				required
+			>
+				<option value="">Select severity</option>
+				<option value="high">High</option>
+				<option value="medium">Medium</option>
+				<option value="low">Low</option>
+			</select>
+		</div>
+		<div>
+			<label
+				for="impact"
+				class="mb-1 block text-sm font-medium"
+			>
+				Impact
+			</label>
+			<select
+				id="impact"
+				name="impact"
+				class="dm-input w-full"
+				required
+			>
+				<option value="">Select impact</option>
+				<option value="life_threatening">Life threatening</option>
+				<option value="affects_daily_life">Affects daily life</option>
+				<option value="inconvenience">Inconvenience</option>
+				<option value="beauty_flaw">Beauty flaw</option>
+			</select>
+		</div>
+		<div>
+			<label
+				for="description"
+				class="mb-1 block text-sm font-medium"
+			>
+				Description
+			</label>
+			<textarea
+				id="description"
+				name="description"
+				class="dm-input w-full"
+				rows="4"
+				required
+			></textarea>
+		</div>
+		<button
+			type="submit"
+			class="dm-button"
+		>
+			Submit Ticket
+		</button>
+	</form>
+}

@@ -1,0 +1,58 @@
+package maintenanceviews
+
+import (
+	models "dorm-man/internal/models/maintenance"
+	"fmt"
+)
+
+templ TicketTable(tickets []models.Ticket, detailPrefix string) {
+	if len(tickets) == 0 {
+		<p class="text-dm-muted">No tickets found.</p>
+	} else {
+		<table class="dm-table">
+			<thead>
+				<tr>
+					<th>Reported</th>
+					<th>Category</th>
+					<th>Severity</th>
+					<th>Status</th>
+					<th>Reporter</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, ticket := range tickets {
+					<tr>
+						<td class="p-3">
+							{ ticket.CreatedAt.Format("2006-01-02 15:04") }
+						</td>
+						<td class="p-3">
+							{ string(ticket.Category) }
+						</td>
+						<td class="p-3">
+							{ string(ticket.Severity) }
+						</td>
+						<td class="p-3">
+							{ string(ticket.Status) }
+						</td>
+						<td class="p-3">
+							if ticket.CreatedByUser != nil {
+								{ ticket.CreatedByUser.Name }
+							} else {
+								{ fmt.Sprintf("%s", ticket.CreatedByUserID) }
+							}
+						</td>
+						<td class="p-3">
+							<a
+								href={ templ.SafeURL(detailPrefix + ticket.ID.String()) }
+								class="text-dm-link hover:text-dm-accent-hover"
+							>
+								View
+							</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

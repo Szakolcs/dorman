@@ -1,0 +1,56 @@
+package adminviews
+
+import "dorm-man/web/templates/common/partials"
+
+templ Navigation() {
+	@partials.BaseNav() {
+		<a
+			href="/administration"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			Dashboard
+		</a>
+		<a
+			href="/administration/tenants"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			Tenants
+		</a>
+		<a
+			href="/administration/inventory"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			Inventory
+		</a>
+		<a
+			href="/administration/jobs"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			Jobs
+		</a>
+		<a
+			href="/administration/publications"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			Publications
+		</a>
+		<a
+			href="/administration/housing"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			Housing
+		</a>
+		<a
+			href="/administration/register"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			Register User
+		</a>
+		<a
+			href="/administration/audit"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			Audit
+		</a>
+	}
+}

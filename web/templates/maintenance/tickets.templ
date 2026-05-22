@@ -1,0 +1,28 @@
+package maintenanceviews
+
+import (
+	models "dorm-man/internal/models/maintenance"
+)
+
+templ TicketsPage(tickets []models.Ticket) {
+	@Layout("Maintenance Tickets") {
+		@StaffNavigation()
+		<div class="space-y-6">
+			<div>
+				<h1 class="mb-2 text-3xl font-bold">
+					Maintenance Tickets
+				</h1>
+				<p class="text-dm-muted">
+					Review and update all reported tickets.
+				</p>
+			</div>
+			@StaffTicketFilters()
+			<div
+				id="ticket-table"
+				class="dm-card"
+			>
+				@TicketTable(tickets, "/maintenance/tickets/")
+			</div>
+		</div>
+	}
+}

@@ -1,0 +1,56 @@
+package maintenanceviews
+
+import (
+	models "dorm-man/internal/models/maintenance"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ TenantTicketDetailPage(ticket models.Ticket) {
+	@Layout("Ticket Detail") {
+		@TenantNavigation()
+		<div class="space-y-6">
+			<div>
+				<h1 class="mb-2 text-3xl font-bold">
+					Ticket Detail
+				</h1>
+				<p class="text-dm-muted">
+					Submitted { ticket.CreatedAt.Format("2006-01-02 15:04") }
+				</p>
+			</div>
+			@partials.Card("Details") {
+				<dl class="grid gap-3 sm:grid-cols-2">
+					<div>
+						<dt class="text-sm text-dm-muted">Status</dt>
+						<dd class="font-medium">{ string(ticket.Status) }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-dm-muted">Category</dt>
+						<dd class="font-medium">{ string(ticket.Category) }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-dm-muted">Severity</dt>
+						<dd class="font-medium">{ string(ticket.Severity) }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-dm-muted">Impact</dt>
+						<dd class="font-medium">{ string(ticket.Impact) }</dd>
+					</div>
+				</dl>
+				<p class="mt-4 whitespace-pre-wrap">{ ticket.Description }</p>
+				if ticket.Status == models.StatusReported {
+					<button
+						type="button"
+						class="dm-button mt-4 border-dm-error text-dm-error"
+						hx-delete={ "/tenant/tickets/" + ticket.ID.String() }
+						hx-confirm="Withdraw this ticket?"
+					>
+						Withdraw Ticket
+					</button>
+				}
+			}
+			@partials.Card("Status History") {
+				@TicketStatusHistory(ticket.StatusTransitions)
+			}
+		</div>
+	}
+}

@@ -1,0 +1,42 @@
+package maintenanceviews
+
+import models "dorm-man/internal/models/maintenance"
+
+templ TicketStatusHistory(changes []models.StatusChange) {
+	if len(changes) == 0 {
+		<p class="text-dm-muted">No status changes recorded.</p>
+	} else {
+		<table class="dm-table">
+			<thead>
+				<tr>
+					<th>When</th>
+					<th>From</th>
+					<th>To</th>
+					<th>Note</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, change := range changes {
+					<tr>
+						<td class="p-3">
+							{ change.CreatedAt.Format("2006-01-02 15:04") }
+						</td>
+						<td class="p-3">
+							if change.FromStatus != nil {
+								{ string(*change.FromStatus) }
+							} else {
+								—
+							}
+						</td>
+						<td class="p-3">
+							{ string(change.ToStatus) }
+						</td>
+						<td class="p-3">
+							{ change.Note }
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
+}

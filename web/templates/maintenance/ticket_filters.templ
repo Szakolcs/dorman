@@ -1,0 +1,77 @@
+package maintenanceviews
+
+templ StaffTicketFilters() {
+	<form
+		method="GET"
+		action="/maintenance/tickets"
+		class="dm-card mb-6 flex flex-wrap gap-4"
+	>
+		@ticketFilterFields()
+		<button
+			type="submit"
+			class="dm-button"
+		>
+			Filter
+		</button>
+	</form>
+}
+
+templ TenantTicketFilters() {
+	<form
+		method="GET"
+		action="/tenant/tickets"
+		class="dm-card mb-6 flex flex-wrap gap-4"
+	>
+		@ticketFilterFields()
+		<button
+			type="submit"
+			class="dm-button"
+		>
+			Filter
+		</button>
+	</form>
+}
+
+templ ticketFilterFields() {
+	<input
+		type="date"
+		name="from"
+		class="dm-input"
+	/>
+	<input
+		type="date"
+		name="to"
+		class="dm-input"
+	/>
+	<select
+		name="status"
+		class="dm-input"
+	>
+		<option value="">All Statuses</option>
+		<option value="reported">Reported</option>
+		<option value="duplicate">Duplicate</option>
+		<option value="in_progress">In Progress</option>
+		<option value="halted">Halted</option>
+		<option value="resolved">Resolved</option>
+		<option value="closed">Closed</option>
+	</select>
+	<select
+		name="category"
+		class="dm-input"
+	>
+		<option value="">All Categories</option>
+		<option value="yearly">Yearly</option>
+		<option value="monthly">Monthly</option>
+		<option value="weekly">Weekly</option>
+		<option value="incident">Incident</option>
+	</select>
+	<select
+		name="severity"
+		class="dm-input"
+	>
+		<option value="">All Severities</option>
+		<option value="high">High</option>
+		<option value="medium">Medium</option>
+		<option value="low">Low</option>
+	</select>
+}

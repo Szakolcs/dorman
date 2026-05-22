@@ -1,0 +1,28 @@
+package maintenanceviews
+
+import (
+	models "dorm-man/internal/models/maintenance"
+)
+
+templ TenantTicketsPage(tickets []models.Ticket) {
+	@Layout("My Tickets") {
+		@TenantNavigation()
+		<div class="space-y-6">
+			<div>
+				<h1 class="mb-2 text-3xl font-bold">
+					My Tickets
+				</h1>
+				<p class="text-dm-muted">
+					Filter and review your submitted maintenance tickets.
+				</p>
+			</div>
+			@TenantTicketFilters()
+			<div
+				id="ticket-table"
+				class="dm-card"
+			>
+				@TicketTable(tickets, "/tenant/tickets/")
+			</div>
+		</div>
+	}
+}

@@ -1,0 +1,37 @@
+package maintenanceviews
+
+import "dorm-man/web/templates/common/partials"
+
+templ StaffNavigation() {
+	@partials.BaseNav() {
+		<a
+			href="/maintenance"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			Dashboard
+		</a>
+		<a
+			href="/maintenance/tickets"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			Tickets
+		</a>
+	}
+}
+
+templ TenantNavigation() {
+	@partials.BaseNav() {
+		<a
+			href="/tenant"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			My Tickets
+		</a>
+		<a
+			href="/tenant/tickets"
+			class="font-medium text-dm-link hover:text-dm-accent-hover"
+		>
+			All Tickets
+		</a>
+	}
+}

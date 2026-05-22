@@ -1,0 +1,215 @@
+package maintenanceviews
+
+import models "dorm-man/internal/models/maintenance"
+
+templ TicketUpdateForm(ticket models.Ticket) {
+	<form
+		hx-put={ "/maintenance/tickets/" + ticket.ID.String() }
+		class="space-y-4"
+	>
+		<div>
+			<label
+				for="status"
+				class="mb-1 block text-sm font-medium"
+			>
+				Status
+			</label>
+			<select
+				id="status"
+				name="status"
+				class="dm-input w-full"
+				required
+			>
+				<option
+					value="reported"
+					selected?={ ticket.Status == models.StatusReported }
+				>
+					Reported
+				</option>
+				<option
+					value="duplicate"
+					selected?={ ticket.Status == models.StatusDuplicate }
+				>
+					Duplicate
+				</option>
+				<option
+					value="in_progress"
+					selected?={ ticket.Status == models.StatusInProgress }
+				>
+					In Progress
+				</option>
+				<option
+					value="halted"
+					selected?={ ticket.Status == models.StatusHalted }
+				>
+					Halted
+				</option>
+				<option
+					value="resolved"
+					selected?={ ticket.Status == models.StatusResolved }
+				>
+					Resolved
+				</option>
+				<option
+					value="closed"
+					selected?={ ticket.Status == models.StatusClosed }
+				>
+					Closed
+				</option>
+			</select>
+		</div>
+		<div>
+			<label
+				for="category"
+				class="mb-1 block text-sm font-medium"
+			>
+				Category
+			</label>
+			<select
+				id="category"
+				name="category"
+				class="dm-input w-full"
+			>
+				<option
+					value="yearly"
+					selected?={ ticket.Category == models.CategoryYearly }
+				>
+					Yearly
+				</option>
+				<option
+					value="monthly"
+					selected?={ ticket.Category == models.CategoryMonthly }
+				>
+					Monthly
+				</option>
+				<option
+					value="weekly"
+					selected?={ ticket.Category == models.CategoryWeekly }
+				>
+					Weekly
+				</option>
+				<option
+					value="incident"
+					selected?={ ticket.Category == models.CategoryIncident }
+				>
+					Incident
+				</option>
+			</select>
+		</div>
+		<div>
+			<label
+				for="severity"
+				class="mb-1 block text-sm font-medium"
+			>
+				Severity
+			</label>
+			<select
+				id="severity"
+				name="severity"
+				class="dm-input w-full"
+			>
+				<option
+					value="high"
+					selected?={ ticket.Severity == models.SeverityHigh }
+				>
+					High
+				</option>
+				<option
+					value="medium"
+					selected?={ ticket.Severity == models.SeverityMedium }
+				>
+					Medium
+				</option>
+				<option
+					value="low"
+					selected?={ ticket.Severity == models.SeverityLow }
+				>
+					Low
+				</option>
+			</select>
+		</div>
+		<div>
+			<label
+				for="impact"
+				class="mb-1 block text-sm font-medium"
+			>
+				Impact
+			</label>
+			<select
+				id="impact"
+				name="impact"
+				class="dm-input w-full"
+			>
+				<option
+					value="life_threatening"
+					selected?={ ticket.Impact == models.ImpactLifeThreatening }
+				>
+					Life threatening
+				</option>
+				<option
+					value="affects_daily_life"
+					selected?={ ticket.Impact == models.ImpactAffectsDaily }
+				>
+					Affects daily life
+				</option>
+				<option
+					value="inconvenience"
+					selected?={ ticket.Impact == models.ImpactInconvenience }
+				>
+					Inconvenience
+				</option>
+				<option
+					value="beauty_flaw"
+					selected?={ ticket.Impact == models.ImpactBeautyFlaw }
+				>
+					Beauty flaw
+				</option>
+			</select>
+		</div>
+		<div>
+			<label
+				for="description"
+				class="mb-1 block text-sm font-medium"
+			>
+				Description
+			</label>
+			<textarea
+				id="description"
+				name="description"
+				class="dm-input w-full"
+				rows="4"
+			>{ ticket.Description }</textarea>
+		</div>
+		<div>
+			<label
+				for="note"
+				class="mb-1 block text-sm font-medium"
+			>
+				Status change note
+			</label>
+			<textarea
+				id="note"
+				name="note"
+				class="dm-input w-full"
+				rows="2"
+				placeholder="Optional note for status transition"
+			></textarea>
+		</div>
+		<div class="flex gap-3">
+			<button
+				type="submit"
+				class="dm-button"
+			>
+				Update Ticket
+			</button>
+			<button
+				type="button"
+				class="dm-button border-dm-error text-dm-error"
+				hx-delete={ "/maintenance/tickets/" + ticket.ID.String() }
+				hx-confirm="Delete this ticket?"
+			>
+				Delete
+			</button>
+		</div>
+	</form>
+}
