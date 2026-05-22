@@ -42,7 +42,7 @@ func (h *Handler) listGuest(c echo.Context) error {
 	filter := GuestFilter{}
 	if c.Request().Header.Get("HX-Request") == "true" {
 		var err error
-		filter, err = guestFilterFromForm(form, c)
+		filter, err = guestFilterFromForm(c)
 		if err != nil {
 			return h.writeError(c, err)
 		}
@@ -101,7 +101,7 @@ func (h *Handler) listTenantAccess(c echo.Context) error {
 	filter := TenantAccessFilter{}
 	if c.Request().Header.Get("HX-Request") == "true" {
 		var err error
-		filter, err = tenantAccessFilterFromForm(form, c)
+		filter, err = tenantAccessFilterFromForm(c)
 		if err != nil {
 			return h.writeError(c, err)
 		}
@@ -166,8 +166,6 @@ func accessFilterFormValues(c echo.Context) AccessFilterForm {
 	}
 	if fromHour := c.QueryParam("from_hour"); fromHour != "" {
 		form.FromHour = fromHour
-	} else {
-		form.FromHour = "00:00"
 	}
 	if toHour := c.QueryParam("to_hour"); toHour != "" {
 		form.ToHour = toHour
@@ -179,7 +177,7 @@ func accessFilterFormValues(c echo.Context) AccessFilterForm {
 	return form
 }
 
-func guestFilterFromForm(form AccessFilterForm, c echo.Context) (GuestFilter, error) {
+func guestFilterFromForm(c echo.Context) (GuestFilter, error) {
 	filter := GuestFilter{}
 	if tenantID := c.QueryParam("tenant_id"); tenantID != "" {
 		id, err := uuid.Parse(tenantID)
@@ -188,27 +186,16 @@ func guestFilterFromForm(form AccessFilterForm, c echo.Context) (GuestFilter, er
 		}
 		filter.TenantID = id
 	}
-	if form.Status != "" {
-		filter.Status = models.AccessStatus(form.Status)
+	if status := c.QueryParam("status"); status != "" {
+		filter.Status = models.AccessStatus(status)
 	}
-	if form.FromDate != "" {
-		from, err := combineFilterDateTime(form.FromDate, form.FromHour, false)
-		if err != nil {
-			return GuestFilter{}, ErrValidation
-		}
-		filter.From = from
-	}
-	if form.ToDate != "" {
-		to, err := combineFilterDateTime(form.ToDate, form.ToHour, form.ToHour == "")
-		if err != nil {
-			return GuestFilter{}, ErrValidation
-		}
-		filter.To = to
+	if err := applyAccessTimeFilter(c, &filter.From, &filter.To); err != nil {
+		return GuestFilter{}, err
 	}
 	return filter, nil
 }
 
-func tenantAccessFilterFromForm(form AccessFilterForm, c echo.Context) (TenantAccessFilter, error) {
+func tenantAccessFilterFromForm(c echo.Context) (TenantAccessFilter, error) {
 	filter := TenantAccessFilter{}
 	if tenantID := c.QueryParam("tenant_id"); tenantID != "" {
 		id, err := uuid.Parse(tenantID)
@@ -217,24 +204,36 @@ func tenantAccessFilterFromForm(form AccessFilterForm, c echo.Context) (TenantAc
 		}
 		filter.TenantID = id
 	}
-	if form.Status != "" {
-		filter.Status = models.AccessStatus(form.Status)
+	if status := c.QueryParam("status"); status != "" {
+		filter.Status = models.AccessStatus(status)
 	}
-	if form.FromDate != "" {
-		from, err := combineFilterDateTime(form.FromDate, form.FromHour, false)
-		if err != nil {
-			return TenantAccessFilter{}, ErrValidation
-		}
-		filter.From = from
-	}
-	if form.ToDate != "" {
-		to, err := combineFilterDateTime(form.ToDate, form.ToHour, form.ToHour == "")
-		if err != nil {
-			return TenantAccessFilter{}, ErrValidation
-		}
-		filter.To = to
+	if err := applyAccessTimeFilter(c, &filter.From, &filter.To); err != nil {
+		return TenantAccessFilter{}, err
 	}
 	return filter, nil
+}
+
+func applyAccessTimeFilter(c echo.Context, from, to *time.Time) error {
+	if fromDate := c.QueryParam("from"); fromDate != "" {
+		fromHour := c.QueryParam("from_hour")
+		if fromHour == "" {
+			fromHour = "00:00"
+		}
+		t, err := combineFilterDateTime(fromDate, fromHour, false)
+		if err != nil {
+			return ErrValidation
+		}
+		*from = t
+	}
+	if toDate := c.QueryParam("to"); toDate != "" {
+		toHour := c.QueryParam("to_hour")
+		t, err := combineFilterDateTime(toDate, toHour, toHour == "")
+		if err != nil {
+			return ErrValidation
+		}
+		*to = t
+	}
+	return nil
 }
 
 func combineFilterDateTime(dateStr, timeStr string, endOfDay bool) (time.Time, error) {
@@ -248,7 +247,7 @@ func combineFilterDateTime(dateStr, timeStr string, endOfDay bool) (time.Time, e
 		}
 		return date, nil
 	}
-	clock, err := time.Parse("15:04", timeStr)
+	hour, minute, err := parseFilterClock(timeStr)
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -256,12 +255,22 @@ func combineFilterDateTime(dateStr, timeStr string, endOfDay bool) (time.Time, e
 		date.Year(),
 		date.Month(),
 		date.Day(),
-		clock.Hour(),
-		clock.Minute(),
+		hour,
+		minute,
 		0,
 		0,
 		time.Local,
 	), nil
+}
+
+func parseFilterClock(timeStr string) (int, int, error) {
+	for _, layout := range []string{"15:04", "15:04:05"} {
+		clock, err := time.Parse(layout, timeStr)
+		if err == nil {
+			return clock.Hour(), clock.Minute(), nil
+		}
+	}
+	return 0, 0, fmt.Errorf("invalid time %q", timeStr)
 }
 
 func renderComponent(c echo.Context, component templ.Component) error {

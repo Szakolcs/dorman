@@ -74,12 +74,12 @@ function syncChatActiveRoom() {
 	const url = new URL(window.location.href);
 	const room = url.searchParams.get("room");
 	const input = document.getElementById("chat-active-room");
-	if (input && room) {
-		input.value = room;
+	if (input) {
+		input.value = room || "";
 	}
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function initChatPage() {
 	syncChatActiveRoom();
 
 	document.body.addEventListener("click", (event) => {
@@ -103,4 +103,10 @@ document.addEventListener("DOMContentLoaded", () => {
 	document.body.addEventListener("htmx:pushedIntoHistory", () => {
 		syncChatActiveRoom();
 	});
-});
+}
+
+if (document.readyState === "loading") {
+	document.addEventListener("DOMContentLoaded", initChatPage);
+} else {
+	initChatPage();
+}

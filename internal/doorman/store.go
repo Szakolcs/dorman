@@ -96,6 +96,12 @@ func (s *GormStore) ListGuests(filter GuestFilter) ([]models.GuestEntry, error) 
 			filter.To,
 		)
 	}
+	if filter.Status != "" {
+		query = query.Where(
+			"status = ?",
+			filter.Status,
+		)
+	}
 	var guests []models.GuestEntry
 	err := query.
 		Preload("HostTenant").
@@ -114,6 +120,7 @@ func (s *GormStore) RegisterGuest(guest GuestData) error {
 		HostTenantID: guest.HostTenantID,
 		GuestName:    guest.GuestName,
 		IDNotes:      guest.IDNotes,
+		Status:       models.CheckedIn,
 	}
 
 	return s.db.Create(&entry).Error

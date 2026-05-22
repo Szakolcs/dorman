@@ -12,7 +12,7 @@ function closeTicketCreateModal() {
 	}
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+function initTicketsPage() {
 	document.body.addEventListener("htmx:afterRequest", (event) => {
 		if (!event.detail.successful) {
 			return;
@@ -22,4 +22,10 @@ document.addEventListener("DOMContentLoaded", () => {
 			closeTicketCreateModal();
 		}
 	});
-});
+}
+
+if (document.readyState === "loading") {
+	document.addEventListener("DOMContentLoaded", initTicketsPage);
+} else {
+	initTicketsPage();
+}

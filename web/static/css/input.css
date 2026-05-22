@@ -324,7 +324,24 @@
 	}
 
 	.dm-table td {
-		@apply border-b border-dm-border/50 px-4 py-3 align-top break-words text-dm-fg;
+		@apply border-b border-dm-border/50 px-4 py-3 align-middle break-words text-dm-fg;
+	}
+
+	.dm-table-actions {
+		@apply w-36 whitespace-nowrap text-right;
+	}
+
+	.dm-table-actions .dm-button {
+		@apply px-3 py-1.5 text-xs;
+	}
+
+	.dm-tenants-table th,
+	.dm-tenants-table td {
+		@apply px-5 py-3.5;
+	}
+
+	.dm-tenants-table .dm-table-actions {
+		@apply w-40 pl-8;
 	}
 
 	.dm-table tbody tr:last-child td {
@@ -1113,6 +1130,50 @@
 
 	.dm-access-status-filters .dm-tenant-kind-filter {
 		@apply min-w-0 flex-1 justify-center;
+	}
+
+	.dm-tenant-actions {
+		@apply mb-6 flex flex-wrap items-center justify-end gap-3;
+	}
+
+	.dm-mass-assignment {
+		@apply mb-6 space-y-4 rounded-2xl border border-dm-border bg-dm-elevated p-6 shadow-sm;
+	}
+
+	.dm-mass-assignment-columns {
+		@apply grid gap-4 md:grid-cols-2;
+	}
+
+	.dm-mass-assignment-box {
+		@apply min-h-40 rounded-xl border border-dm-border bg-dm-bg p-4;
+	}
+
+	.dm-mass-assignment-title {
+		@apply mb-3 text-sm font-semibold tracking-wide text-dm-muted uppercase;
+	}
+
+	.dm-mass-assignment-dropzone {
+		@apply flex min-h-24 flex-wrap content-start gap-2;
+	}
+
+	.dm-mass-assignment-palette {
+		@apply space-y-2;
+	}
+
+	.dm-mass-assignment-attributes {
+		@apply flex flex-wrap gap-2;
+	}
+
+	.dm-mass-assignment-attribute {
+		@apply cursor-pointer rounded-full border border-dm-border bg-dm-surface px-3 py-1.5 text-sm font-medium text-dm-fg transition hover:border-dm-accent hover:text-dm-accent disabled:cursor-not-allowed disabled:opacity-50;
+	}
+
+	.dm-mass-assignment-attribute-selected {
+		@apply border-dm-accent bg-dm-accent/10 text-dm-accent;
+	}
+
+	.dm-mass-assignment-chip {
+		@apply cursor-pointer rounded-full border border-dm-accent/40 bg-dm-accent/10 px-3 py-1 text-sm font-medium text-dm-accent transition hover:bg-dm-accent/20;
 	}
 
 	.dm-alert {

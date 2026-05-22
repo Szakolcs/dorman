@@ -49,6 +49,7 @@ templ ChatSidebar(result chat.SearchResult, activeRoomID uuid.UUID) {
 					autocomplete="off"
 					hx-get="/tenant/chat/sidebar"
 					hx-target={ "#" + chatSidebarBodyID }
+					hx-swap="outerHTML"
 					hx-trigger="keyup changed delay:200ms, search"
 					hx-include="#chat-sidebar-form"
 				/>
@@ -118,7 +119,7 @@ templ ChatRoomLink(room models.ChatRoom, activeRoomID uuid.UUID, displayTitle st
 		hx-get={ templ.URL(chatPanelURL(room.ID)) }
 		hx-target={ "#" + chatMainID }
 		hx-swap="innerHTML"
-		hx-push-url="true"
+		hx-push-url={ templ.URL(chatRoomURL(room.ID)) }
 		class={
 			templ.KV("dm-chat-room-link", true),
 			templ.KV("dm-chat-room-link-active", room.ID == activeRoomID),
@@ -200,6 +201,11 @@ templ ChatComposeForm(roomID uuid.UUID) {
 templ ChatOpenedUpdate(result chat.SearchResult, room models.ChatRoom, messages []models.Message, viewerTenantID uuid.UUID) {
 	@ChatPanel(room.ID, messages, viewerTenantID, result.RoomTitle(room.ID))
 	@ChatSidebarBodyOOB(result, room.ID)
+}
+
+templ ChatPanelOpened(result chat.SearchResult, roomID uuid.UUID, messages []models.Message, viewerTenantID uuid.UUID) {
+	@ChatPanel(roomID, messages, viewerTenantID, result.RoomTitle(roomID))
+	@ChatSidebarBodyOOB(result, roomID)
 }
 
 templ ChatCreateGroupCard() {

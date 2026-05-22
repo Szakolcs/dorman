@@ -262,16 +262,17 @@ templ BuildingUpdateForm(building models.Building) {
 		</label>
 		<div class="dm-form-actions">
 			<button type="submit" class="dm-button">Save changes</button>
-			<button
-				type="button"
-				class="dm-button dm-button-danger"
-				hx-delete={ templ.SafeURL("/administration/housing/building/" + building.ID.String()) }
-				hx-swap="none"
-				hx-confirm="Delete this building and all related housing data?"
-			>
-				Delete building
-			</button>
 		</div>
+	</form>
+	<form
+		class="dm-form-actions"
+		hx-delete={ templ.SafeURL("/administration/housing/building/" + building.ID.String()) }
+		hx-swap="none"
+		hx-confirm="Delete this building and all related housing data?"
+	>
+		<button type="submit" class="dm-button dm-button-danger">
+			Delete building
+		</button>
 	</form>
 }
 
@@ -318,16 +319,17 @@ templ FlatUpdateForm(flat models.Flat) {
 		</label>
 		<div class="dm-form-actions">
 			<button type="submit" class="dm-button">Save changes</button>
-			<button
-				type="button"
-				class="dm-button dm-button-danger"
-				hx-delete={ templ.SafeURL("/administration/housing/flat/" + flat.ID.String()) }
-				hx-swap="none"
-				hx-confirm="Delete this flat and all related rooms?"
-			>
-				Delete flat
-			</button>
 		</div>
+	</form>
+	<form
+		class="dm-form-actions"
+		hx-delete={ templ.SafeURL("/administration/housing/flat/" + flat.ID.String()) }
+		hx-swap="none"
+		hx-confirm="Delete this flat and all related rooms?"
+	>
+		<button type="submit" class="dm-button dm-button-danger">
+			Delete flat
+		</button>
 	</form>
 }
 
@@ -574,16 +576,17 @@ templ SharedAreaUpdateForm(sharedArea models.SharedArea) {
 		</label>
 		<div class="dm-form-actions">
 			<button type="submit" class="dm-button">Save changes</button>
-			<button
-				type="button"
-				class="dm-button dm-button-danger"
-				hx-delete={ templ.SafeURL("/administration/housing/shared/" + sharedArea.ID.String()) }
-				hx-swap="none"
-				hx-confirm="Delete this shared area?"
-			>
-				Delete shared area
-			</button>
 		</div>
+	</form>
+	<form
+		class="dm-form-actions"
+		hx-delete={ templ.SafeURL("/administration/housing/shared/" + sharedArea.ID.String()) }
+		hx-swap="none"
+		hx-confirm="Delete this shared area?"
+	>
+		<button type="submit" class="dm-button dm-button-danger">
+			Delete shared area
+		</button>
 	</form>
 }
 

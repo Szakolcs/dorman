@@ -9,7 +9,7 @@ templ TicketCreateForm() {
 		hx-post="/tenant/tickets"
 		hx-target="#tickets-panel"
 		hx-swap="outerHTML"
-		hx-on::after-request="if(event.detail.successful) this.reset()"
+		hx-on::after-request="if(event.detail.successful) { this.reset(); if(typeof closeTicketCreateModal === 'function') closeTicketCreateModal(); }"
 		class={ partials.Cls.Form }
 	>
 		<label for="severity" class={ partials.Cls.Field }>

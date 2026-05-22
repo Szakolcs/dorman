@@ -103,8 +103,7 @@ templ ActivityBookActions(activityID uuid.UUID, stats *administration.ActivitySt
 	if bookedByViewer {
 		<form
 			hx-post={ templ.SafeURL(activityCancelURL(activityID, returnURL)) }
-			hx-target={ "#" + activityBookTargetID(activityID, returnURL) }
-			hx-swap="outerHTML"
+			hx-swap="none"
 			class="dm-activity-book-form"
 		>
 			<button type="submit" class="dm-activity-action-btn dm-activity-cancel-btn">Cancel booking</button>
@@ -114,8 +113,7 @@ templ ActivityBookActions(activityID uuid.UUID, stats *administration.ActivitySt
 	} else {
 		<form
 			hx-post={ templ.SafeURL(activityBookURL(activityID, returnURL)) }
-			hx-target={ "#" + activityBookTargetID(activityID, returnURL) }
-			hx-swap="outerHTML"
+			hx-swap="none"
 			class="dm-activity-book-form"
 		>
 			<button type="submit" class="dm-activity-action-btn dm-activity-book-btn">Book</button>

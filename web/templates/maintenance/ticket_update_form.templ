@@ -175,14 +175,16 @@ templ TicketUpdateForm(ticket models.Ticket) {
 			>
 				Update Ticket
 			</button>
-			<button
-				type="button"
-				class={ partials.Cls.ButtonDanger }
-				hx-delete={ "/maintenance/tickets/" + ticket.ID.String() }
-				hx-confirm="Delete this ticket?"
-			>
-				Delete
-			</button>
 		</div>
+	</form>
+	<form
+		class={ partials.Cls.FormActions }
+		hx-delete={ "/maintenance/tickets/" + ticket.ID.String() }
+		hx-swap="none"
+		hx-confirm="Delete this ticket?"
+	>
+		<button type="submit" class={ partials.Cls.ButtonDanger }>
+			Delete
+		</button>
 	</form>
 }

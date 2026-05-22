@@ -269,6 +269,11 @@ type DeleteAssignmentRequest struct {
 	ID uuid.UUID `json:"id" query:"id" form:"id"`
 }
 
+type TenantMassAssignmentRequest struct {
+	StrictGroups string `json:"strict_groups" form:"strict_groups"`
+	Preferences  string `json:"preferences"  form:"preferences"`
+}
+
 type RegisterUserRequest struct {
 	Name      string    `json:"name"                form:"name"`
 	Email     string    `json:"email"               form:"email"`

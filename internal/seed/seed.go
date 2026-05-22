@@ -581,11 +581,13 @@ func Run(db *gorm.DB, reset bool) error {
 			HostTenantID: tenants[0].ID,
 			GuestName:    "Eva Szabo — visiting family member",
 			IDNotes:      "National ID card presented at reception; host confirmed overnight stay within guest policy limits for exam week.",
+			Status:       models.CheckedIn,
 		},
 		{
 			HostTenantID: tenants[1].ID,
 			GuestName:    "Peter Horvath — university project collaborator",
 			IDNotes:      "Passport and student ID verified; expected departure same day before 22:00 quiet hours.",
+			Status:       models.CheckedOut,
 		},
 	}
 	if err := db.Create(&guests).Error; err != nil {

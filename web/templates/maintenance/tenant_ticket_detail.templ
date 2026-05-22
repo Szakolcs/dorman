@@ -32,14 +32,16 @@ templ TenantTicketDetailPage(ticket models.Ticket) {
 				</dl>
 				<p class="mt-4 whitespace-pre-wrap">{ ticket.Description }</p>
 				if ticket.Status == models.StatusReported {
-					<button
-						type="button"
-						class="dm-button dm-button-danger mt-4"
+					<form
+						class="mt-4"
 						hx-delete={ "/tenant/tickets/" + ticket.ID.String() }
 						hx-confirm="Withdraw this ticket?"
+						hx-swap="none"
 					>
-						Withdraw Ticket
-					</button>
+						<button type="submit" class="dm-button dm-button-danger">
+							Withdraw Ticket
+						</button>
+					</form>
 				}
 			}
 			@partials.Card("Status History") {

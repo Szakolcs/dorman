@@ -7,50 +7,48 @@ import (
 
 templ GuestRegisterForm(tenants []models.Tenant) {
 	<tr class={ partials.Cls.TableTr }>
-		<form
-			hx-post="/doorman/register/guest"
-			hx-target="#guest-table"
-			hx-swap="outerHTML"
-		>
-			<td class={ partials.Cls.TableTd }>
-				<input
-					type="text"
-					name="guest_name"
-					placeholder="Guest Name"
-					class={ partials.Cls.Input }
-				/>
-			</td>
-			<td class={ partials.Cls.TableTd }>
-				<input
-					type="text"
-					name="id_notes"
-					placeholder="ID Notes"
-					class={ partials.Cls.Input }
-				/>
-			</td>
-			<td class={ partials.Cls.TableTd }>
-				checked_in
-			</td>
-			<td class={ partials.Cls.TableTd }>
-				<select
-					name="host_tenant_id"
-					class={ partials.Cls.Select }
-				>
-					for _, tenant := range tenants {
-						<option value={ tenant.ID.String() }>
-							@TenantLabel(tenant)
-						</option>
-					}
-				</select>
-			</td>
-			<td class={ partials.Cls.TableTd }>
-				<button
-					type="submit"
-					class={ partials.Cls.Button }
-				>
-					Create
-				</button>
-			</td>
-		</form>
+		<td class={ partials.Cls.TableTd }>
+			<input
+				type="text"
+				name="guest_name"
+				form="guest-register-form"
+				placeholder="Guest Name"
+				class={ partials.Cls.Input }
+			/>
+		</td>
+		<td class={ partials.Cls.TableTd }>
+			<input
+				type="text"
+				name="id_notes"
+				form="guest-register-form"
+				placeholder="ID Notes"
+				class={ partials.Cls.Input }
+			/>
+		</td>
+		<td class={ partials.Cls.TableTd }>
+			checked_in
+		</td>
+		<td class={ partials.Cls.TableTd }>
+			<select
+				name="host_tenant_id"
+				form="guest-register-form"
+				class={ partials.Cls.Select }
+			>
+				for _, tenant := range tenants {
+					<option value={ tenant.ID.String() }>
+						@TenantLabel(tenant)
+					</option>
+				}
+			</select>
+		</td>
+		<td class={ partials.Cls.TableTd }>
+			<button
+				type="submit"
+				form="guest-register-form"
+				class={ partials.Cls.Button }
+			>
+				Create
+			</button>
+		</td>
 	</tr>
 }

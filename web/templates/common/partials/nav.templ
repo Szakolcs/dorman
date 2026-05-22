@@ -19,14 +19,11 @@ templ ThemeToggle() {
 }
 
 templ LogoutButton() {
-	<button
-		type="button"
-		class={ Cls.NavButtonDanger }
-		hx-post="/home/logout"
-		hx-swap="none"
-	>
-		Logout
-	</button>
+	<form class="m-0 inline" hx-post="/home/logout" hx-swap="none">
+		<button type="submit" class={ Cls.NavButtonDanger }>
+			Logout
+		</button>
+	</form>
 }
 
 templ BaseNav() {

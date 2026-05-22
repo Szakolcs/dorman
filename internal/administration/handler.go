@@ -18,11 +18,15 @@ import (
 )
 
 type Handler struct {
-	service *Service
+	service               *Service
+	massAssignmentService *MassAssignmentService
 }
 
 func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+	return &Handler{
+		service:               service,
+		massAssignmentService: NewMassAssignmentService(),
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -220,7 +224,74 @@ func (h *Handler) tenantsPage(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return renderComponent(c, adminviews.TenantsPage(tenants))
+	activeAssignments, err := h.service.CountActiveAssignments()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.TenantsPage(tenants, activeAssignments > 0))
+}
+
+func (h *Handler) removeAllTenantAssignments(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.RemoveAllAssignments(actor); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/tenants")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) deactivateTenant(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.DeactivateTenant(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/tenants")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) activateTenant(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.ActivateTenant(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/tenants")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) tenantMassAssignment(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := TenantMassAssignmentRequest{
+		StrictGroups: c.FormValue("strict_groups"),
+		Preferences:  c.FormValue("preferences"),
+	}
+	if actor == uuid.Nil {
+		return h.writeError(c, ErrUnauthorized)
+	}
+	if err := h.massAssignmentService.Run(req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/tenants")
+	return c.NoContent(http.StatusOK)
 }
 
 func (h *Handler) tenantDetailPage(c echo.Context) error {

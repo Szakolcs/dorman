@@ -6,6 +6,13 @@ import (
 )
 
 templ GuestTable(guests []models.GuestEntry, tenants []models.Tenant) {
+	<form
+		id="guest-register-form"
+		class="hidden"
+		hx-post="/doorman/register/guest"
+		hx-target="#guest-table"
+		hx-swap="outerHTML"
+	></form>
 	@partials.TableWrap() {
 		<table class={ partials.Cls.Table }>
 			<thead class={ partials.Cls.TableHead }>
@@ -28,7 +35,7 @@ templ GuestTable(guests []models.GuestEntry, tenants []models.Tenant) {
 							{ guest.IDNotes }
 						</td>
 						<td class={ partials.Cls.TableTd }>
-							registered
+							{ string(guest.Status) }
 						</td>
 						<td class={ partials.Cls.TableTd }>
 							@HostTenantLabel(guest)

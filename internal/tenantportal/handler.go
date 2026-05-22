@@ -3,6 +3,7 @@ package tenantportal
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"dorm-man/internal/administration"
@@ -101,11 +102,7 @@ func (h *Handler) bookActivity(c echo.Context) error {
 	if err := h.admin.BookActivity(actorID, id); err != nil {
 		return h.writeError(c, err)
 	}
-	if isHTMX(c) {
-		return h.renderActivityBookResponse(c, actorID, id, c.QueryParam("return"))
-	}
-	redirect := activityBookRedirect(c, id)
-	c.Response().Header().Set("HX-Redirect", redirect)
+	c.Response().Header().Set("HX-Redirect", activityBookRedirect(c, id))
 	return c.NoContent(http.StatusOK)
 }
 
@@ -121,11 +118,7 @@ func (h *Handler) cancelActivityBooking(c echo.Context) error {
 	if err := h.admin.CancelActivityBooking(actorID, id); err != nil {
 		return h.writeError(c, err)
 	}
-	if isHTMX(c) {
-		return h.renderActivityBookResponse(c, actorID, id, c.QueryParam("return"))
-	}
-	redirect := activityBookRedirect(c, id)
-	c.Response().Header().Set("HX-Redirect", redirect)
+	c.Response().Header().Set("HX-Redirect", activityBookRedirect(c, id))
 	return c.NoContent(http.StatusOK)
 }
 
@@ -137,41 +130,15 @@ func activityBookRedirect(c echo.Context, activityID uuid.UUID) string {
 	return redirect
 }
 
-func (h *Handler) renderActivityBookResponse(c echo.Context, actorID, activityID uuid.UUID, returnURL string) error {
-	detail, err := h.admin.GetPublication(activityID)
-	if err != nil {
-		return h.writeError(c, err)
+func ticketFilterFromRequest(c echo.Context) (maintenance.TicketFilter, error) {
+	if raw := c.Request().Header.Get("HX-Current-URL"); raw != "" {
+		parsed, err := url.Parse(raw)
+		if err != nil {
+			return maintenance.TicketFilter{}, maintenance.ErrValidation
+		}
+		return maintenance.ParseTicketFilterQuery(parsed.Query())
 	}
-	if detail.Kind != administration.PublicationKindActivity || detail.Activity == nil {
-		return h.writeError(c, administration.ErrNotFound)
-	}
-	booked, err := h.admin.HasActivityBooking(actorID, activityID)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	if strings.Contains(returnURL, "/publications/") {
-		return renderComponent(c, tenantviews.ActivityDetailCard(*detail.Activity, booked))
-	}
-	item, err := h.activityPublicationCardItem(actorID, *detail.Activity, booked)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return renderComponent(c, tenantviews.PublicationCard(item, tenantviews.ActiveKindFromReturn(returnURL)))
-}
-
-func (h *Handler) activityPublicationCardItem(actorID uuid.UUID, activity models.Activity, booked bool) (tenantviews.PublicationCardItem, error) {
-	_ = actorID
-	return tenantviews.PublicationCardItem{
-		PublicationListItem: administration.PublicationListItem{
-			Publication: models.Publication{Post: activity.Post},
-			Kind:        administration.PublicationKindActivity,
-			Activity: &administration.ActivityStats{
-				Capacity:    activity.Capacity,
-				BookedCount: activity.BookedCount,
-			},
-		},
-		BookedByViewer: booked,
-	}, nil
+	return maintenance.ParseTicketFilter(c)
 }
 
 func (h *Handler) setEventIntent(c echo.Context) error {
@@ -269,7 +236,11 @@ func (h *Handler) createTicket(c echo.Context) error {
 	if _, err := h.maintenance.CreateTicket(actorID, req); err != nil {
 		return h.writeError(c, err)
 	}
-	return h.renderTenantTickets(c, actorID, maintenance.TicketFilter{})
+	filter, err := ticketFilterFromRequest(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return h.renderTenantTickets(c, actorID, filter)
 }
 
 func (h *Handler) ticketDetailPage(c echo.Context) error {
@@ -353,11 +324,11 @@ func (h *Handler) chatPanelFragment(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	roomID, err := paramUUID(c, "room")
+	roomID, err := requiredQueryUUID(c, "room")
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return h.renderChatPanel(c, tenant, roomID)
+	return h.renderChatPanelOpened(c, tenant, roomID)
 }
 
 func (h *Handler) openDirectChat(c echo.Context) error {
@@ -440,6 +411,18 @@ func (h *Handler) renderChatPanel(c echo.Context, tenant models.Tenant, roomID u
 	return renderComponent(c, tenantviews.ChatPanel(roomID, messages, tenant.ID, title))
 }
 
+func (h *Handler) renderChatPanelOpened(c echo.Context, tenant models.Tenant, roomID uuid.UUID) error {
+	messages, err := h.chatMessagesForRoom(tenant.ID, roomID)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	result, err := h.chat.SearchChats(tenant.ID, "")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, tenantviews.ChatPanelOpened(result, roomID, messages, tenant.ID))
+}
+
 func (h *Handler) chatMessagesForRoom(tenantID, roomID uuid.UUID) ([]models.Message, error) {
 	if roomID == uuid.Nil {
 		return nil, nil
@@ -460,7 +443,7 @@ func (h *Handler) chatMessagesFragment(c echo.Context) error {
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	roomID, err := paramUUID(c, "room")
+	roomID, err := requiredQueryUUID(c, "room")
 	if err != nil {
 		return h.writeError(c, err)
 	}
@@ -508,6 +491,18 @@ func optionalRoomID(raw string) (uuid.UUID, error) {
 		return uuid.Nil, nil
 	}
 	return uuid.Parse(raw)
+}
+
+func requiredQueryUUID(c echo.Context, key string) (uuid.UUID, error) {
+	raw := c.QueryParam(key)
+	if raw == "" {
+		return uuid.Nil, chat.ErrValidation
+	}
+	id, err := uuid.Parse(raw)
+	if err != nil {
+		return uuid.Nil, chat.ErrValidation
+	}
+	return id, nil
 }
 
 func renderComponent(c echo.Context, component templ.Component) error {

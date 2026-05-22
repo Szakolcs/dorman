@@ -98,6 +98,10 @@ type Store interface {
 	createRoomAssignment(actorID uuid.UUID, assignment models.RoomAssignment) error
 	updateRoomAssignment(actorID uuid.UUID, assignment models.RoomAssignment) error
 	deleteRoomAssignment(actorID, id uuid.UUID) error
+	countActiveRoomAssignments() (int64, error)
+	endAllActiveRoomAssignments(actorID uuid.UUID) error
+	deactivateTenant(actorID, tenantID uuid.UUID) error
+	activateTenant(actorID, tenantID uuid.UUID) error
 
 	registerUser(actorID uuid.UUID, user models.User) error
 	updateUser(actorID uuid.UUID, user models.User) error
@@ -829,6 +833,51 @@ func (s *GormStore) deleteRoomAssignment(actorID, id uuid.UUID) error {
 	})
 }
 
+func (s *GormStore) countActiveRoomAssignments() (int64, error) {
+	var count int64
+	err := s.db.Model(&models.RoomAssignment{}).Where("ended_at IS NULL").Count(&count).Error
+	return count, err
+}
+
+func (s *GormStore) endAllActiveRoomAssignments(actorID uuid.UUID) error {
+	now := time.Now()
+	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
+		return tx.Model(&models.RoomAssignment{}).
+			Where("ended_at IS NULL").
+			Update("ended_at", now).Error
+	})
+}
+
+func (s *GormStore) deactivateTenant(actorID, tenantID uuid.UUID) error {
+	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
+		result := tx.Model(&models.Tenant{}).
+			Where("id = ?", tenantID).
+			Update("is_active", false)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		return nil
+	})
+}
+
+func (s *GormStore) activateTenant(actorID, tenantID uuid.UUID) error {
+	return AuditedTransaction(s.db, actorID, func(tx *gorm.DB) error {
+		result := tx.Model(&models.Tenant{}).
+			Where("id = ?", tenantID).
+			Update("is_active", true)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
+		return nil
+	})
+}
+
 // ---------------------------------------------------------------------------
 // users
 // ---------------------------------------------------------------------------
@@ -1086,7 +1135,6 @@ func (s *GormStore) cancelActivityBooking(userID, activityID uuid.UUID) error {
 		return nil
 	})
 }
-
 func (s *GormStore) getEventAttendanceIntent(eventID, userID uuid.UUID) (models.EventAttendanceIntent, error) {
 	var attendance models.EventAttendance
 	err := s.db.

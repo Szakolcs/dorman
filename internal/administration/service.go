@@ -942,6 +942,51 @@ func (s *Service) DeleteAssignment(actorID, id uuid.UUID) error {
 	return s.store.deleteRoomAssignment(actorID, id)
 }
 
+func (s *Service) CountActiveAssignments() (int64, error) {
+	return s.store.countActiveRoomAssignments()
+}
+
+func (s *Service) RemoveAllAssignments(actorID uuid.UUID) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	return s.store.endAllActiveRoomAssignments(actorID)
+}
+
+func (s *Service) DeactivateTenant(actorID, tenantID uuid.UUID) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if tenantID == uuid.Nil {
+		return ErrValidation
+	}
+	tenant, err := s.store.getTenantByID(tenantID)
+	if err != nil {
+		return err
+	}
+	if !tenant.IsActive {
+		return ErrStudentStatusInvalid
+	}
+	return s.store.deactivateTenant(actorID, tenantID)
+}
+
+func (s *Service) ActivateTenant(actorID, tenantID uuid.UUID) error {
+	if actorID == uuid.Nil {
+		return ErrUnauthorized
+	}
+	if tenantID == uuid.Nil {
+		return ErrValidation
+	}
+	tenant, err := s.store.getTenantByID(tenantID)
+	if err != nil {
+		return err
+	}
+	if tenant.IsActive {
+		return ErrStudentStatusInvalid
+	}
+	return s.store.activateTenant(actorID, tenantID)
+}
+
 // ---------------------------------------------------------------------------
 // users (registration / update)
 // ---------------------------------------------------------------------------

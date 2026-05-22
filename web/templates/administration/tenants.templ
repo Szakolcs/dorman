@@ -6,17 +6,65 @@ import (
 	"fmt"
 )
 
-templ TenantsPage(tenants []models.Tenant) {
+templ TenantsPage(tenants []models.Tenant, hasActiveAssignments bool) {
 	@Layout("Tenants") {
 		@Navigation()
 		<div class={ partials.Cls.Page }>
 			@PageHeader("Tenants", "Browse resident records, assignments, and profile data.")
+			if hasActiveAssignments {
+				@TenantAssignmentsToolbar()
+			} else {
+				@TenantMassAssignmentPanel()
+			}
 			@partials.Card("Tenant directory") {
 				@TenantsTable(tenants)
 			}
 		</div>
 		<script src="/static/js/clickable-rows.js"></script>
+		if !hasActiveAssignments {
+			<script src="/static/js/tenants.js"></script>
+		}
 	}
+}
+
+templ TenantAssignmentsToolbar() {
+	<div class="dm-tenant-actions">
+		<form
+			hx-post="/administration/tenants/remove-all-assignments"
+			hx-swap="none"
+			hx-confirm="End all current room assignments?"
+		>
+			<button type="submit" class={ partials.Cls.ButtonDanger }>
+				Remove all assignments
+			</button>
+		</form>
+	</div>
+}
+
+templ TenantMassAssignmentPanel() {
+	<div class="dm-mass-assignment">
+		<div class="dm-mass-assignment-columns">
+			<div class="dm-mass-assignment-box">
+				<h3 class="dm-mass-assignment-title">Strict groups</h3>
+				<div id="strict-groups" class="dm-mass-assignment-dropzone" data-container="strict"></div>
+			</div>
+			<div class="dm-mass-assignment-box">
+				<h3 class="dm-mass-assignment-title">Preferences</h3>
+				<div id="preferences" class="dm-mass-assignment-dropzone" data-container="preferences"></div>
+			</div>
+		</div>
+		<form
+			id="tenant-mass-assignment-form"
+			hx-post="/administration/tenants/mass-assign"
+			hx-swap="none"
+		>
+			<input type="hidden" name="strict_groups" id="strict-groups-input"/>
+			<input type="hidden" name="preferences" id="preferences-input"/>
+			<button type="submit" class={ partials.Cls.Button }>
+				Mass assignments
+			</button>
+		</form>
+	</div>
 }
 
 templ TenantsTable(tenants []models.Tenant) {
@@ -24,13 +72,14 @@ templ TenantsTable(tenants []models.Tenant) {
 		<p class={ partials.Cls.Empty }>No tenants found.</p>
 	} else {
 		@partials.TableWrap() {
-			<table class={ partials.Cls.Table }>
+			<table class={ partials.Cls.Table + " dm-tenants-table" }>
 				<thead class={ partials.Cls.TableHead }>
 					<tr class={ partials.Cls.TableTr }>
 						<th class={ partials.Cls.TableTh }>Student code</th>
 						<th class={ partials.Cls.TableTh }>Name</th>
 						<th class={ partials.Cls.TableTh }>Faculty</th>
 						<th class={ partials.Cls.TableTh }>Status</th>
+						<th class={ partials.Cls.TableTh }>Actions</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -57,6 +106,31 @@ templ TenantsTable(tenants []models.Tenant) {
 									active
 								} else {
 									inactive
+								}
+							</td>
+							<td class={ partials.Cls.TableTd + " dm-table-actions" }>
+								if tenant.IsActive {
+									<form
+										class="m-0 inline"
+										hx-post={ "/administration/tenants/" + tenant.ID.String() + "/deactivate" }
+										hx-swap="none"
+										hx-confirm={ "Deactivate " + tenant.StudentCode + "?" }
+									>
+										<button type="submit" class={ partials.Cls.ButtonSecondary }>
+											Deactivate
+										</button>
+									</form>
+								} else {
+									<form
+										class="m-0 inline"
+										hx-post={ "/administration/tenants/" + tenant.ID.String() + "/activate" }
+										hx-swap="none"
+										hx-confirm={ "Activate " + tenant.StudentCode + "?" }
+									>
+										<button type="submit" class={ partials.Cls.Button }>
+											Activate
+										</button>
+									</form>
 								}
 							</td>
 						</tr>
