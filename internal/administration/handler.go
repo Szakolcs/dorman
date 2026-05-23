@@ -2,6 +2,7 @@ package administration
 
 import (
 	"dorm-man/internal/models"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -25,7 +26,7 @@ type Handler struct {
 func NewHandler(service *Service) *Handler {
 	return &Handler{
 		service:               service,
-		massAssignmentService: NewMassAssignmentService(),
+		massAssignmentService: NewMassAssignmentService(service),
 	}
 }
 
@@ -275,23 +276,34 @@ func (h *Handler) activateTenant(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+func (h *Handler) writeMassAssignmentAlert(c echo.Context, message string, redirect bool) error {
+	payload, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+	c.Response().Header().Set("HX-Trigger", fmt.Sprintf(`{"massAssignmentAlert": %s}`, payload))
+	if redirect {
+		c.Response().Header().Set("HX-Redirect", "/administration/tenants")
+	}
+	return c.NoContent(http.StatusOK)
+}
+
 func (h *Handler) tenantMassAssignment(c echo.Context) error {
 	actor, err := actorID(c)
 	if err != nil {
-		return h.writeError(c, err)
+		return h.writeMassAssignmentAlert(c, err.Error(), false)
 	}
 	req := TenantMassAssignmentRequest{
 		StrictGroups: c.FormValue("strict_groups"),
 		Preferences:  c.FormValue("preferences"),
 	}
 	if actor == uuid.Nil {
-		return h.writeError(c, ErrUnauthorized)
+		return h.writeMassAssignmentAlert(c, ErrUnauthorized.Error(), false)
 	}
-	if err := h.massAssignmentService.Run(req); err != nil {
-		return h.writeError(c, err)
+	if err := h.massAssignmentService.Run(actor, req); err != nil {
+		return h.writeMassAssignmentAlert(c, err.Error(), false)
 	}
-	c.Response().Header().Set("HX-Redirect", "/administration/tenants")
-	return c.NoContent(http.StatusOK)
+	return h.writeMassAssignmentAlert(c, "ok", true)
 }
 
 func (h *Handler) tenantDetailPage(c echo.Context) error {

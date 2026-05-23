@@ -7,7 +7,7 @@
     {
       "id": "STU001",
       "degree": "bsc",
-      "faculty": "Computer Science",
+      "faculty": "Law",
       "age": 20,
       "sex": "male",
       "nationality": "hungarian"
@@ -15,7 +15,7 @@
     {
       "id": "STU002",
       "degree": "msc",
-      "faculty": "Medicine",
+      "faculty": "Law",
       "age": 24,
       "sex": "female",
       "nationality": "international"
@@ -31,7 +31,7 @@
     {
       "id": "STU004",
       "degree": "phd",
-      "faculty": "Physics",
+      "faculty": "Medicine",
       "age": 29,
       "sex": "female",
       "nationality": "international"
@@ -39,7 +39,7 @@
     {
       "id": "STU005",
       "degree": "bsc",
-      "faculty": "Mathematics",
+      "faculty": "Medicine",
       "age": 19,
       "sex": "other",
       "nationality": "hungarian"
@@ -55,7 +55,7 @@
     {
       "id": "STU007",
       "degree": "msc",
-      "faculty": "Economics",
+      "faculty": "Medicine",
       "age": 23,
       "sex": "male",
       "nationality": "hungarian"
@@ -71,7 +71,7 @@
     {
       "id": "STU009",
       "degree": "bsc",
-      "faculty": "Chemistry",
+      "faculty": "Medicine",
       "age": 20,
       "sex": "male",
       "nationality": "hungarian"
@@ -79,7 +79,7 @@
     {
       "id": "STU010",
       "degree": "phd",
-      "faculty": "Biology",
+      "faculty": "History",
       "age": 31,
       "sex": "female",
       "nationality": "international"
@@ -87,7 +87,7 @@
     {
       "id": "STU011",
       "degree": "msc",
-      "faculty": "Electrical Engineering",
+      "faculty": "Medicine",
       "age": 26,
       "sex": "male",
       "nationality": "hungarian"
@@ -95,7 +95,7 @@
     {
       "id": "STU012",
       "degree": "ba",
-      "faculty": "Philosophy",
+      "faculty": "History",
       "age": 18,
       "sex": "female",
       "nationality": "international"
@@ -103,7 +103,7 @@
     {
       "id": "STU013",
       "degree": "bsc",
-      "faculty": "Mechanical Engineering",
+      "faculty": "Medicine",
       "age": 21,
       "sex": "male",
       "nationality": "hungarian"
@@ -111,7 +111,7 @@
     {
       "id": "STU014",
       "degree": "ma",
-      "faculty": "Linguistics",
+      "faculty": "History",
       "age": 27,
       "sex": "female",
       "nationality": "international"
@@ -119,7 +119,7 @@
     {
       "id": "STU015",
       "degree": "bsc",
-      "faculty": "Architecture",
+      "faculty": "Medicinee",
       "age": 20,
       "sex": "other",
       "nationality": "hungarian"
@@ -127,7 +127,7 @@
     {
       "id": "STU016",
       "degree": "msc",
-      "faculty": "Data Science",
+      "faculty": "History",
       "age": 24,
       "sex": "female",
       "nationality": "international"
@@ -135,7 +135,7 @@
     {
       "id": "STU017",
       "degree": "phd",
-      "faculty": "Astronomy",
+      "faculty": "Medicine",
       "age": 34,
       "sex": "male",
       "nationality": "hungarian"
@@ -143,7 +143,7 @@
     {
       "id": "STU018",
       "degree": "ma",
-      "faculty": "Political Science",
+      "faculty": "Robotics",
       "age": 28,
       "sex": "female",
       "nationality": "international"
@@ -151,7 +151,7 @@
     {
       "id": "STU019",
       "degree": "bsc",
-      "faculty": "Civil Engineering",
+      "faculty": "Robotics",
       "age": 22,
       "sex": "male",
       "nationality": "hungarian"
@@ -159,7 +159,7 @@
     {
       "id": "STU020",
       "degree": "ba",
-      "faculty": "Media Studies",
+      "faculty": "Robotics",
       "age": 21,
       "sex": "female",
       "nationality": "international"
@@ -167,7 +167,7 @@
     {
       "id": "STU021",
       "degree": "msc",
-      "faculty": "Artificial Intelligence",
+      "faculty": "Robotics",
       "age": 25,
       "sex": "male",
       "nationality": "hungarian"
@@ -175,7 +175,7 @@
     {
       "id": "STU022",
       "degree": "ma",
-      "faculty": "Sociology",
+      "faculty": "Robotics",
       "age": 26,
       "sex": "female",
       "nationality": "international"
@@ -183,7 +183,7 @@
     {
       "id": "STU023",
       "degree": "bsc",
-      "faculty": "Geography",
+      "faculty": "Robotics",
       "age": 19,
       "sex": "male",
       "nationality": "hungarian"
@@ -191,7 +191,7 @@
     {
       "id": "STU024",
       "degree": "ba",
-      "faculty": "Music",
+      "faculty": "Medicine",
       "age": 20,
       "sex": "female",
       "nationality": "international"
@@ -199,7 +199,7 @@
     {
       "id": "STU025",
       "degree": "phd",
-      "faculty": "Cybersecurity",
+      "faculty": "Robotics",
       "age": 33,
       "sex": "male",
       "nationality": "hungarian"
@@ -207,7 +207,7 @@
     {
       "id": "STU026",
       "degree": "msc",
-      "faculty": "Finance",
+      "faculty": "Medicine",
       "age": 24,
       "sex": "female",
       "nationality": "international"
@@ -215,7 +215,7 @@
     {
       "id": "STU027",
       "degree": "bsc",
-      "faculty": "Statistics",
+      "faculty": "Robotics",
       "age": 22,
       "sex": "other",
       "nationality": "hungarian"
@@ -223,7 +223,7 @@
     {
       "id": "STU028",
       "degree": "ma",
-      "faculty": "Anthropology",
+      "faculty": "Robotics",
       "age": 27,
       "sex": "female",
       "nationality": "international"
@@ -271,7 +271,7 @@
     {
       "id": "STU034",
       "degree": "ma",
-      "faculty": "International Relations",
+      "faculty": "Agriculture",
       "age": 28,
       "sex": "female",
       "nationality": "international"
@@ -287,7 +287,7 @@
     {
       "id": "STU036",
       "degree": "msc",
-      "faculty": "Biotechnology",
+      "faculty": "Medicine",
       "age": 23,
       "sex": "female",
       "nationality": "international"
@@ -311,7 +311,7 @@
     {
       "id": "STU039",
       "degree": "bsc",
-      "faculty": "Nursing",
+      "faculty": "Agriculture",
       "age": 21,
       "sex": "male",
       "nationality": "hungarian"
@@ -319,7 +319,7 @@
     {
       "id": "STU040",
       "degree": "ma",
-      "faculty": "Education",
+      "faculty": "Agriculture",
       "age": 29,
       "sex": "female",
       "nationality": "international"
@@ -335,7 +335,7 @@
     {
       "id": "STU042",
       "degree": "ba",
-      "faculty": "Journalism",
+      "faculty": "Agriculture",
       "age": 20,
       "sex": "female",
       "nationality": "international"
@@ -375,7 +375,7 @@
     {
       "id": "STU047",
       "degree": "msc",
-      "faculty": "Information Systems",
+      "faculty": "Physics",
       "age": 26,
       "sex": "other",
       "nationality": "hungarian"
@@ -383,7 +383,7 @@
     {
       "id": "STU048",
       "degree": "ba",
-      "faculty": "Theater Arts",
+      "faculty": "Physics",
       "age": 23,
       "sex": "female",
       "nationality": "international"
@@ -391,7 +391,7 @@
     {
       "id": "STU049",
       "degree": "phd",
-      "faculty": "Machine Learning",
+      "faculty": "Physics",
       "age": 40,
       "sex": "male",
       "nationality": "hungarian"
@@ -399,7 +399,7 @@
     {
       "id": "STU050",
       "degree": "msc",
-      "faculty": "Business Administration",
+      "faculty": "Physics",
       "age": 27,
       "sex": "female",
       "nationality": "international"

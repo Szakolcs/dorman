@@ -64,4 +64,12 @@
 	}
 
 	document.addEventListener("DOMContentLoaded", renderAll);
+
+	document.body.addEventListener("massAssignmentAlert", function (evt) {
+		var message = evt.detail;
+		if (message && typeof message === "object" && "value" in message) {
+			message = message.value;
+		}
+		alert(message);
+	});
 })();

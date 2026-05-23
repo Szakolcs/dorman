@@ -338,7 +338,8 @@ type MassAssignmentRoom struct {
 }
 
 type MassAssignmentFlat struct {
-	ID       string               `json:"id"`
-	Rooms    []MassAssignmentRoom `json:"rooms"`
-	Capacity int                  `json:"capacity,default=0"`
+	ID                 string               `json:"id"`
+	Rooms              []MassAssignmentRoom `json:"rooms"`
+	Capacity           int                  `json:"capacity,default=0"`
+	CompatibilityScore int                  `json:"compatibility_score"`
 }
