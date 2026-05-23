@@ -322,3 +322,23 @@ type ListResponse[T any] struct {
 	PerPage    int `json:"per_page"`
 	TotalPages int `json:"total_pages"`
 }
+
+type MassAssignmentTenant struct {
+	ID          string                 `json:"id"`
+	Age         int                    `json:"age"`
+	Sex         models.SexType         `json:"sex"`
+	Faculty     models.FacultyType     `json:"faculty"`
+	Nationality models.NationalityType `json:"nationality"`
+	Degree      models.DegreeType      `json:"degree"`
+}
+
+type MassAssignmentRoom struct {
+	ID       string `json:"id"`
+	Capacity int    `json:"capacity"`
+}
+
+type MassAssignmentFlat struct {
+	ID       string               `json:"id"`
+	Rooms    []MassAssignmentRoom `json:"rooms"`
+	Capacity int                  `json:"capacity,default=0"`
+}
