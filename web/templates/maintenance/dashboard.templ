@@ -1,0 +1,18 @@
+package maintenanceviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ DashboardPage(tickets []models.Ticket) {
+	@Layout("Maintenance Dashboard") {
+		@StaffNavigation()
+		<div class={ partials.Cls.Page }>
+			@partials.PageHeader("Maintenance Dashboard", "Recent reported tickets across the dormitory.")
+			@partials.Card("Recent Tickets") {
+				@TicketTable(tickets, "/maintenance/tickets/")
+			}
+		</div>
+	}
+}

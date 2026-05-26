@@ -1,0 +1,16 @@
+package partials
+
+templ Card(title string) {
+	<section class={ Cls.Card }>
+		<h2 class={ Cls.CardTitle }>
+			{ title }
+		</h2>
+		{ children... }
+	</section>
+}
+
+templ TableWrap() {
+	<div class={ Cls.TableWrap }>
+		{ children... }
+	</div>
+}

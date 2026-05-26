@@ -1,60 +1,69 @@
 package administration
 
 import (
+	"dorm-man/internal/middleware"
+
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(e *echo.Echo, db *gorm.DB) {
+func RegisterRoutes(e *echo.Echo, db *gorm.DB, auth echo.MiddlewareFunc) {
 	store := NewStore(db)
 	service := NewService(store)
-	handler := &Handler{service: service}
+	handler := NewHandler(service)
 
-	pages := e.Group("/administration")
-	pages.GET("", handler.dashboardPage)
-	pages.GET("/tenants", handler.tenantsPage)
-	pages.GET("/rooms", handler.roomsPage)
-	pages.GET("/inventory", handler.inventoryPage)
-	pages.GET("/maintenance", handler.maintenancePage)
-	pages.GET("/jobs", handler.jobsPage)
-	pages.GET("/publications", handler.publicationsPage)
-	pages.GET("/audit", handler.auditPage)
-
-	api := e.Group("/api/administration")
-
-	api.GET("/tenants", handler.listTenants)
-	api.GET("/tenants/:id", handler.getTenant)
-	api.POST("/tenants", handler.createTenant)
-	api.POST("/tenants/:id/activate", handler.activateTenant)
-	api.POST("/tenants/:id/deactivate", handler.deactivateTenant)
-
-	api.GET("/rooms", handler.listRooms)
-	api.GET("/rooms/:id", handler.getRoom)
-	api.POST("/assignments", handler.assignTenant)
-	api.POST("/room-allocation-plan/generate", handler.generatePlan)
-	api.POST("/room-allocation-plan/approve", handler.approvePlan)
-
-	api.GET("/inventory", handler.listInventory)
-	api.POST("/inventory", handler.createInventory)
-	api.PATCH("/inventory/:id/status", handler.updateInventoryStatus)
-
-	api.GET("/maintenance/tickets", handler.listMaintenanceTickets)
-	api.POST("/maintenance/tickets", handler.createMaintenanceTicket)
-	api.POST("/maintenance/tickets/:id/approve", handler.approveMaintenanceTicket)
-	api.POST("/maintenance/tickets/:id/transition", handler.transitionMaintenanceTicket)
-
-	api.GET("/jobs", handler.listJobs)
-	api.POST("/jobs", handler.createJob)
-
-	api.GET("/news", handler.listNews)
-	api.POST("/news", handler.createNews)
-	api.POST("/news/:id/publish", handler.publishNews)
-
-	api.GET("/activities", handler.listActivities)
-	api.POST("/activities", handler.createActivity)
-	api.POST("/activities/:id/publish", handler.publishActivity)
-
-	api.GET("/events", handler.listEvents)
-	api.POST("/events", handler.createEvent)
-	api.POST("/events/:id/state", handler.updateEventState)
+	admin := e.Group("/administration")
+	admin.Use(auth, middleware.RequireRole("admin", "dev"))
+	admin.GET("", handler.dashboardPage)
+	admin.GET("/", handler.dashboardPage)
+	admin.GET("/tenants", handler.tenantsPage)
+	admin.GET("/tenants/:id", handler.tenantDetailPage)
+	admin.POST("/tenants/remove-all-assignments", handler.removeAllTenantAssignments)
+	admin.POST("/tenants/mass-assign", handler.tenantMassAssignment)
+	admin.POST("/tenants/:id/deactivate", handler.deactivateTenant)
+	admin.POST("/tenants/:id/activate", handler.activateTenant)
+	admin.GET("/inventory", handler.inventoryPage)
+	admin.GET("/inventory/:id", handler.inventoryDetailPage)
+	admin.POST("/inventory", handler.createInventoryItem)
+	admin.PUT("/inventory/:id/status", handler.updateInventoryItemStatus)
+	admin.DELETE("/inventory/:id", handler.deleteInventoryItem)
+	admin.GET("/jobs", handler.jobsPage)
+	admin.GET("/jobs/:id", handler.jobDetailPage)
+	admin.POST("/jobs", handler.createJob)
+	admin.PUT("/jobs", handler.updateJob)
+	admin.DELETE("/jobs", handler.DeleteJob)
+	admin.GET("/publications", handler.publicationsPage)
+	admin.POST("/publications/news", handler.createNews)
+	admin.PUT("/publications/news/:id/state", handler.updateNewsState)
+	admin.DELETE("/publications/news/:id", handler.archiveNews)
+	admin.POST("/publications/activities", handler.createActivity)
+	admin.PUT("/publications/activities/:id/state", handler.updateActivityState)
+	admin.DELETE("/publications/activities/:id", handler.archiveActivity)
+	admin.POST("/publications/events", handler.createEvent)
+	admin.PUT("/publications/events/:id/state", handler.updateEventState)
+	admin.DELETE("/publications/events/:id", handler.archiveEvent)
+	admin.GET("/publications/:id", handler.publicationDetailPage)
+	admin.GET("/housing", handler.housingPage)
+	admin.POST("/housing/buildings", handler.createBuilding)
+	admin.GET("/housing/building/:id", handler.buildingDetail)
+	admin.PUT("/housing/building/:id", handler.updateBuilding)
+	admin.DELETE("/housing/building/:id", handler.deleteBuilding)
+	admin.POST("/housing/building/:id/flats", handler.createFlat)
+	admin.POST("/housing/building/:id/shared-areas", handler.createSharedArea)
+	admin.GET("/housing/flat/:id", handler.flatDetail)
+	admin.PUT("/housing/flat/:id", handler.updateFlat)
+	admin.DELETE("/housing/flat/:id", handler.deleteFlat)
+	admin.POST("/housing/flat/:id/rooms", handler.createRoom)
+	admin.GET("/housing/shared/:id", handler.sharedAreaDetail)
+	admin.PUT("/housing/shared/:id", handler.updateSharedArea)
+	admin.DELETE("/housing/shared/:id", handler.deleteSharedArea)
+	admin.GET("/housing/room/:id", handler.roomDetail)
+	admin.POST("/housing/room/assign", handler.assign)
+	admin.POST("/housing/room/mass_assign", handler.massAssignment)
+	admin.PUT("/housing/room/assign", handler.updateAssignment)
+	admin.DELETE("/housing/room/assign", handler.deleteAssignment)
+	admin.GET("/register", handler.registerUserPage)
+	admin.POST("/register/new", handler.registerUser)
+	admin.PUT("/register/update", handler.updateUser)
+	admin.GET("/audit", handler.auditPage)
 }

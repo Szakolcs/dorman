@@ -1,0 +1,21 @@
+package doormanviews
+
+import "dorm-man/internal/models"
+
+templ TenantLabel(tenant models.Tenant) {
+	if tenant.User != nil {
+		{ tenant.StudentCode + " — " + tenant.User.Name }
+	} else {
+		{ tenant.StudentCode }
+	}
+}
+
+templ HostTenantLabel(guest models.GuestEntry) {
+	if guest.HostTenant != nil && guest.HostTenant.User != nil {
+		{ guest.HostTenant.User.Name }
+	} else if guest.HostTenant != nil {
+		{ guest.HostTenant.StudentCode }
+	} else {
+		unknown host
+	}
+}

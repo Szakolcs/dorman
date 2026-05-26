@@ -1,475 +1,1295 @@
 package administration
 
 import (
+	"dorm-man/internal/models"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
-	models "dorm-man/internal/models/administration"
+	adminviews "dorm-man/web/templates/administration"
 
+	"github.com/a-h/templ"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
 type Handler struct {
-	service *Service
+	service               *Service
+	massAssignmentService *MassAssignmentService
 }
 
-func (h *Handler) actor(c echo.Context) (Principal, error) {
-	value := c.Request().Header.Get("X-Actor-User-ID")
-	if value == "" {
-		return Principal{}, ErrUnauthorized
+func NewHandler(service *Service) *Handler {
+	return &Handler{
+		service:               service,
+		massAssignmentService: NewMassAssignmentService(service),
 	}
-	actorID, err := uuid.Parse(value)
+}
+
+// ---------------------------------------------------------------------------
+// shared helpers
+// ---------------------------------------------------------------------------
+
+func renderComponent(c echo.Context, component templ.Component) error {
+	c.Response().Header().Set(echo.HeaderContentType, echo.MIMETextHTMLCharsetUTF8)
+	return component.Render(c.Request().Context(), c.Response().Writer)
+}
+
+// actorID pulls the current user's UUID from the JWT claim. The JWT is
+// expected to have been parsed by upstream middleware and stored on the echo
+// context under the key "user" (the convention used by echo-jwt).
+func actorID(c echo.Context) (uuid.UUID, error) {
+	token, ok := c.Get("user").(*jwt.Token)
+	if !ok || token == nil {
+		return uuid.Nil, ErrUnauthorized
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return uuid.Nil, ErrUnauthorized
+	}
+	raw, ok := claims["id"]
+	if !ok {
+		return uuid.Nil, ErrUnauthorized
+	}
+
+	return uuid.MustParse(raw.(string)), nil
+}
+
+func paramUUID(c echo.Context, key string) (uuid.UUID, error) {
+	id, err := uuid.Parse(c.Param(key))
 	if err != nil {
-		return Principal{}, ErrUnauthorized
+		return uuid.Nil, ErrValidation
 	}
-	return h.service.ResolvePrincipal(actorID)
+	return id, nil
+}
+
+func queryUUID(c echo.Context, key string) (uuid.UUID, error) {
+	raw := c.QueryParam(key)
+	if raw == "" {
+		raw = c.FormValue(key)
+	}
+	if raw == "" {
+		return uuid.Nil, ErrValidation
+	}
+	id, err := uuid.Parse(raw)
+	if err != nil {
+		return uuid.Nil, ErrValidation
+	}
+	return id, nil
+}
+
+func parseDateAndTime(dateValue, timeValue string) *time.Time {
+	if dateValue == "" {
+		return nil
+	}
+	if timeValue == "" {
+		timeValue = "00:00"
+	}
+	return parseDate(dateValue + "T" + timeValue)
+}
+
+func parseDate(s string) *time.Time {
+	if s == "" {
+		return nil
+	}
+	for _, layout := range []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05",
+		"2006-01-02T15:04",
+		time.DateTime,
+		time.DateOnly,
+	} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return &t
+		}
+	}
+	return nil
+}
+
+func parsePagination(c echo.Context) Pagination {
+	page, _ := strconv.Atoi(c.QueryParam("page"))
+	per, _ := strconv.Atoi(c.QueryParam("per_page"))
+	return Pagination{
+		Page:    page,
+		PerPage: per,
+		Sort:    c.QueryParam("sort"),
+		Order:   c.QueryParam("order"),
+	}
+}
+
+func optString(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 func (h *Handler) writeError(c echo.Context, err error) error {
-	category := classifyError(err)
+	category := "internal_error"
 	status := http.StatusInternalServerError
-	switch category {
-	case "validation_error", "state_transition_invalid":
+	switch {
+	case errors.Is(err, ErrValidation):
+		category = "validation_error"
 		status = http.StatusBadRequest
-	case "capacity_conflict", "concurrency_conflict":
-		status = http.StatusConflict
-	case "authorization_denied":
+	case errors.Is(err, ErrUnauthorized):
+		category = "authorization_denied"
 		status = http.StatusForbidden
-	case "not_found":
+	case errors.Is(err, ErrCapacityConflict):
+		category = "capacity_conflict"
+		status = http.StatusConflict
+	case errors.Is(err, ErrConcurrencyConflict):
+		category = "concurrency_conflict"
+		status = http.StatusConflict
+	case errors.Is(err, ErrNotFound):
+		category = "not_found"
 		status = http.StatusNotFound
+	case errors.Is(err, ErrStateTransition):
+		category = "state_transition_error"
+		status = http.StatusConflict
+	case errors.Is(err, ErrStudentStatusInvalid):
+		category = "student_status_invalid"
+		status = http.StatusConflict
 	}
-	return c.JSON(status, map[string]any{
-		"error": map[string]string{
-			"category": category,
-			"message":  err.Error(),
+	return c.JSON(
+		status,
+		map[string]any{
+			"error": map[string]string{
+				"category": category,
+				"message":  err.Error(),
+			},
 		},
-	})
+	)
 }
 
-func (h *Handler) listTenants(c echo.Context) error {
-	tenants, err := h.service.ListTenants(TenantListFilter{
-		Status: c.QueryParam("status"),
-		Search: c.QueryParam("search"),
-	})
+// ---------------------------------------------------------------------------
+// dashboard
+// ---------------------------------------------------------------------------
+
+func (h *Handler) dashboardPage(c echo.Context) error {
+	summary, err := h.service.GetDashboardSummary()
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": tenants})
+	return renderComponent(
+		c,
+		adminviews.DashboardPage(
+			summary.ActiveTenants,
+			summary.AssignedActiveTenants,
+			summary.OpenJobs,
+			summary.OverdueJobs,
+			summary.HighPriorityJobs,
+			summary.Buildings,
+			summary.HousingOccupied,
+			summary.HousingCapacity,
+			summary.Activities,
+			summary.RecentAudits,
+		),
+	)
 }
 
-func (h *Handler) getTenant(c echo.Context) error {
-	id, err := uuid.Parse(c.Param("id"))
+// ---------------------------------------------------------------------------
+// tenants
+// ---------------------------------------------------------------------------
+
+func (h *Handler) tenantsPage(c echo.Context) error {
+	filter := TenantFilter{
+		Search:     c.QueryParam("search"),
+		Pagination: parsePagination(c),
+	}
+	if v := c.QueryParam("degree"); v != "" {
+		d := models.DegreeType(v)
+		filter.Degree = &d
+	}
+	if v := c.QueryParam("faculty"); v != "" {
+		f := models.FacultyType(v)
+		filter.Faculty = &f
+	}
+	if v := c.QueryParam("sex"); v != "" {
+		x := models.SexType(v)
+		filter.Sex = &x
+	}
+	if v := c.QueryParam("nationality"); v != "" {
+		n := models.NationalityType(v)
+		filter.Nationality = &n
+	}
+	if v := c.QueryParam("is_active"); v != "" {
+		b := strings.EqualFold(v, "true")
+		filter.IsActive = &b
+	}
+
+	tenants, err := h.service.ListTenants(filter)
 	if err != nil {
-		return h.writeError(c, ErrValidation)
+		return h.writeError(c, err)
+	}
+	activeAssignments, err := h.service.CountActiveAssignments()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.TenantsPage(tenants, activeAssignments > 0))
+}
+
+func (h *Handler) removeAllTenantAssignments(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.RemoveAllAssignments(actor); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/tenants")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) deactivateTenant(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.DeactivateTenant(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/tenants")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) activateTenant(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.ActivateTenant(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/tenants")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) writeMassAssignmentAlert(c echo.Context, message string, redirect bool) error {
+	payload, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+	c.Response().Header().Set("HX-Trigger", fmt.Sprintf(`{"massAssignmentAlert": %s}`, payload))
+	if redirect {
+		c.Response().Header().Set("HX-Redirect", "/administration/tenants")
+	}
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) tenantMassAssignment(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeMassAssignmentAlert(c, err.Error(), false)
+	}
+	req := TenantMassAssignmentRequest{
+		StrictGroups: c.FormValue("strict_groups"),
+		Preferences:  c.FormValue("preferences"),
+	}
+	if actor == uuid.Nil {
+		return h.writeMassAssignmentAlert(c, ErrUnauthorized.Error(), false)
+	}
+	if err := h.massAssignmentService.Run(actor, req); err != nil {
+		return h.writeMassAssignmentAlert(c, err.Error(), false)
+	}
+	return h.writeMassAssignmentAlert(c, "ok", true)
+}
+
+func (h *Handler) tenantDetailPage(c echo.Context) error {
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
 	}
 	tenant, err := h.service.GetTenant(id)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": tenant})
+	return renderComponent(c, adminviews.TenantDetailPage(tenant))
 }
 
-func (h *Handler) createTenant(c echo.Context) error {
-	principal, err := h.actor(c)
+// ---------------------------------------------------------------------------
+// inventory
+// ---------------------------------------------------------------------------
+
+func (h *Handler) inventoryPage(c echo.Context) error {
+	filter := InventoryFilter{
+		Search:        c.QueryParam("search"),
+		PurchasedFrom: parseDate(c.QueryParam("purchased_from")),
+		PurchasedTo:   parseDate(c.QueryParam("purchased_to")),
+		Pagination:    parsePagination(c),
+	}
+	if v := c.QueryParam("condition"); v != "" {
+		cond := models.InventoryCondition(v)
+		filter.Condition = &cond
+	}
+	if v := c.QueryParam("status"); v != "" {
+		st := models.InventoryStatus(v)
+		filter.Status = &st
+	}
+	items, err := h.service.ListInventory(filter)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	var body models.Tenant
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	created, err := h.service.RegisterTenant(principal, body)
+	buildings, err := h.service.ListBuildings()
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": created})
+	flats, err := h.service.ListFlats()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	rooms, err := h.service.ListRooms()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	sharedAreas, err := h.service.ListSharedAreas()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.InventoryPage(items, buildings, flats, rooms, sharedAreas, c.QueryParam("status")))
 }
 
-func (h *Handler) activateTenant(c echo.Context) error {
-	return h.updateTenantStatus(c, true)
+func (h *Handler) inventoryDetailPage(c echo.Context) error {
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	item, err := h.service.GetInventoryItem(id)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.InventoryDetailPage(item))
 }
 
-func (h *Handler) deactivateTenant(c echo.Context) error {
-	return h.updateTenantStatus(c, false)
-}
-
-func (h *Handler) updateTenantStatus(c echo.Context, active bool) error {
-	principal, err := h.actor(c)
+func (h *Handler) createInventoryItem(c echo.Context) error {
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
+	req := CreateInventoryItemRequest{
+		Name:         c.FormValue("name"),
+		Description:  c.FormValue("description"),
+		Condition:    models.InventoryCondition(c.FormValue("condition")),
+		Status:       models.InventoryStatus(c.FormValue("status")),
+		PurchaseDate: derefTime(parseDate(c.FormValue("purchase_date"))),
 	}
-	tenant, err := h.service.SetTenantActive(principal, id, active)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": tenant})
-}
-
-func (h *Handler) listRooms(c echo.Context) error {
-	rooms, err := h.service.ListRooms(RoomListFilter{
-		State:  strings.ToLower(c.QueryParam("state")),
-		Search: c.QueryParam("search"),
-	})
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": rooms})
-}
-
-func (h *Handler) getRoom(c echo.Context) error {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	room, err := h.service.GetRoom(id)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": room})
-}
-
-func (h *Handler) assignTenant(c echo.Context) error {
-	principal, err := h.actor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	var body struct {
-		TenantID uuid.UUID `json:"tenant_id"`
-		RoomID   uuid.UUID `json:"room_id"`
-	}
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	assignment, err := h.service.AssignTenant(principal, body.TenantID, body.RoomID)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": assignment})
-}
-
-func (h *Handler) generatePlan(c echo.Context) error {
-	plan, err := h.service.GenerateAllocationPlan()
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": plan})
-}
-
-func (h *Handler) approvePlan(c echo.Context) error {
-	principal, err := h.actor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	var body AssignmentPlan
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	err = h.service.ApproveAllocationPlan(principal, body)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.NoContent(http.StatusNoContent)
-}
-
-func (h *Handler) listInventory(c echo.Context) error {
-	items, err := h.service.ListInventory()
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": items})
-}
-
-func (h *Handler) createInventory(c echo.Context) error {
-	principal, err := h.actor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	var body models.InventoryItem
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	item, err := h.service.CreateInventoryItem(principal, body)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": item})
-}
-
-func (h *Handler) updateInventoryStatus(c echo.Context) error {
-	principal, err := h.actor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	var body struct {
-		Status       models.InventoryStatus    `json:"status"`
-		Condition    models.InventoryCondition `json:"condition"`
-		WithdrawDate *time.Time                `json:"withdraw_date"`
-	}
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	item, err := h.service.UpdateInventoryStatus(principal, id, body.Status, body.Condition, body.WithdrawDate)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": item})
-}
-
-func (h *Handler) listMaintenanceTickets(c echo.Context) error {
-	tickets, err := h.service.ListMaintenanceTickets(TicketListFilter{
-		ApprovalState: c.QueryParam("approval_state"),
-		Status:        c.QueryParam("status"),
-	})
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": tickets})
-}
-
-func (h *Handler) createMaintenanceTicket(c echo.Context) error {
-	principal, err := h.actor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	var body models.MaintenanceTicket
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	ticket, err := h.service.CreateMaintenanceTicket(principal, body)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": ticket})
-}
-
-func (h *Handler) approveMaintenanceTicket(c echo.Context) error {
-	principal, err := h.actor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	var body struct {
-		AssigneeUserID *uuid.UUID `json:"assignee_user_id"`
-		DueAt          *time.Time `json:"due_at"`
-	}
-	if err := c.Bind(&body); err != nil && !errors.Is(err, echo.ErrUnsupportedMediaType) {
-		return h.writeError(c, ErrValidation)
-	}
-	ticket, err := h.service.ApproveMaintenanceTicket(principal, id, body.AssigneeUserID, body.DueAt)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": ticket})
-}
-
-func (h *Handler) transitionMaintenanceTicket(c echo.Context) error {
-	principal, err := h.actor(c)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	var body struct {
-		ToStatus models.MaintenanceStatus `json:"to_status"`
-		Note     string                   `json:"note"`
-	}
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	ticket, err := h.service.TransitionMaintenanceTicket(principal, id, body.ToStatus, body.Note)
-	if err != nil {
-		return h.writeError(c, err)
-	}
-	return c.JSON(http.StatusOK, map[string]any{"data": ticket})
-}
-
-func (h *Handler) listJobs(c echo.Context) error {
-	var assigneeID *uuid.UUID
-	if q := c.QueryParam("assignee_user_id"); q != "" {
-		id, err := uuid.Parse(q)
-		if err != nil {
-			return h.writeError(c, ErrValidation)
+	if v := c.FormValue("room_id"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			req.RoomID = &id
 		}
-		assigneeID = &id
 	}
-	var date *time.Time
-	if q := c.QueryParam("date"); q != "" {
-		parsed, err := time.Parse("2006-01-02", q)
-		if err != nil {
-			return h.writeError(c, ErrValidation)
+	if v := c.FormValue("flat_id"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			req.FlatID = &id
 		}
-		date = &parsed
 	}
-	jobs, err := h.service.ListOperationalJobs(JobListFilter{
-		AssigneeUserID: assigneeID,
-		Date:           date,
-	})
+	if v := c.FormValue("building_id"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			req.BuildingID = &id
+		}
+	}
+	if v := c.FormValue("shared_area_id"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			req.SharedAreaID = &id
+		}
+	}
+	if _, err := h.service.CreateInventoryItem(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", inventoryCreateRedirect(req))
+	return c.NoContent(http.StatusOK)
+}
+
+func inventoryCreateRedirect(req CreateInventoryItemRequest) string {
+	if req.FlatID != nil {
+		return "/administration/housing/flat/" + req.FlatID.String()
+	}
+	if req.SharedAreaID != nil {
+		return "/administration/housing/shared/" + req.SharedAreaID.String()
+	}
+	return "/administration/inventory"
+}
+
+func derefTime(t *time.Time) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+	return *t
+}
+
+func (h *Handler) updateInventoryItemStatus(c echo.Context) error {
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": jobs})
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := UpdateInventoryStatusRequest{
+		ID:     id,
+		Status: models.InventoryStatus(c.FormValue("status")),
+	}
+	if v := c.FormValue("condition"); v != "" {
+		cond := models.InventoryCondition(v)
+		req.Condition = &cond
+	}
+	if _, err := h.service.UpdateInventoryItemStatus(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/inventory/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) deleteInventoryItem(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.DeleteInventoryItem(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/inventory")
+	return c.NoContent(http.StatusOK)
+}
+
+// ---------------------------------------------------------------------------
+// jobs
+// ---------------------------------------------------------------------------
+
+func (h *Handler) jobsPage(c echo.Context) error {
+	pagination := parsePagination(c)
+	if pagination.Sort == "" {
+		pagination.Sort = "ends_at"
+	}
+	if pagination.Order == "" {
+		pagination.Order = "asc"
+	}
+	filter := JobsFilter{
+		Search:     c.QueryParam("search"),
+		From:       parseDate(c.QueryParam("from")),
+		To:         parseDate(c.QueryParam("to")),
+		Pagination: pagination,
+	}
+	if v := c.QueryParam("priority"); v != "" {
+		p := models.JobPriority(v)
+		filter.Priority = &p
+	}
+	if v := c.QueryParam("status"); v != "" {
+		s := models.JobStatus(v)
+		filter.Status = &s
+	}
+	jobs, err := h.service.ListJobs(filter)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.JobsPage(jobs))
+}
+
+func (h *Handler) jobDetailPage(c echo.Context) error {
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	job, err := h.service.GetJob(id)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.JobDetailPage(job))
 }
 
 func (h *Handler) createJob(c echo.Context) error {
-	principal, err := h.actor(c)
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	var body struct {
-		models.OperationalJob
-		AllowConflict bool `json:"allow_conflict"`
+	req := CreateJobRequest{
+		Title:       c.FormValue("title"),
+		Description: c.FormValue("description"),
+		StartsAt:    derefTime(parseDateAndTime(c.FormValue("starts_at_date"), c.FormValue("starts_at_time"))),
+		EndsAt:      derefTime(parseDateAndTime(c.FormValue("ends_at_date"), c.FormValue("ends_at_time"))),
+		Priority:    models.JobPriority(c.FormValue("priority")),
+		Status:      models.JobStatus(c.FormValue("status")),
 	}
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	result, err := h.service.CreateOperationalJob(principal, body.OperationalJob, body.AllowConflict)
-	if err != nil {
+	if _, err := h.service.CreateJob(actor, req); err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": result})
+	c.Response().Header().Set("HX-Redirect", "/administration/jobs")
+	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) listNews(c echo.Context) error {
-	posts, err := h.service.ListNews()
+func (h *Handler) updateJob(c echo.Context) error {
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": posts})
+	id, err := queryUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := UpdateJobRequest{
+		ID:          id,
+		Title:       optString(c.FormValue("title")),
+		Description: optString(c.FormValue("description")),
+		StartsAt:    parseDate(c.FormValue("starts_at")),
+		EndsAt:      parseDate(c.FormValue("ends_at")),
+	}
+	if v := c.FormValue("priority"); v != "" {
+		p := models.JobPriority(v)
+		req.Priority = &p
+	}
+	if v := c.FormValue("status"); v != "" {
+		st := models.JobStatus(v)
+		req.Status = &st
+	}
+	if _, err := h.service.UpdateJob(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/jobs/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) DeleteJob(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := queryUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.DeleteJob(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/jobs")
+	return c.NoContent(http.StatusOK)
+}
+
+// ---------------------------------------------------------------------------
+// publications (news / activities / events)
+// ---------------------------------------------------------------------------
+
+func (h *Handler) publicationsPage(c echo.Context) error {
+	filter := PublicationFilter{
+		Search:     c.QueryParam("search"),
+		Kind:       PublicationKind(c.QueryParam("kind")),
+		From:       parseDate(c.QueryParam("from")),
+		To:         parseDate(c.QueryParam("to")),
+		Pagination: parsePagination(c),
+	}
+	if v := c.QueryParam("state"); v != "" {
+		st := models.PublicationState(v)
+		filter.State = &st
+	}
+	pubs, err := h.service.ListPublications(filter)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	items := make([]adminviews.PublicationListItem, len(pubs))
+	for i, pub := range pubs {
+		item := adminviews.PublicationListItem{
+			Publication: pub.Publication,
+			Kind:        string(pub.Kind),
+		}
+		if pub.Activity != nil {
+			item.Activity = &adminviews.ActivityStats{
+				Capacity:    pub.Activity.Capacity,
+				BookedCount: pub.Activity.BookedCount,
+			}
+		}
+		if pub.Event != nil {
+			item.Event = &adminviews.EventInterestStats{
+				Interested:    pub.Event.Interested,
+				NotInterested: pub.Event.NotInterested,
+				Busy:          pub.Event.Busy,
+			}
+		}
+		items[i] = item
+	}
+	sharedAreas, err := h.service.ListSharedAreas()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.PublicationsPage(items, sharedAreas, string(filter.Kind)))
+}
+
+func (h *Handler) publicationDetailPage(c echo.Context) error {
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	detail, err := h.service.GetPublication(id)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	switch detail.Kind {
+	case PublicationKindNews:
+		return renderComponent(c, adminviews.NewsDetailPage(*detail.News))
+	case PublicationKindActivity:
+		return renderComponent(c, adminviews.ActivityDetailPage(*detail.Activity))
+	case PublicationKindEvent:
+		return renderComponent(c, adminviews.EventDetailPage(*detail.Event))
+	default:
+		return h.writeError(c, ErrNotFound)
+	}
 }
 
 func (h *Handler) createNews(c echo.Context) error {
-	principal, err := h.actor(c)
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	var body NewsUpsertInput
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
+	req := CreateNewsRequest{
+		Title:       c.FormValue("title"),
+		Description: c.FormValue("description"),
+		State:       models.PublicationState(c.FormValue("state")),
 	}
-	post, err := h.service.CreateNews(principal, body)
-	if err != nil {
+	if _, err := h.service.CreateNews(actor, req); err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": post})
+	c.Response().Header().Set("HX-Redirect", "/administration/publications")
+	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) publishNews(c echo.Context) error {
-	principal, err := h.actor(c)
+func (h *Handler) archiveNews(c echo.Context) error {
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	post, err := h.service.PublishNews(principal, id)
+	id, err := paramUUID(c, "id")
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": post})
+	if err := h.service.ArchiveNews(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/publications")
+	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) listActivities(c echo.Context) error {
-	activities, err := h.service.ListActivities()
+func (h *Handler) updateNewsState(c echo.Context) error {
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": activities})
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	state := models.PublicationState(c.FormValue("state"))
+	if err := h.service.UpdateNewsState(actor, id, state); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/publications/"+id.String())
+	return c.NoContent(http.StatusOK)
 }
 
 func (h *Handler) createActivity(c echo.Context) error {
-	principal, err := h.actor(c)
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	var body ActivityUpsertInput
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
+	capacity, _ := strconv.Atoi(c.FormValue("capacity"))
+	req := CreateActivityRequest{
+		Title:       c.FormValue("title"),
+		Description: c.FormValue("description"),
+		State:       models.PublicationState(c.FormValue("state")),
+		Capacity:    capacity,
 	}
-	activity, err := h.service.CreateActivity(principal, body)
-	if err != nil {
+	if v := c.FormValue("shared_area_id"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			req.SharedAreaID = &id
+		}
+	}
+	if _, err := h.service.CreateActivity(actor, req); err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": activity})
+	c.Response().Header().Set("HX-Redirect", "/administration/publications")
+	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) publishActivity(c echo.Context) error {
-	principal, err := h.actor(c)
+func (h *Handler) archiveActivity(c echo.Context) error {
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	activity, err := h.service.PublishActivity(principal, id)
+	id, err := paramUUID(c, "id")
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": activity})
+	if err := h.service.ArchiveActivity(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/publications")
+	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) listEvents(c echo.Context) error {
-	events, err := h.service.ListEvents()
+func (h *Handler) updateActivityState(c echo.Context) error {
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": events})
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	state := models.PublicationState(c.FormValue("state"))
+	if err := h.service.UpdateActivityState(actor, id, state); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/publications/"+id.String())
+	return c.NoContent(http.StatusOK)
 }
 
 func (h *Handler) createEvent(c echo.Context) error {
-	principal, err := h.actor(c)
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	var body EventUpsertInput
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
+	req := CreateEventRequest{
+		Title:       c.FormValue("title"),
+		Description: c.FormValue("description"),
+		State:       models.PublicationState(c.FormValue("state")),
+		StartsAt:    derefTime(parseDateAndTime(c.FormValue("starts_at_date"), c.FormValue("starts_at_time"))),
+		EndsAt:      derefTime(parseDateAndTime(c.FormValue("ends_at_date"), c.FormValue("ends_at_time"))),
 	}
-	if body.OrganizerUserID == uuid.Nil {
-		body.OrganizerUserID = principal.UserID
+	if v := c.FormValue("shared_area_id"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			req.SharedAreaID = &id
+		}
 	}
-	event, err := h.service.CreateEvent(principal, body)
+	if _, err := h.service.CreateEvent(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/publications")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) archiveEvent(c echo.Context) error {
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusCreated, map[string]any{"data": event})
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.ArchiveEvent(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/publications")
+	return c.NoContent(http.StatusOK)
 }
 
 func (h *Handler) updateEventState(c echo.Context) error {
-	principal, err := h.actor(c)
+	actor, err := actorID(c)
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	var body struct {
-		State models.PublicationState `json:"state"`
-	}
-	if err := c.Bind(&body); err != nil {
-		return h.writeError(c, ErrValidation)
-	}
-	event, err := h.service.UpdateEventState(principal, id, body.State)
+	id, err := paramUUID(c, "id")
 	if err != nil {
 		return h.writeError(c, err)
 	}
-	return c.JSON(http.StatusOK, map[string]any{"data": event})
+	state := models.PublicationState(c.FormValue("state"))
+	if err := h.service.UpdateEventState(actor, id, state); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/publications/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
+// ---------------------------------------------------------------------------
+// housing
+// ---------------------------------------------------------------------------
+
+func (h *Handler) housingPage(c echo.Context) error {
+	buildings, err := h.service.ListBuildings()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.HousingPage(buildings))
+}
+
+func (h *Handler) createBuilding(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := CreateBuildingRequest{
+		Name: c.FormValue("name"),
+		Code: c.FormValue("code"),
+	}
+	if _, err := h.service.CreateBuilding(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) buildingDetail(c echo.Context) error {
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	b, err := h.service.GetBuilding(id)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.BuildingDetailPage(b))
+}
+
+func (h *Handler) updateBuilding(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := UpdateBuildingRequest{
+		Name: optString(c.FormValue("name")),
+		Code: optString(c.FormValue("code")),
+	}
+	if _, err := h.service.UpdateBuilding(actor, id, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/building/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) deleteBuilding(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.DeleteBuilding(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) createFlat(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	buildingID, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	floor, _ := strconv.Atoi(c.FormValue("floor"))
+	req := CreateFlatRequest{
+		BuildingID: buildingID,
+		Name:       c.FormValue("name"),
+		Floor:      floor,
+	}
+	if _, err := h.service.CreateFlat(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/building/"+buildingID.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) createSharedArea(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	buildingID, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := CreateSharedAreaRequest{
+		BuildingID: buildingID,
+		Name:       c.FormValue("name"),
+		Code:       c.FormValue("code"),
+	}
+	if _, err := h.service.CreateSharedArea(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/building/"+buildingID.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) flatDetail(c echo.Context) error {
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	f, err := h.service.GetFlat(id)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.FlatDetailPage(f))
+}
+
+func (h *Handler) updateFlat(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := UpdateFlatRequest{Name: optString(c.FormValue("name"))}
+	if v := c.FormValue("floor"); v != "" {
+		floor, err := strconv.Atoi(v)
+		if err != nil {
+			return h.writeError(c, ErrValidation)
+		}
+		req.Floor = &floor
+	}
+	if _, err := h.service.UpdateFlat(actor, id, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/flat/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) deleteFlat(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	flat, err := h.service.GetFlat(id)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.DeleteFlat(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	if flat.BuildingID != nil {
+		c.Response().Header().Set("HX-Redirect", "/administration/housing/building/"+flat.BuildingID.String())
+	} else {
+		c.Response().Header().Set("HX-Redirect", "/administration/housing")
+	}
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) createRoom(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	flatID, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	capacity, _ := strconv.Atoi(c.FormValue("capacity"))
+	if capacity < 1 {
+		capacity = 1
+	}
+	req := CreateRoomRequest{
+		FlatID:   flatID,
+		Number:   c.FormValue("number"),
+		Capacity: capacity,
+	}
+	if _, err := h.service.CreateRoom(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/flat/"+flatID.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) sharedAreaDetail(c echo.Context) error {
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	sa, err := h.service.GetSharedArea(id)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.SharedAreaDetailPage(sa))
+}
+
+func (h *Handler) updateSharedArea(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := UpdateSharedAreaRequest{
+		Name: optString(c.FormValue("name")),
+		Code: optString(c.FormValue("code")),
+	}
+	if _, err := h.service.UpdateSharedArea(actor, id, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/shared/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) deleteSharedArea(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	area, err := h.service.GetSharedArea(id)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.DeleteSharedArea(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	if area.BuildingID != nil {
+		c.Response().Header().Set("HX-Redirect", "/administration/housing/building/"+area.BuildingID.String())
+	} else {
+		c.Response().Header().Set("HX-Redirect", "/administration/housing")
+	}
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) roomDetail(c echo.Context) error {
+	id, err := paramUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	r, err := h.service.GetRoom(id)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	tenants, err := h.service.ListActiveTenants()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.RoomDetailPage(r, tenants))
+}
+
+// ---------------------------------------------------------------------------
+// room assignments
+// ---------------------------------------------------------------------------
+
+func (h *Handler) assign(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	tenantID, err := uuid.Parse(c.FormValue("tenant_id"))
+	if err != nil {
+		return h.writeError(c, ErrValidation)
+	}
+	roomID, err := uuid.Parse(c.FormValue("room_id"))
+	if err != nil {
+		return h.writeError(c, ErrValidation)
+	}
+	req := AssignRoomRequest{
+		TenantID:    tenantID,
+		RoomID:      roomID,
+		EffectiveAt: parseDate(c.FormValue("effective_at")),
+	}
+	if _, err := h.service.AssignRoom(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing/room/"+roomID.String())
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) massAssignment(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	var req MassAssignRequest
+	if err := c.Bind(&req); err != nil {
+		return h.writeError(c, ErrValidation)
+	}
+	if _, err := h.service.MassAssignRooms(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) updateAssignment(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := queryUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := UpdateAssignmentRequest{
+		ID:          id,
+		EffectiveAt: parseDate(c.FormValue("effective_at")),
+		EndedAt:     parseDate(c.FormValue("ended_at")),
+	}
+	if v := c.FormValue("room_id"); v != "" {
+		if rid, err := uuid.Parse(v); err == nil {
+			req.RoomID = &rid
+		}
+	}
+	if _, err := h.service.UpdateAssignment(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) deleteAssignment(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := queryUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	if err := h.service.DeleteAssignment(actor, id); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/housing")
+	return c.NoContent(http.StatusOK)
+}
+
+// ---------------------------------------------------------------------------
+// users (registration page + create/update endpoints)
+// ---------------------------------------------------------------------------
+
+func (h *Handler) registerUserPage(c echo.Context) error {
+	roles, err := h.service.ListRoles()
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.RegisterUserPage(roles))
+}
+
+func (h *Handler) registerUser(c echo.Context) error {
+	actor, err := actorID(c)
+	fmt.Println("actor", actor)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := RegisterUserRequest{
+		Name:        c.FormValue("name"),
+		Email:       c.FormValue("email"),
+		Nickname:    c.FormValue("nickname"),
+		Password:    c.FormValue("password"),
+		AvatarURL:   c.FormValue("avatar_url"),
+		PhotoURL:    c.FormValue("photo_url"),
+		StudentCode: c.FormValue("student_code"),
+	}
+	if v := c.FormValue("role_id"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			req.RoleID = id
+		}
+	}
+	if v := c.FormValue("degree"); v != "" {
+		d := models.DegreeType(v)
+		req.Degree = &d
+	}
+	if v := c.FormValue("faculty"); v != "" {
+		f := models.FacultyType(v)
+		req.Faculty = &f
+	}
+	if v := c.FormValue("age"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			req.Age = &n
+		}
+	}
+	if v := c.FormValue("sex"); v != "" {
+		x := models.SexType(v)
+		req.Sex = &x
+	}
+	if v := c.FormValue("nationality"); v != "" {
+		n := models.NationalityType(v)
+		req.Nationality = &n
+	}
+	if _, err := h.service.RegisterUser(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/tenants")
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) updateUser(c echo.Context) error {
+	actor, err := actorID(c)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	id, err := queryUUID(c, "id")
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	req := UpdateUserRequest{
+		ID:        id,
+		Name:      optString(c.FormValue("name")),
+		Email:     optString(c.FormValue("email")),
+		Nickname:  optString(c.FormValue("nickname")),
+		Password:  optString(c.FormValue("password")),
+		AvatarURL: optString(c.FormValue("avatar_url")),
+		PhotoURL:  optString(c.FormValue("photo_url")),
+	}
+	if v := c.FormValue("role_id"); v != "" {
+		if rid, err := uuid.Parse(v); err == nil {
+			req.RoleID = &rid
+		}
+	}
+	if v := c.FormValue("is_active"); v != "" {
+		b := strings.EqualFold(v, "true")
+		req.IsActive = &b
+	}
+	if _, err := h.service.UpdateUser(actor, req); err != nil {
+		return h.writeError(c, err)
+	}
+	c.Response().Header().Set("HX-Redirect", "/administration/tenants/"+id.String())
+	return c.NoContent(http.StatusOK)
+}
+
+// ---------------------------------------------------------------------------
+// audit log
+// ---------------------------------------------------------------------------
+
+func (h *Handler) auditPage(c echo.Context) error {
+	filter := AuditLogFilter{
+		TableName:  c.QueryParam("table_name"),
+		Operation:  c.QueryParam("operation"),
+		From:       parseDate(c.QueryParam("from")),
+		To:         parseDate(c.QueryParam("to")),
+		Pagination: parsePagination(c),
+	}
+	if v := c.QueryParam("changed_by"); v != "" {
+		if id, err := uuid.Parse(v); err == nil {
+			filter.ChangedBy = &id
+		}
+	}
+	logs, err := h.service.ListAuditLogs(filter)
+	if err != nil {
+		return h.writeError(c, err)
+	}
+	return renderComponent(c, adminviews.AuditPage(logs))
 }

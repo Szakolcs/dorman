@@ -1,0 +1,21 @@
+package doormanviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	dv "dorm-man/web/templates/doorman/partials"
+)
+
+templ GuestsPage(guests []models.GuestEntry, tenants []models.Tenant, fromDate, toDate, fromHour, toHour, status string) {
+	@dv.Layout("Guests") {
+		@dv.Navigation()
+		<div class={ partials.Cls.Page }>
+			@partials.PageHeader("Guests", "Register and manage guest access.")
+			@dv.GuestFilters(fromDate, toDate, fromHour, toHour, status)
+			<div id="guest-table" class={ partials.Cls.Card }>
+				@dv.GuestTable(guests, tenants)
+			</div>
+		</div>
+		<script src="/static/js/doorman-filters.js"></script>
+	}
+}

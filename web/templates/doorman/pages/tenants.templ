@@ -1,0 +1,24 @@
+package doormanviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	dv "dorm-man/web/templates/doorman/partials"
+)
+
+templ TenantAccessPage(entries []models.TenantEntry, fromDate, toDate, fromHour, toHour, status string) {
+	@dv.Layout("Tenant Access") {
+		@dv.Navigation()
+		<div class={ partials.Cls.Page }>
+			@partials.PageHeader("Tenant Access", "View and filter tenant access history.")
+			@dv.TenantAccessFilters(fromDate, toDate, fromHour, toHour, status)
+			<div
+				id="tenant-access-table"
+				class={ partials.Cls.Card }
+			>
+				@dv.TenantAccessTable(entries)
+			</div>
+		</div>
+		<script src="/static/js/doorman-filters.js"></script>
+	}
+}

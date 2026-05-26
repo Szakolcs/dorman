@@ -1,0 +1,674 @@
+{
+  "request": {
+    "strict_groups": "sex,nationality",
+    "preferences": "degree,faculty"
+  },
+  "tenants": [
+    {
+      "id": "STU001",
+      "degree": "bsc",
+      "faculty": "Law",
+      "age": 20,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU002",
+      "degree": "msc",
+      "faculty": "Law",
+      "age": 24,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU003",
+      "degree": "ba",
+      "faculty": "Law",
+      "age": 21,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU004",
+      "degree": "phd",
+      "faculty": "Medicine",
+      "age": 29,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU005",
+      "degree": "bsc",
+      "faculty": "Medicine",
+      "age": 19,
+      "sex": "other",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU006",
+      "degree": "ma",
+      "faculty": "Psychology",
+      "age": 25,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU007",
+      "degree": "msc",
+      "faculty": "Medicine",
+      "age": 23,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU008",
+      "degree": "ba",
+      "faculty": "History",
+      "age": 22,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU009",
+      "degree": "bsc",
+      "faculty": "Medicine",
+      "age": 20,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU010",
+      "degree": "phd",
+      "faculty": "History",
+      "age": 31,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU011",
+      "degree": "msc",
+      "faculty": "Medicine",
+      "age": 26,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU012",
+      "degree": "ba",
+      "faculty": "History",
+      "age": 18,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU013",
+      "degree": "bsc",
+      "faculty": "Medicine",
+      "age": 21,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU014",
+      "degree": "ma",
+      "faculty": "History",
+      "age": 27,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU015",
+      "degree": "bsc",
+      "faculty": "Medicinee",
+      "age": 20,
+      "sex": "other",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU016",
+      "degree": "msc",
+      "faculty": "History",
+      "age": 24,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU017",
+      "degree": "phd",
+      "faculty": "Medicine",
+      "age": 34,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU018",
+      "degree": "ma",
+      "faculty": "Robotics",
+      "age": 28,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU019",
+      "degree": "bsc",
+      "faculty": "Robotics",
+      "age": 22,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU020",
+      "degree": "ba",
+      "faculty": "Robotics",
+      "age": 21,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU021",
+      "degree": "msc",
+      "faculty": "Robotics",
+      "age": 25,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU022",
+      "degree": "ma",
+      "faculty": "Robotics",
+      "age": 26,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU023",
+      "degree": "bsc",
+      "faculty": "Robotics",
+      "age": 19,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU024",
+      "degree": "ba",
+      "faculty": "Medicine",
+      "age": 20,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU025",
+      "degree": "phd",
+      "faculty": "Robotics",
+      "age": 33,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU026",
+      "degree": "msc",
+      "faculty": "Medicine",
+      "age": 24,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU027",
+      "degree": "bsc",
+      "faculty": "Robotics",
+      "age": 22,
+      "sex": "other",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU028",
+      "degree": "ma",
+      "faculty": "Robotics",
+      "age": 27,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU029",
+      "degree": "msc",
+      "faculty": "Robotics",
+      "age": 25,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU030",
+      "degree": "phd",
+      "faculty": "Neuroscience",
+      "age": 36,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU031",
+      "degree": "bsc",
+      "faculty": "Environmental Science",
+      "age": 20,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU032",
+      "degree": "ba",
+      "faculty": "Graphic Design",
+      "age": 21,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU033",
+      "degree": "msc",
+      "faculty": "Software Engineering",
+      "age": 24,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU034",
+      "degree": "ma",
+      "faculty": "Agriculture",
+      "age": 28,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU035",
+      "degree": "bsc",
+      "faculty": "Agriculture",
+      "age": 19,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU036",
+      "degree": "msc",
+      "faculty": "Medicine",
+      "age": 23,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU037",
+      "degree": "phd",
+      "faculty": "Quantum Computing",
+      "age": 35,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU038",
+      "degree": "ba",
+      "faculty": "Film Studies",
+      "age": 22,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU039",
+      "degree": "bsc",
+      "faculty": "Agriculture",
+      "age": 21,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU040",
+      "degree": "ma",
+      "faculty": "Agriculture",
+      "age": 29,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU041",
+      "degree": "msc",
+      "faculty": "Cloud Computing",
+      "age": 25,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU042",
+      "degree": "ba",
+      "faculty": "Agriculture",
+      "age": 20,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU043",
+      "degree": "phd",
+      "faculty": "Public Health",
+      "age": 38,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU044",
+      "degree": "msc",
+      "faculty": "Game Development",
+      "age": 24,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU045",
+      "degree": "bsc",
+      "faculty": "Physics",
+      "age": 22,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU046",
+      "degree": "ma",
+      "faculty": "Cultural Studies",
+      "age": 30,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU047",
+      "degree": "msc",
+      "faculty": "Physics",
+      "age": 26,
+      "sex": "other",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU048",
+      "degree": "ba",
+      "faculty": "Physics",
+      "age": 23,
+      "sex": "female",
+      "nationality": "international"
+    },
+    {
+      "id": "STU049",
+      "degree": "phd",
+      "faculty": "Physics",
+      "age": 40,
+      "sex": "male",
+      "nationality": "hungarian"
+    },
+    {
+      "id": "STU050",
+      "degree": "msc",
+      "faculty": "Physics",
+      "age": 27,
+      "sex": "female",
+      "nationality": "international"
+    }
+  ],
+  "flats": [
+    {
+      "id": "Flat A1",
+      "rooms": [
+        {
+          "id": "A1-R1",
+          "capacity": 3
+        },
+        {
+          "id": "A1-R2",
+          "capacity": 2
+        },
+        {
+          "id": "A1-R3",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat A2",
+      "rooms": [
+        {
+          "id": "A2-R1",
+          "capacity": 2
+        },
+        {
+          "id": "A2-R2",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat A3",
+      "rooms": [
+        {
+          "id": "A3-R1",
+          "capacity": 3
+        },
+        {
+          "id": "A3-R2",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat A4",
+      "rooms": [
+        {
+          "id": "A4-R1",
+          "capacity": 2
+        },
+        {
+          "id": "A4-R2",
+          "capacity": 2
+        }
+      ]
+    },
+    {
+      "id": "Flat A5",
+      "rooms": [
+        {
+          "id": "A5-R1",
+          "capacity": 1
+        },
+        {
+          "id": "A5-R2",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat B1",
+      "rooms": [
+        {
+          "id": "B1-R1",
+          "capacity": 3
+        },
+        {
+          "id": "B1-R2",
+          "capacity": 2
+        }
+      ]
+    },
+    {
+      "id": "Flat B2",
+      "rooms": [
+        {
+          "id": "B2-R1",
+          "capacity": 2
+        },
+        {
+          "id": "B2-R2",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat B3",
+      "rooms": [
+        {
+          "id": "B3-R1",
+          "capacity": 3
+        },
+        {
+          "id": "B3-R2",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat B4",
+      "rooms": [
+        {
+          "id": "B4-R1",
+          "capacity": 2
+        },
+        {
+          "id": "B4-R2",
+          "capacity": 2
+        }
+      ]
+    },
+    {
+      "id": "Flat B5",
+      "rooms": [
+        {
+          "id": "B5-R1",
+          "capacity": 1
+        },
+        {
+          "id": "B5-R2",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat C1",
+      "rooms": [
+        {
+          "id": "C1-R1",
+          "capacity": 3
+        },
+        {
+          "id": "C1-R2",
+          "capacity": 2
+        }
+      ]
+    },
+    {
+      "id": "Flat C2",
+      "rooms": [
+        {
+          "id": "C2-R1",
+          "capacity": 2
+        },
+        {
+          "id": "C2-R2",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat C3",
+      "rooms": [
+        {
+          "id": "C3-R1",
+          "capacity": 3
+        },
+        {
+          "id": "C3-R2",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat C4",
+      "rooms": [
+        {
+          "id": "C4-R1",
+          "capacity": 2
+        },
+        {
+          "id": "C4-R2",
+          "capacity": 2
+        }
+      ]
+    },
+    {
+      "id": "Flat C5",
+      "rooms": [
+        {
+          "id": "C5-R1",
+          "capacity": 1
+        },
+        {
+          "id": "C5-R2",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat D1",
+      "rooms": [
+        {
+          "id": "D1-R1",
+          "capacity": 3
+        },
+        {
+          "id": "D1-R2",
+          "capacity": 2
+        }
+      ]
+    },
+    {
+      "id": "Flat D2",
+      "rooms": [
+        {
+          "id": "D2-R1",
+          "capacity": 2
+        },
+        {
+          "id": "D2-R2",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat D3",
+      "rooms": [
+        {
+          "id": "D3-R1",
+          "capacity": 3
+        },
+        {
+          "id": "D3-R2",
+          "capacity": 1
+        }
+      ]
+    },
+    {
+      "id": "Flat D4",
+      "rooms": [
+        {
+          "id": "D4-R1",
+          "capacity": 2
+        },
+        {
+          "id": "D4-R2",
+          "capacity": 2
+        }
+      ]
+    },
+    {
+      "id": "Flat D5",
+      "rooms": [
+        {
+          "id": "D5-R1",
+          "capacity": 1
+        },
+        {
+          "id": "D5-R2",
+          "capacity": 1
+        }
+      ]
+    }
+  ]
+}

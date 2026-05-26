@@ -1,0 +1,43 @@
+package doormanviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ LastFiveTenantAccess(entries []models.TenantEntry) {
+	<div id="last-five">
+		@partials.Card("Last 5 Entries") {
+			@partials.TableWrap() {
+				<table class={ partials.Cls.Table }>
+					<thead class={ partials.Cls.TableHead }>
+						<tr class={ partials.Cls.TableTr }>
+							<th class={ partials.Cls.TableTh }>Tenant</th>
+							<th class={ partials.Cls.TableTh }>Status</th>
+							<th class={ partials.Cls.TableTh }>Time</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, entry := range entries {
+							<tr class={ partials.Cls.TableTr }>
+								<td class={ partials.Cls.TableTd }>
+									if entry.User != nil {
+										{ entry.User.Name }
+									} else {
+										unknown
+									}
+								</td>
+								<td class={ partials.Cls.TableTd }>
+									{ string(entry.Status) }
+								</td>
+								<td class={ partials.Cls.TableTd }>
+									{ entry.TimeOfEntry.Format("2006-01-02 15:04") }
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		}
+	</div>
+}

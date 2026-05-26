@@ -1,0 +1,61 @@
+package maintenanceviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	"fmt"
+)
+
+templ TicketTable(tickets []models.Ticket, detailPrefix string) {
+	if len(tickets) == 0 {
+		<p class={ partials.Cls.Empty }>No tickets found.</p>
+	} else {
+		@partials.TableWrap() {
+			<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Reported</th>
+					<th class={ partials.Cls.TableTh }>Category</th>
+					<th class={ partials.Cls.TableTh }>Severity</th>
+					<th class={ partials.Cls.TableTh }>Status</th>
+					<th class={ partials.Cls.TableTh }>Reporter</th>
+					<th class={ partials.Cls.TableTh }></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, ticket := range tickets {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>
+							{ ticket.CreatedAt.Format("2006-01-02 15:04") }
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							{ string(ticket.Category) }
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							{ string(ticket.Severity) }
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							{ string(ticket.Status) }
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							if ticket.CreatedByUser != nil {
+								{ ticket.CreatedByUser.Name }
+							} else {
+								{ fmt.Sprintf("%s", ticket.CreatedByUserID) }
+							}
+						</td>
+						<td class={ partials.Cls.TableTd }>
+							<a
+								href={ templ.SafeURL(detailPrefix + ticket.ID.String()) }
+								class={ partials.Cls.Link }
+							>
+								View
+							</a>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+		}
+	}
+}

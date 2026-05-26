@@ -1,0 +1,190 @@
+package maintenanceviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ TicketUpdateForm(ticket models.Ticket) {
+	<form
+		hx-put={ "/maintenance/tickets/" + ticket.ID.String() }
+		class={ partials.Cls.Form }
+	>
+		<label for="status" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Status</span>
+			<select
+				id="status"
+				name="status"
+				class={ partials.Cls.Select }
+				required
+			>
+				<option
+					value="reported"
+					selected?={ ticket.Status == models.StatusReported }
+				>
+					Reported
+				</option>
+				<option
+					value="duplicate"
+					selected?={ ticket.Status == models.StatusDuplicate }
+				>
+					Duplicate
+				</option>
+				<option
+					value="in_progress"
+					selected?={ ticket.Status == models.StatusInProgress }
+				>
+					In Progress
+				</option>
+				<option
+					value="halted"
+					selected?={ ticket.Status == models.StatusHalted }
+				>
+					Halted
+				</option>
+				<option
+					value="resolved"
+					selected?={ ticket.Status == models.StatusResolved }
+				>
+					Resolved
+				</option>
+				<option
+					value="closed"
+					selected?={ ticket.Status == models.StatusClosed }
+				>
+					Closed
+				</option>
+			</select>
+		</label>
+		<label for="category" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Category</span>
+			<select
+				id="category"
+				name="category"
+				class={ partials.Cls.Select }
+			>
+				<option
+					value="yearly"
+					selected?={ ticket.Category == models.CategoryYearly }
+				>
+					Yearly
+				</option>
+				<option
+					value="monthly"
+					selected?={ ticket.Category == models.CategoryMonthly }
+				>
+					Monthly
+				</option>
+				<option
+					value="weekly"
+					selected?={ ticket.Category == models.CategoryWeekly }
+				>
+					Weekly
+				</option>
+				<option
+					value="incident"
+					selected?={ ticket.Category == models.CategoryIncident }
+				>
+					Incident
+				</option>
+			</select>
+		</label>
+		<label for="severity" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Severity</span>
+			<select
+				id="severity"
+				name="severity"
+				class={ partials.Cls.Select }
+			>
+				<option
+					value="high"
+					selected?={ ticket.Severity == models.SeverityHigh }
+				>
+					High
+				</option>
+				<option
+					value="medium"
+					selected?={ ticket.Severity == models.SeverityMedium }
+				>
+					Medium
+				</option>
+				<option
+					value="low"
+					selected?={ ticket.Severity == models.SeverityLow }
+				>
+					Low
+				</option>
+			</select>
+		</label>
+		<label for="impact" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Impact</span>
+			<select
+				id="impact"
+				name="impact"
+				class={ partials.Cls.Select }
+			>
+				<option
+					value="life_threatening"
+					selected?={ ticket.Impact == models.ImpactLifeThreatening }
+				>
+					Life threatening
+				</option>
+				<option
+					value="affects_daily_life"
+					selected?={ ticket.Impact == models.ImpactAffectsDaily }
+				>
+					Affects daily life
+				</option>
+				<option
+					value="inconvenience"
+					selected?={ ticket.Impact == models.ImpactInconvenience }
+				>
+					Inconvenience
+				</option>
+				<option
+					value="beauty_flaw"
+					selected?={ ticket.Impact == models.ImpactBeautyFlaw }
+				>
+					Beauty flaw
+				</option>
+			</select>
+		</label>
+		<label for="description" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Description</span>
+			<textarea
+				id="description"
+				name="description"
+				class={ partials.Cls.Textarea }
+				rows="4"
+			>{ ticket.Description }</textarea>
+		</label>
+		<label for="note" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Status change note</span>
+			<textarea
+				id="note"
+				name="note"
+				class={ partials.Cls.Textarea }
+				rows="2"
+				placeholder="Optional note for status transition"
+			></textarea>
+		</label>
+		<div class={ partials.Cls.FormActions }>
+			<button
+				type="submit"
+				class={ partials.Cls.Button }
+			>
+				Update Ticket
+			</button>
+		</div>
+	</form>
+	<form
+		class={ partials.Cls.FormActions }
+		hx-delete={ "/maintenance/tickets/" + ticket.ID.String() }
+		hx-swap="none"
+		hx-confirm="Delete this ticket?"
+	>
+		<button type="submit" class={ partials.Cls.ButtonDanger }>
+			Delete
+		</button>
+	</form>
+}

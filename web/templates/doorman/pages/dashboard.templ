@@ -1,0 +1,19 @@
+package doormanviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	dv "dorm-man/web/templates/doorman/partials"
+)
+
+templ DashboardPage(entries []models.TenantEntry,tenants []models.Tenant) {
+	@dv.Layout("Doorman Dashboard") {
+		@dv.Navigation()
+		<div class={ partials.Cls.Page }>
+			@partials.Card("Register Tenant Access") {
+				@dv.AccessForm(tenants)
+			}
+			@dv.LastFiveTenantAccess(entries)
+		</div>
+	}
+}

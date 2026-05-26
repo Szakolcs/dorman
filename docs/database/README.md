@@ -1,23 +1,26 @@
 # Database documentation
 
-This directory holds **module-scoped** database declarations: tables (or views) each module relies on, their **purpose**, and **relationships** to other tables. It complements the global entity list in [data-model.md](../specifications/data-model.md), which remains the canonical high-level inventory.
+Module-scoped relational design: tables (and views) each module owns or depends on, column purposes, keys, and **cross-module dependencies**. Aligns with the matching [specifications](../specifications/) and [requirements](../requirements/) documents.
 
 ## Module documents
 
+| Document | Module | Specification |
+|----------|--------|---------------|
+| [administration.md](administration.md) | Administration and Office | [administration-office.md](../specifications/administration-office.md) |
+| [doorman.md](doorman.md) | Doorman operations | [doorman.md](../specifications/doorman.md) |
+| [forum.md](forum.md) | Tenant forum | [forum.md](../specifications/forum.md) |
+| [chat.md](chat.md) | Tenant chat | [chat.md](../specifications/chat.md) |
+| [platform.md](platform.md) | Platform / cross-cutting | [platform.md](../specifications/platform.md) |
 
-| Document                               | Module                    |
-| -------------------------------------- | ------------------------- |
-| [administration.md](administration.md) | Administration and Office |
-| [doorman.md](doorman.md)               | Doorman operations        |
-| [forum.md](forum.md)                   | Forum module              |
-| [chat.md](chat.md)                     | Chat module               |
+Each module document includes scope (owned vs. read-only tables) and a **Cross-Module Dependencies** (or boundaries) section.
 
+## Conventions
 
-Additional module documents (for example doorman, forum, chat) should be added here as those areas are specified in the same depth.
+- PostgreSQL-oriented naming; migrations may use snake_case columns.
+- Identity, RBAC, and `AuditEvent` are defined in [platform.md](platform.md); product modules reference them rather than redefining them.
+- Housing and assignment tables in administration drive forum visibility and chat flat-room membership as described in those modules’ boundary sections.
 
-## Related specifications
+## Related documentation
 
-- [Data model specification](../specifications/data-model.md) — core entities and cross-cutting rules (DM-01–DM-03)
-- [Glossary](../specifications/glossary.md) — Flat, Room, Tenant, assignments, chat linkage
-- [Architecture](../specifications/architecture.md) — PostgreSQL, GORM, migrations, data access style
-
+- [Specifications](../specifications/) — domain invariants and integration contracts
+- [Requirements](../requirements/) — `FR-*` traceability to tables where noted

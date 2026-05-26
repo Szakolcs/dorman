@@ -1,0 +1,37 @@
+package platform
+
+import (
+	"dorm-man/web/templates/common/components"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ LoginPage(errorMessage string) {
+	@components.Document("Login") {
+		<div class={ partials.Cls.LoginPanel }>
+			@LoginContent(errorMessage)
+		</div>
+	}
+}
+
+templ LoginContent(errorMessage string) {
+	<h1 class={ partials.Cls.PageTitle }>Platform Login</h1>
+	<p class="dm-page-subtitle mb-6">
+		Sign in and get redirected to your module based on your role.
+	</p>
+	if errorMessage != "" {
+		@components.ErrorAlert(errorMessage)
+	}
+	<form class="dm-form mt-6" hx-post="/home/login" hx-swap="none">
+		<label for="login-nickname" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Nickname</span>
+			<input id="login-nickname" name="nickname" type="text" required class={ partials.Cls.Input }/>
+		</label>
+		<label for="login-password" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Password</span>
+			<input id="login-password" name="password" type="password" required class={ partials.Cls.Input }/>
+		</label>
+		<div class={ partials.Cls.FormActions }>
+			<button type="submit" class={ partials.Cls.Button }>Login</button>
+		</div>
+	</form>
+}

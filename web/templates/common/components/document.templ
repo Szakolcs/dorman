@@ -1,46 +1,31 @@
 package components
 
-templ Document(title string, body templ.Component) {
+import "dorm-man/web/templates/common/partials"
+
+const HtmxCDN = "https://unpkg.com/htmx.org@2.0.4"
+
+templ Document(title string) {
 	<!doctype html>
 	<html lang="en">
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<title>{ title }</title>
+			<script src="/static/css/theme.js"></script>
+			<link rel="stylesheet" href="/static/css/app.css"/>
+			<script src={ HtmxCDN }></script>
+			<script src="/static/js/htmx-common.js"></script>
 		</head>
 		<body>
-			<main>
-				@body
+			<main class={ partials.Cls.Shell }>
+				{ children... }
 			</main>
 		</body>
 	</html>
 }
 
-templ PageHeader(title string, description string) {
-	<header>
-		<h1>{ title }</h1>
-		<p>{ description }</p>
-	</header>
-}
-
-templ Section(title string, body templ.Component) {
-	<section>
-		<h2>{ title }</h2>
-		@body
-	</section>
-}
-
-templ DataTable(headers []string, body templ.Component) {
-	<table border="1">
-		<thead>
-			<tr>
-				for _, header := range headers {
-					<th>{ header }</th>
-				}
-			</tr>
-		</thead>
-		<tbody>
-			@body
-		</tbody>
-	</table>
+templ ErrorAlert(message string) {
+	<p class={ partials.Cls.AlertError } role="alert">
+		{ message }
+	</p>
 }

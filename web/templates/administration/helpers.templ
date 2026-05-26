@@ -1,0 +1,37 @@
+package adminviews
+
+import "dorm-man/web/templates/common/partials"
+
+templ PageHeader(title string, subtitle string) {
+	@partials.PageHeader(title, subtitle)
+}
+
+templ DetailRow(label string, value string) {
+	<div class={ partials.Cls.DetailRow }>
+		<dt class={ partials.Cls.DetailLabel }>{ label }</dt>
+		<dd class={ partials.Cls.DetailValue }>{ value }</dd>
+	</div>
+}
+
+templ StatCard(label string, value string) {
+	<div class={ partials.Cls.Stat }>
+		<p class={ partials.Cls.StatLabel }>{ label }</p>
+		<p class={ partials.Cls.StatValue }>{ value }</p>
+	</div>
+}
+
+templ LinkStatCard(label string, value string, href string, detail string) {
+	<a href={ templ.URL(href) } class="dm-stat dm-stat-link">
+		<p class={ partials.Cls.StatLabel }>{ label }</p>
+		<p class={ partials.Cls.StatValue }>{ value }</p>
+		if detail != "" {
+			<p class="dm-stat-detail">{ detail }</p>
+		}
+	</a>
+}
+
+templ BackLink(href string, label string) {
+	<a href={ templ.URL(href) } class={ partials.Cls.BackLink }>
+		&larr; { label }
+	</a>
+}

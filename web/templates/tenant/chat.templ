@@ -1,0 +1,288 @@
+package tenantviews
+
+import (
+	"dorm-man/internal/chat"
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+
+	"github.com/google/uuid"
+)
+
+const (
+	chatMainID         = "chat-main"
+	chatSidebarBodyID  = "chat-sidebar-body"
+	chatActiveRoomID   = "chat-active-room"
+)
+
+templ ChatPage(result chat.SearchResult, activeRoomID uuid.UUID, messages []models.Message, viewerTenantID uuid.UUID, directPeers []models.Tenant) {
+	@Layout("Chat") {
+		@Navigation()
+		<div class="dm-page">
+			@partials.PageHeader("Chat", "Messages with flatmates and event groups.")
+			<div class="dm-chat-layout">
+				@ChatSidebar(result, activeRoomID)
+				<div id={ chatMainID } class="dm-chat-main">
+					if activeRoomID != uuid.Nil {
+						@ChatPanel(activeRoomID, messages, viewerTenantID, result.RoomTitle(activeRoomID))
+					} else {
+						@ChatPanelEmpty()
+					}
+				</div>
+			</div>
+			@ChatCreateGroupModal(directPeers)
+		</div>
+		<script src="/static/js/chat.js"></script>
+	}
+}
+
+templ ChatSidebar(result chat.SearchResult, activeRoomID uuid.UUID) {
+	<aside class="dm-chat-sidebar">
+		<form id="chat-sidebar-form" class="dm-chat-search-form">
+			<label class="dm-field">
+				<span class="dm-label sr-only">Search chats</span>
+				<input
+					type="search"
+					name="q"
+					value={ result.Query }
+					class="dm-input"
+					placeholder="Search by name…"
+					autocomplete="off"
+					hx-get="/tenant/chat/sidebar"
+					hx-target={ "#" + chatSidebarBodyID }
+					hx-swap="outerHTML"
+					hx-trigger="keyup changed delay:200ms, search"
+					hx-include="#chat-sidebar-form"
+				/>
+			</label>
+			<input
+				type="hidden"
+				name="room"
+				id={ chatActiveRoomID }
+				value={ activeRoomValue(activeRoomID) }
+			/>
+		</form>
+		@ChatSidebarBody(result, activeRoomID)
+	</aside>
+}
+
+templ ChatSidebarBody(result chat.SearchResult, activeRoomID uuid.UUID) {
+	<div id={ chatSidebarBodyID } class="dm-chat-sidebar-body">
+		if result.Query != "" && len(result.Tenants) > 0 {
+			<div class="dm-chat-search-section">
+				<p class="dm-chat-search-label">People</p>
+				<div class="dm-chat-search-results">
+					for _, tenant := range result.Tenants {
+						@ChatTenantSearchResult(tenant)
+					}
+				</div>
+			</div>
+		}
+		<div class="dm-chat-rooms">
+			if len(result.Rooms) == 0 {
+				if result.Query != "" {
+					<p class="dm-chat-sidebar-empty">No matching chats.</p>
+				}
+			} else {
+				for _, membership := range result.Rooms {
+					if membership.ChatRoom != nil {
+						@ChatRoomLink(*membership.ChatRoom, activeRoomID, result.RoomTitle(membership.ChatRoom.ID))
+					}
+				}
+			}
+		</div>
+		@ChatCreateGroupCard()
+	</div>
+}
+
+templ ChatSidebarBodyOOB(result chat.SearchResult, activeRoomID uuid.UUID) {
+	<div id={ chatSidebarBodyID } hx-swap-oob="outerHTML">
+		@ChatSidebarBody(result, activeRoomID)
+	</div>
+}
+
+templ ChatTenantSearchResult(tenant models.Tenant) {
+	<button
+		type="button"
+		class="dm-chat-search-result"
+		hx-post="/tenant/chat/direct"
+		hx-vals={ tenantDirectChatVals(tenant.ID) }
+		hx-target={ "#" + chatMainID }
+		hx-swap="innerHTML"
+	>
+		<span class="dm-chat-search-result-name">{ tenantDisplayName(tenant) }</span>
+	</button>
+}
+
+templ ChatRoomLink(room models.ChatRoom, activeRoomID uuid.UUID, displayTitle string) {
+	<a
+		href={ templ.URL(chatRoomURL(room.ID)) }
+		hx-get={ templ.URL(chatPanelURL(room.ID)) }
+		hx-target={ "#" + chatMainID }
+		hx-swap="innerHTML"
+		hx-push-url={ templ.URL(chatRoomURL(room.ID)) }
+		class={
+			templ.KV("dm-chat-room-link", true),
+			templ.KV("dm-chat-room-link-active", room.ID == activeRoomID),
+		}
+	>
+		<span class="dm-chat-room-kind">{ roomKindLabel(room.Kind) }</span>
+		<span class="dm-chat-room-title">{ chatRoomDisplayTitle(room, displayTitle) }</span>
+	</a>
+}
+
+templ ChatPanelEmpty() {
+	<div class="dm-chat-panel dm-chat-panel-empty">
+		<p class="dm-chat-empty">Select a chat or search for someone to message.</p>
+	</div>
+}
+
+templ ChatPanel(roomID uuid.UUID, messages []models.Message, viewerTenantID uuid.UUID, title string) {
+	<div class="dm-chat-panel">
+		if title != "" {
+			<header class="dm-chat-panel-header">
+				<h2 class="dm-chat-panel-title">{ title }</h2>
+			</header>
+		}
+		<div
+			id="chat-messages"
+			class="dm-chat-messages"
+			hx-get={ templ.SafeURL(chatMessagesPollURL(roomID)) }
+			hx-trigger="load, every 3s"
+			hx-swap="innerHTML"
+		>
+			@ChatMessages(messages, viewerTenantID)
+		</div>
+		@ChatComposeForm(roomID)
+	</div>
+}
+
+templ ChatMessages(messages []models.Message, viewerTenantID uuid.UUID) {
+	if len(messages) == 0 {
+		<p class="dm-chat-empty">No messages yet. Say hello.</p>
+	} else {
+		for _, message := range messages {
+			@ChatMessage(message, viewerTenantID)
+		}
+	}
+}
+
+templ ChatMessage(message models.Message, viewerTenantID uuid.UUID) {
+	<article
+		class={
+			templ.KV("dm-chat-message", true),
+			templ.KV("dm-chat-message-own", message.SenderTenantID == viewerTenantID),
+		}
+	>
+		<header class="dm-chat-message-header">
+			<span class="dm-chat-message-author">{ messageSenderLabel(message) }</span>
+			<time class="dm-chat-message-time">{ message.CreatedAt.Format("2006-01-02 15:04") }</time>
+		</header>
+		<p class="dm-chat-message-body">{ message.Body }</p>
+	</article>
+}
+
+templ ChatComposeForm(roomID uuid.UUID) {
+	<form
+		class="dm-chat-compose"
+		hx-post="/tenant/chat/messages"
+		hx-target="#chat-messages"
+		hx-swap="innerHTML"
+		hx-on::after-request="if(event.detail.successful) this.reset()"
+	>
+		<input type="hidden" name="room_id" value={ roomID.String() }/>
+		<label class="dm-field dm-chat-compose-field">
+			<span class="dm-label sr-only">Message</span>
+			<textarea name="body" rows="2" required class="dm-textarea" placeholder="Write a message…"></textarea>
+		</label>
+		<button type="submit" class="dm-button">Send</button>
+	</form>
+}
+
+templ ChatOpenedUpdate(result chat.SearchResult, room models.ChatRoom, messages []models.Message, viewerTenantID uuid.UUID) {
+	@ChatPanel(room.ID, messages, viewerTenantID, result.RoomTitle(room.ID))
+	@ChatSidebarBodyOOB(result, room.ID)
+}
+
+templ ChatPanelOpened(result chat.SearchResult, roomID uuid.UUID, messages []models.Message, viewerTenantID uuid.UUID) {
+	@ChatPanel(roomID, messages, viewerTenantID, result.RoomTitle(roomID))
+	@ChatSidebarBodyOOB(result, roomID)
+}
+
+templ ChatCreateGroupCard() {
+	<button
+		type="button"
+		class="dm-publication-create-card dm-chat-create-group"
+		aria-label="Create group chat"
+		onclick="openChatCreateGroupModal()"
+	>
+		<span class="dm-publication-create-icon" aria-hidden="true">+</span>
+		<span class="dm-publication-create-label">Create group</span>
+	</button>
+}
+
+templ ChatCreateGroupModal(directPeers []models.Tenant) {
+	<dialog id="chat-create-group-dialog" class="dm-dialog">
+		<div class="dm-dialog-panel">
+			<header class="dm-dialog-header">
+				<h2 class="dm-dialog-title">Create group chat</h2>
+				<button
+					type="button"
+					class="dm-dialog-close"
+					aria-label="Close"
+					onclick="closeChatCreateGroupModal()"
+				>
+					&times;
+				</button>
+			</header>
+			<form
+				class="dm-form"
+				hx-post="/tenant/chat/groups"
+				hx-target={ "#" + chatMainID }
+				hx-swap="innerHTML"
+				hx-on::after-request="if(event.detail.successful) closeChatCreateGroupModal()"
+			>
+				<label class="dm-field">
+					<span class="dm-label">Group name</span>
+					<input type="text" name="title" required class="dm-input" placeholder="Kitchen duty reminders"/>
+				</label>
+				<label class="dm-field">
+					<span class="dm-label">Topic (optional)</span>
+					<textarea name="topic" rows="3" class="dm-textarea" placeholder="What is this group about?"></textarea>
+				</label>
+				if len(directPeers) > 0 {
+					<div class="dm-field">
+						<span class="dm-label">Add members</span>
+						<div class="dm-chat-member-picker">
+							<div class="dm-chat-member-picker-column">
+								<p class="dm-chat-member-picker-label">Available</p>
+								<div id="chat-group-available" class="dm-chat-member-list">
+									for _, peer := range directPeers {
+										<button
+											type="button"
+											class="dm-chat-member-chip"
+											data-tenant-id={ peer.ID.String() }
+											data-tenant-name={ tenantDisplayName(peer) }
+										>
+											{ tenantDisplayName(peer) }
+										</button>
+									}
+								</div>
+							</div>
+							<div class="dm-chat-member-picker-column">
+								<p class="dm-chat-member-picker-label">Selected</p>
+								<div id="chat-group-selected" class="dm-chat-member-list dm-chat-member-list-selected"></div>
+								<div id="chat-group-members-inputs"></div>
+							</div>
+						</div>
+						<span class="dm-field-hint">Click a name to add or remove group members.</span>
+					</div>
+				} else {
+					<p class="dm-field-hint">Start a direct chat first to add members to a group.</p>
+				}
+				<div class="dm-form-actions">
+					<button type="submit" class="dm-button">Create group</button>
+				</div>
+			</form>
+		</div>
+	</dialog>
+}

@@ -1,0 +1,11 @@
+package tenantviews
+
+import "dorm-man/web/templates/common/partials"
+
+templ Navigation() {
+	@partials.BaseNav() {
+		@partials.NavLink("/tenant", "Publications")
+		@partials.NavLink("/tenant/tickets", "My Tickets")
+		@partials.NavLink("/tenant/chat", "Chat")
+	}
+}

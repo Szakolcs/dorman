@@ -1,0 +1,22 @@
+package maintenanceviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ TenantTicketsPage(tickets []models.Ticket) {
+	@Layout("My Tickets") {
+		@TenantNavigation()
+		<div class={ partials.Cls.Page }>
+			@partials.PageHeader("My Tickets", "Filter and review your submitted maintenance tickets.")
+			@TenantTicketFilters()
+			<div
+				id="ticket-table"
+				class={ partials.Cls.Card }
+			>
+				@TicketTable(tickets, "/tenant/tickets/")
+			</div>
+		</div>
+	}
+}

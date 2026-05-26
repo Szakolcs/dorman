@@ -1,0 +1,17 @@
+package maintenanceviews
+
+import "dorm-man/web/templates/common/partials"
+
+templ StaffNavigation() {
+	@partials.BaseNav() {
+		@partials.NavLink("/maintenance", "Dashboard")
+		@partials.NavLink("/maintenance/tickets", "Tickets")
+	}
+}
+
+templ TenantNavigation() {
+	@partials.BaseNav() {
+		@partials.NavLink("/tenant", "My Tickets")
+		@partials.NavLink("/tenant/tickets", "All Tickets")
+	}
+}

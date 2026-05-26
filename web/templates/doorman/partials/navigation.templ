@@ -1,0 +1,11 @@
+package doormanviews
+
+import "dorm-man/web/templates/common/partials"
+
+templ Navigation() {
+	@partials.BaseNav() {
+		@partials.NavLink("/doorman", "Dashboard")
+		@partials.NavLink("/doorman/list/tenants", "Tenant Access")
+		@partials.NavLink("/doorman/guests", "Guests")
+	}
+}

@@ -1,29 +1,54 @@
-package administration
+package adminviews
 
-import "dorm-man/web/templates/common/components"
-import "dorm-man/web/templates/common/partials"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	"fmt"
+)
 
-templ AuditPage() {
-	@components.Document("Administration - Audit", AuditContent())
+templ AuditPage(logs []models.Audit) {
+	@Layout("Audit Log") {
+		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@PageHeader("Audit log", "Review sensitive changes recorded across administration tables.")
+			@partials.Card("Audit events") {
+				@AuditTable(logs)
+			}
+		</div>
+	}
 }
 
-templ AuditContent() {
-	@partials.MainNav()
-	@components.PageHeader(
-		"Audit Trail",
-		"Review sensitive actions with actor, action, target, outcome, and timestamp context.",
-	)
-
-	@components.DataTable([]string{"Occurred At", "Actor", "Action", "Target Type", "Target ID", "Outcome"}, AuditRows())
-}
-
-templ AuditRows() {
-	<tr>
-		<td>2026-05-10T16:00:00Z</td>
-		<td>staff-id</td>
-		<td>room.assignment</td>
-		<td>room_assignment</td>
-		<td>assignment-id</td>
-		<td>success</td>
-	</tr>
+templ AuditTable(logs []models.Audit) {
+	if len(logs) == 0 {
+		<p class={ partials.Cls.Empty }>No audit events found.</p>
+	} else {
+		@partials.TableWrap() {
+			<table class={ partials.Cls.Table }>
+				<thead class={ partials.Cls.TableHead }>
+					<tr class={ partials.Cls.TableTr }>
+						<th class={ partials.Cls.TableTh }>When</th>
+						<th class={ partials.Cls.TableTh }>Table</th>
+						<th class={ partials.Cls.TableTh }>Operation</th>
+						<th class={ partials.Cls.TableTh }>Changed by</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, log := range logs {
+						<tr class={ partials.Cls.TableTr }>
+							<td class="whitespace-nowrap">{ log.ChangedAt }</td>
+							<td class={ partials.Cls.TableTd }>{ log.TableName }</td>
+							<td class={ partials.Cls.TableTd }>{ log.Operation }</td>
+							<td class={ partials.Cls.TableTd }>
+								if log.User.Name != "" {
+									{ log.User.Name }
+								} else {
+									{ fmt.Sprintf("%s", log.ChangedBy) }
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	}
 }

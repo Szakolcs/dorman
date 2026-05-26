@@ -1,0 +1,244 @@
+package tenantviews
+
+import (
+	"dorm-man/internal/administration"
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	"fmt"
+
+	"github.com/google/uuid"
+)
+
+templ PublicationsPage(publications []PublicationCardItem, activeKind string) {
+	@Layout("Publications") {
+		@Navigation()
+		<div class="dm-page">
+			@partials.PageHeader("Publications", "Official news, bookable activities, and upcoming events.")
+			@PublicationKindFilters(activeKind)
+			<div class="dm-publication-list">
+				for _, pub := range publications {
+					@PublicationCard(pub, activeKind)
+				}
+			</div>
+			if len(publications) == 0 {
+				<p class="dm-empty">No publications found.</p>
+			}
+		</div>
+		<script src="/static/js/publications.js"></script>
+	}
+}
+
+templ PublicationKindFilters(activeKind string) {
+	<div class="dm-tenant-kind-filters">
+		@PublicationKindFilterButton("All", "", activeKind)
+		@PublicationKindFilterButton("News", "news", activeKind)
+		@PublicationKindFilterButton("Activity", "activity", activeKind)
+		@PublicationKindFilterButton("Event", "event", activeKind)
+	</div>
+}
+
+templ PublicationKindFilterButton(label string, kind string, activeKind string) {
+	<a
+		href={ templ.URL(publicationKindFilterURL(kind, activeKind)) }
+		class={
+			templ.KV("dm-tenant-kind-filter", true),
+			templ.KV("dm-tenant-kind-filter-active", activeKind == kind),
+		}
+	>
+		{ label }
+	</a>
+}
+
+templ PublicationCard(item PublicationCardItem, activeKind string) {
+	<article
+		id={ publicationCardID(item.ID) }
+		class={
+			templ.KV("dm-publication-card", true),
+			templ.KV("dm-publication-card-tenant", true),
+			templ.KV("dm-publication-card-has-footer", item.Kind == administration.PublicationKindActivity || item.Kind == administration.PublicationKindEvent),
+		}
+	>
+		<div class="dm-publication-card-content">
+			<span
+				class={
+					templ.KV("dm-publication-card-kind", true),
+					templ.KV(publicationKindClass(item.Kind), true),
+				}
+			>
+				{ publicationKindLabel(item.Kind) }
+			</span>
+			<a
+				href={ templ.SafeURL("/tenant/publications/" + item.ID.String()) }
+				class="dm-publication-card-body"
+			>
+				<h3 class="dm-publication-card-title">{ item.Title }</h3>
+				if item.Description != "" {
+					<p class="dm-publication-card-description">{ item.Description }</p>
+				}
+				if item.Kind == administration.PublicationKindActivity && item.Activity != nil {
+					<p class="dm-publication-card-stats">{ activityStatsLabel(item.Activity) }</p>
+				}
+				if item.Kind == administration.PublicationKindEvent && item.Event != nil {
+					<p class="dm-publication-card-stats">{ eventInterestStatsLabel(item.Event) }</p>
+				}
+				<p class="dm-publication-card-meta">
+					{ item.UpdatedAt.Format("2006-01-02") }
+				</p>
+			</a>
+		</div>
+		if item.Kind == administration.PublicationKindActivity && item.Activity != nil {
+			<div class="dm-publication-card-footer dm-publication-card-footer-activity">
+				@ActivityBookActions(item.ID, item.Activity, item.BookedByViewer, publicationListReturnURL(activeKind))
+			</div>
+		}
+		if item.Kind == administration.PublicationKindEvent {
+			<div class="dm-publication-card-footer dm-publication-card-footer-event">
+				@EventIntentActions(item.ID, item.ViewerEventIntent, publicationListReturnURL(activeKind))
+			</div>
+		}
+	</article>
+}
+
+templ ActivityBookActions(activityID uuid.UUID, stats *administration.ActivityStats, bookedByViewer bool, returnURL string) {
+	if bookedByViewer {
+		<form
+			hx-post={ templ.SafeURL(activityCancelURL(activityID, returnURL)) }
+			hx-swap="none"
+			class="dm-activity-book-form"
+		>
+			<button type="submit" class="dm-activity-action-btn dm-activity-cancel-btn">Cancel booking</button>
+		</form>
+	} else if activitySpotsLeft(stats) == 0 {
+		<span class="dm-activity-action-btn dm-activity-full-btn">Full</span>
+	} else {
+		<form
+			hx-post={ templ.SafeURL(activityBookURL(activityID, returnURL)) }
+			hx-swap="none"
+			class="dm-activity-book-form"
+		>
+			<button type="submit" class="dm-activity-action-btn dm-activity-book-btn">Book</button>
+		</form>
+	}
+}
+
+templ EventIntentActions(eventID uuid.UUID, viewerIntent string, returnURL string) {
+	@EventIntentButton(eventID, models.EventAttendanceInterested, "Interested", viewerIntent, returnURL)
+	@EventIntentButton(eventID, models.EventAttendanceNotInterested, "Not interested", viewerIntent, returnURL)
+	@EventIntentButton(eventID, models.EventAttendanceBusy, "Busy", viewerIntent, returnURL)
+}
+
+templ EventIntentButton(eventID uuid.UUID, intent models.EventAttendanceIntent, label string, viewerIntent string, returnURL string) {
+	<form
+		hx-post={ templ.SafeURL(eventIntentPostURL(eventID, returnURL)) }
+		hx-swap="none"
+		class={
+			templ.KV("dm-event-intent-form", true),
+			templ.KV(eventIntentClass(intent), true),
+		}
+	>
+		<input type="hidden" name="intent" value={ string(intent) }/>
+		<button
+			type="submit"
+			class={
+				templ.KV("dm-event-intent-btn", true),
+				templ.KV("dm-event-intent-btn-active", eventIntentIsActive(intent, viewerIntent)),
+			}
+		>
+			{ label }
+		</button>
+	</form>
+}
+
+templ PublicationDetailHeader(title string, subtitle string, kind administration.PublicationKind) {
+	<header class="dm-page-header dm-page-header-row">
+		<div class="dm-page-header-text">
+			<h1 class="dm-page-title">{ title }</h1>
+			if subtitle != "" {
+				<p class="dm-page-subtitle">{ subtitle }</p>
+			}
+		</div>
+		<span
+			class={
+				templ.KV("dm-publication-status", true),
+				templ.KV(publicationKindClass(kind), true),
+			}
+		>
+			{ publicationKindLabel(kind) }
+		</span>
+	</header>
+}
+
+templ NewsDetailPage(news models.Publication) {
+	@Layout("News") {
+		@Navigation()
+		<div class="dm-page">
+			<a href="/tenant" class="dm-back-link">&larr; Back to publications</a>
+			@PublicationDetailHeader(news.Title, news.Description, administration.PublicationKindNews)
+			<div class="dm-card">
+				<dl>
+					@DetailRow("Published", news.UpdatedAt.Format("2006-01-02 15:04"))
+				</dl>
+			</div>
+		</div>
+	}
+}
+
+templ ActivityDetailPage(activity models.Activity, bookedByViewer bool) {
+	@Layout("Activity") {
+		@Navigation()
+		<div class="dm-page">
+			<a href="/tenant" class="dm-back-link">&larr; Back to publications</a>
+			@PublicationDetailHeader(activity.Title, activity.Description, administration.PublicationKindActivity)
+			@ActivityDetailCard(activity, bookedByViewer)
+		</div>
+		<script src="/static/js/publications.js"></script>
+	}
+}
+
+templ ActivityDetailCard(activity models.Activity, bookedByViewer bool) {
+	<div id={ activityDetailCardID(activity.ID) } class="dm-card dm-card-with-footer">
+		<div class="dm-card-body">
+			<dl>
+				@DetailRow("Capacity", fmt.Sprintf("%d", activity.Capacity))
+				@DetailRow("Booked", fmt.Sprintf("%d", activity.BookedCount))
+				@DetailRow("Spots left", fmt.Sprintf("%d", activitySpotsFromActivity(activity)))
+			</dl>
+		</div>
+		<div class="dm-publication-card-footer dm-publication-card-footer-activity">
+			@ActivityBookActions(
+				activity.ID,
+				activityStatsFromActivity(activity),
+				bookedByViewer,
+				activityDetailReturnURL(activity.ID),
+			)
+		</div>
+	</div>
+}
+
+templ EventDetailPage(event models.Event, viewerIntent string) {
+	@Layout("Event") {
+		@Navigation()
+		<div class="dm-page">
+			<a href="/tenant" class="dm-back-link">&larr; Back to publications</a>
+			@PublicationDetailHeader(event.Title, event.Description, administration.PublicationKindEvent)
+			<div class="dm-card dm-card-with-footer">
+				<div class="dm-card-body">
+					<dl>
+						@DetailRow("Starts", event.StartsAt.Format("2006-01-02 15:04"))
+						@DetailRow("Ends", event.EndsAt.Format("2006-01-02 15:04"))
+					</dl>
+				</div>
+				<div class="dm-publication-card-footer dm-publication-card-footer-event">
+					@EventIntentActions(event.ID, viewerIntent, eventDetailReturnURL(event.ID))
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ DetailRow(label string, value string) {
+	<div class="dm-detail-row">
+		<dt class="dm-detail-label">{ label }</dt>
+		<dd class="dm-detail-value">{ value }</dd>
+	</div>
+}

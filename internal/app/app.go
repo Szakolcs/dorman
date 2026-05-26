@@ -1,16 +1,20 @@
 package app
 
 import (
+	administrationModule "dorm-man/internal/administration"
+	cross_cutting "dorm-man/internal/cross-cutting"
+	doormanModule "dorm-man/internal/doorman"
+	maintenanceModule "dorm-man/internal/maintenance"
+	tenantportalModule "dorm-man/internal/tenantportal"
+	"dorm-man/internal/models"
 	"fmt"
 	"net/http"
 
-	"dorm-man/internal/administration"
 	"dorm-man/internal/config"
-	models "dorm-man/internal/models/administration"
-	"dorm-man/internal/platform"
+
+	"dorm-man/internal/middleware"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"gorm.io/gorm"
 )
 
@@ -29,18 +33,27 @@ func New() (*App, error) {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
 
-	if err := db.AutoMigrate(models.All()...); err != nil {
+	toMigrate := append([]any(nil), models.All()...)
+
+	if err := db.AutoMigrate(toMigrate...); err != nil {
 		return nil, fmt.Errorf("auto migrate models: %w", err)
 	}
-
+	if err := config.CreateAuditInfrastructure(db); err != nil {
+		return nil, fmt.Errorf("create audit infrastructure: %w", err)
+	}
 	e := echo.New()
 	e.HideBanner = true
-	e.Use(middleware.Recover())
-	e.Use(middleware.RequestID())
-	e.Use(middleware.Logger())
+	e.Static("/static", "web/static")
 
-	administration.RegisterRoutes(e, db)
-	platform.RegisterRoutes(e, db)
+	auth := middleware.Authenticate(cfg.SessionSecret)
+
+	cross_cutting.RegisterRoutes(e, db, cfg)
+	maintenanceModule.RegisterRoutes(e, db, auth)
+	administrationModule.RegisterRoutes(e, db, auth)
+	doormanModule.RegisterRoutes(e, db, auth)
+	tenantportalModule.RegisterRoutes(e, db, auth)
+	// forumModule.RegisterRoutes(e, db)
+	// chatModule.RegisterRoutes(e, db)
 
 	e.GET("/healthz", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})

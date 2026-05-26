@@ -1,0 +1,16 @@
+package adminviews
+
+import "dorm-man/web/templates/common/partials"
+
+templ Navigation() {
+	@partials.BaseNav() {
+		@partials.NavLink("/administration", "Dashboard")
+		@partials.NavLink("/administration/tenants", "Tenants")
+		@partials.NavLink("/administration/inventory", "Inventory")
+		@partials.NavLink("/administration/jobs", "Jobs")
+		@partials.NavLink("/administration/publications", "Publications")
+		@partials.NavLink("/administration/housing", "Housing")
+		@partials.NavLink("/administration/register", "Register User")
+		@partials.NavLink("/administration/audit", "Audit")
+	}
+}

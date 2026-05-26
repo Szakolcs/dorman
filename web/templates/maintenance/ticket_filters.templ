@@ -1,0 +1,138 @@
+package maintenanceviews
+
+import "dorm-man/internal/models"
+
+templ StaffTicketFilters(filter TicketListFilter) {
+	<div class="dm-ticket-filters">
+		<form
+			hx-get="/maintenance/tickets"
+			hx-target={ "#" + maintenanceTicketsPanelID }
+			hx-swap="outerHTML"
+			hx-push-url="true"
+			hx-trigger="change"
+			class="dm-ticket-date-form"
+		>
+			for _, status := range filter.Statuses {
+				<input type="hidden" name="status" value={ status }/>
+			}
+			for _, category := range filter.Categories {
+				<input type="hidden" name="category" value={ category }/>
+			}
+			for _, severity := range filter.Severities {
+				<input type="hidden" name="severity" value={ severity }/>
+			}
+			<div class="dm-ticket-date-row">
+				<label class="dm-field">
+					<span class="dm-label">From</span>
+					<input type="date" name="from" value={ filter.From } class="dm-input"/>
+				</label>
+				<label class="dm-field">
+					<span class="dm-label">To</span>
+					<input type="date" name="to" value={ filter.To } class="dm-input"/>
+				</label>
+			</div>
+		</form>
+		@TicketFilterGroup("Status") {
+			for _, status := range []models.Status{
+				models.StatusReported,
+				models.StatusDuplicate,
+				models.StatusInProgress,
+				models.StatusHalted,
+				models.StatusResolved,
+				models.StatusClosed,
+			} {
+				@TicketFilterButton(
+					filter.ToggleStatus(string(status)).URL(),
+					statusLabel(status),
+					filterValueActive(filter.Statuses, string(status)),
+				)
+			}
+		}
+		@TicketFilterGroup("Category") {
+			for _, category := range []models.Category{
+				models.CategoryYearly,
+				models.CategoryMonthly,
+				models.CategoryWeekly,
+				models.CategoryIncident,
+			} {
+				@TicketFilterButton(
+					filter.ToggleCategory(string(category)).URL(),
+					categoryLabel(category),
+					filterValueActive(filter.Categories, string(category)),
+				)
+			}
+		}
+		@TicketFilterGroup("Severity") {
+			for _, severity := range []models.Severity{
+				models.SeverityHigh,
+				models.SeverityMedium,
+				models.SeverityLow,
+			} {
+				@TicketFilterButton(
+					filter.ToggleSeverity(string(severity)).URL(),
+					severityLabel(severity),
+					filterValueActive(filter.Severities, string(severity)),
+				)
+			}
+		}
+	</div>
+}
+
+templ TicketFilterGroup(label string) {
+	<div class="dm-ticket-filter-group">
+		<p class="dm-ticket-filter-label">{ label }</p>
+		<div class="dm-tenant-kind-filters">
+			{ children... }
+		</div>
+	</div>
+}
+
+templ TicketFilterButton(href string, label string, active bool) {
+	<a
+		href={ templ.URL(href) }
+		hx-get={ templ.URL(href) }
+		hx-target={ "#" + maintenanceTicketsPanelID }
+		hx-swap="outerHTML"
+		hx-push-url="true"
+		class={
+			templ.KV("dm-tenant-kind-filter", true),
+			templ.KV("dm-tenant-kind-filter-active", active),
+		}
+	>
+		{ label }
+	</a>
+}
+
+templ TenantTicketFilters() {
+	<form method="GET" action="/tenant/tickets" class="dm-form">
+		@legacyTicketFilterFields()
+		<button type="submit" class="dm-button">Filter</button>
+	</form>
+}
+
+templ legacyTicketFilterFields() {
+	<input type="date" name="from" class="dm-input"/>
+	<input type="date" name="to" class="dm-input"/>
+	<select name="status" class="dm-select">
+		<option value="">All Statuses</option>
+		<option value="reported">Reported</option>
+		<option value="duplicate">Duplicate</option>
+		<option value="in_progress">In Progress</option>
+		<option value="halted">Halted</option>
+		<option value="resolved">Resolved</option>
+		<option value="closed">Closed</option>
+	</select>
+	<select name="category" class="dm-select">
+		<option value="">All Categories</option>
+		<option value="yearly">Yearly</option>
+		<option value="monthly">Monthly</option>
+		<option value="weekly">Weekly</option>
+		<option value="incident">Incident</option>
+	</select>
+	<select name="severity" class="dm-select">
+		<option value="">All Severities</option>
+		<option value="high">High</option>
+		<option value="medium">Medium</option>
+		<option value="low">Low</option>
+	</select>
+}

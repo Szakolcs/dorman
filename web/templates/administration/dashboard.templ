@@ -1,26 +1,50 @@
-package administration
+package adminviews
 
-import "dorm-man/web/templates/common/components"
-import "dorm-man/web/templates/common/partials"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	"fmt"
+)
 
-templ DashboardPage() {
-	@components.Document("Administration", DashboardContent())
-}
-
-templ DashboardContent() {
-	@partials.MainNav()
-	@components.PageHeader(
-		"Administration Module",
-		"Central entry point for tenant lifecycle, occupancy, inventory, maintenance, scheduling, publications, and audit flows.",
-	)
-
-	<ul>
-		<li><a href="/administration/tenants">Tenant Management</a></li>
-		<li><a href="/administration/rooms">Room and Capacity</a></li>
-		<li><a href="/administration/inventory">Inventory</a></li>
-		<li><a href="/administration/maintenance">Maintenance</a></li>
-		<li><a href="/administration/jobs">Operational Scheduling</a></li>
-		<li><a href="/administration/publications">Publications</a></li>
-		<li><a href="/administration/audit">Audit</a></li>
-	</ul>
+templ DashboardPage(
+	activeTenants int,
+	assignedActiveTenants int,
+	openJobs int,
+	overdueJobs int,
+	highPriorityJobs int,
+	buildings int,
+	housingOccupied int,
+	housingCapacity int,
+	activities int,
+	recentAudits []models.Audit,
+) {
+	@Layout("Administration") {
+		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@PageHeader("Administration Dashboard", "Overview of dormitory operations and recent changes.")
+			<div class={ partials.Cls.StatGrid }>
+				@LinkStatCard(
+					"Active tenants",
+					fmt.Sprintf("%d", activeTenants),
+					"/administration/tenants",
+					fmt.Sprintf("%d assigned", assignedActiveTenants),
+				)
+				@LinkStatCard(
+					"Open jobs",
+					fmt.Sprintf("%d", openJobs),
+					"/administration/jobs",
+					fmt.Sprintf("%d overdue · %d high priority", overdueJobs, highPriorityJobs),
+				)
+				@LinkStatCard(
+					"Buildings",
+					fmt.Sprintf("%d / %d", housingOccupied, housingCapacity),
+					"/administration/housing",
+					fmt.Sprintf("%d buildings · %d activities", buildings, activities),
+				)
+			</div>
+			@partials.Card("Recent audit events") {
+				@AuditTable(recentAudits)
+			}
+		</div>
+	}
 }

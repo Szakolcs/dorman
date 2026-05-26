@@ -1,75 +1,223 @@
-package administration
+package adminviews
 
-import "dorm-man/web/templates/common/components"
-import "dorm-man/web/templates/common/partials"
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	"fmt"
+)
 
-templ TenantsPage() {
-	@components.Document("Administration - Tenants", TenantsContent())
+templ TenantsPage(tenants []models.Tenant, hasActiveAssignments bool) {
+	@Layout("Tenants") {
+		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@PageHeader("Tenants", "Browse resident records, assignments, and profile data.")
+			if hasActiveAssignments {
+				@TenantAssignmentsToolbar()
+			} else {
+				@TenantMassAssignmentPanel()
+			}
+			@partials.Card("Tenant directory") {
+				@TenantsTable(tenants)
+			}
+		</div>
+		<script src="/static/js/clickable-rows.js"></script>
+		if !hasActiveAssignments {
+			<script src="/static/js/tenants.js"></script>
+		}
+	}
 }
 
-templ TenantsContent() {
-	@partials.MainNav()
-	@components.PageHeader(
-		"Tenant Management",
-		"Register, activate, deactivate, and review tenant details for the semester lifecycle.",
-	)
-	@components.Section("Directory Filters", TenantsFilters())
-	@components.Section("Tenant Directory", TenantsDirectory())
-	@components.Section("Register New Tenant", TenantRegistrationForm())
+templ TenantAssignmentsToolbar() {
+	<div class="dm-tenant-actions">
+		<form
+			hx-post="/administration/tenants/remove-all-assignments"
+			hx-swap="none"
+			hx-confirm="End all current room assignments?"
+		>
+			<button type="submit" class={ partials.Cls.ButtonDanger }>
+				Remove all assignments
+			</button>
+		</form>
+	</div>
 }
 
-templ TenantsFilters() {
-	<form method="get" action="/administration/tenants">
-		<label for="tenant-search">Search</label>
-		<input id="tenant-search" name="search" type="text"/>
-
-		<label for="tenant-status">Status</label>
-		<select id="tenant-status" name="status">
-			<option value="">All</option>
-			<option value="active">Active</option>
-			<option value="inactive">Inactive</option>
-		</select>
-
-		<button type="submit">Apply</button>
-	</form>
+templ TenantMassAssignmentPanel() {
+	<div class="dm-mass-assignment">
+		<div class="dm-mass-assignment-columns">
+			<div class="dm-mass-assignment-box">
+				<h3 class="dm-mass-assignment-title">Strict groups</h3>
+				<div id="strict-groups" class="dm-mass-assignment-dropzone" data-container="strict"></div>
+			</div>
+			<div class="dm-mass-assignment-box">
+				<h3 class="dm-mass-assignment-title">Preferences</h3>
+				<div id="preferences" class="dm-mass-assignment-dropzone" data-container="preferences"></div>
+			</div>
+		</div>
+		<form
+			id="tenant-mass-assignment-form"
+			hx-post="/administration/tenants/mass-assign"
+			hx-swap="none"
+		>
+			<input type="hidden" name="strict_groups" id="strict-groups-input"/>
+			<input type="hidden" name="preferences" id="preferences-input"/>
+			<button type="submit" class={ partials.Cls.Button }>
+				Mass assignments
+			</button>
+		</form>
+	</div>
 }
 
-templ TenantsDirectory() {
-	@components.DataTable([]string{"Name", "Student Code", "Email", "Status", "Actions"}, TenantRows())
+templ TenantsTable(tenants []models.Tenant) {
+	if len(tenants) == 0 {
+		<p class={ partials.Cls.Empty }>No tenants found.</p>
+	} else {
+		@partials.TableWrap() {
+			<table class={ partials.Cls.Table + " dm-tenants-table" }>
+				<thead class={ partials.Cls.TableHead }>
+					<tr class={ partials.Cls.TableTr }>
+						<th class={ partials.Cls.TableTh }>Student code</th>
+						<th class={ partials.Cls.TableTh }>Name</th>
+						<th class={ partials.Cls.TableTh }>Faculty</th>
+						<th class={ partials.Cls.TableTh }>Status</th>
+						<th class={ partials.Cls.TableTh }>Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, tenant := range tenants {
+						<tr
+							class={ partials.Cls.TableTr + " dm-table-row-link" }
+							data-row-href={ "/administration/tenants/" + tenant.ID.String() }
+						>
+							<td class={ partials.Cls.TableTd }>{ tenant.StudentCode }</td>
+							<td class={ partials.Cls.TableTd }>
+								if tenant.User != nil {
+									{ tenant.User.Name }
+								} else {
+									<span class="text-dm-muted">No linked user</span>
+								}
+							</td>
+							<td class={ partials.Cls.TableTd }>
+								if tenant.Faculty != nil {
+									{ string(*tenant.Faculty) }
+								}
+							</td>
+							<td class={ partials.Cls.TableTd }>
+								if tenant.IsActive {
+									active
+								} else {
+									inactive
+								}
+							</td>
+							<td class={ partials.Cls.TableTd + " dm-table-actions" }>
+								if tenant.IsActive {
+									<form
+										class="m-0 inline"
+										hx-post={ "/administration/tenants/" + tenant.ID.String() + "/deactivate" }
+										hx-swap="none"
+										hx-confirm={ "Deactivate " + tenant.StudentCode + "?" }
+									>
+										<button type="submit" class={ partials.Cls.ButtonSecondary }>
+											Deactivate
+										</button>
+									</form>
+								} else {
+									<form
+										class="m-0 inline"
+										hx-post={ "/administration/tenants/" + tenant.ID.String() + "/activate" }
+										hx-swap="none"
+										hx-confirm={ "Activate " + tenant.StudentCode + "?" }
+									>
+										<button type="submit" class={ partials.Cls.Button }>
+											Activate
+										</button>
+									</form>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+	}
 }
 
-templ TenantRows() {
-	<tr>
-		<td>Example Tenant</td>
-		<td>ABC123</td>
-		<td>tenant@example.com</td>
-		<td>active</td>
-		<td>
-			<a href="/administration/tenants/tenant-id">Details</a>
-			<form method="post" action="/api/administration/tenants/tenant-id/deactivate">
-				<button type="submit">Deactivate</button>
-			</form>
-		</td>
-	</tr>
+templ TenantDetailPage(tenant models.Tenant) {
+	@Layout("Tenant") {
+		@Navigation()
+		<div class={ partials.Cls.Page }>
+			@BackLink("/administration/tenants", "Back to tenants")
+			@PageHeader(tenant.StudentCode, "Tenant profile and room assignment history.")
+			@partials.Card("Profile") {
+				<dl>
+					@DetailRow("Student code", tenant.StudentCode)
+					if tenant.User != nil {
+						@DetailRow("Name", tenant.User.Name)
+						@DetailRow("Email", tenant.User.Email)
+						@DetailRow("Nickname", tenant.User.Nickname)
+					}
+					if tenant.Degree != nil {
+						@DetailRow("Degree", string(*tenant.Degree))
+					}
+					if tenant.Faculty != nil {
+						@DetailRow("Faculty", string(*tenant.Faculty))
+					}
+					if tenant.Age != nil {
+						@DetailRow("Age", fmt.Sprintf("%d", *tenant.Age))
+					}
+					if tenant.Sex != nil {
+						@DetailRow("Sex", string(*tenant.Sex))
+					}
+					if tenant.Nationality != nil {
+						@DetailRow("Nationality", string(*tenant.Nationality))
+					}
+					@DetailRow("Registered", tenant.RegisteredAt.Format("2006-01-02"))
+					if tenant.IsActive {
+						@DetailRow("Status", "active")
+					} else {
+						@DetailRow("Status", "inactive")
+					}
+				</dl>
+			}
+			@partials.Card("Room assignments") {
+				@TenantAssignmentsTable(tenant.RoomAssignments)
+			}
+		</div>
+	}
 }
 
-templ TenantRegistrationForm() {
-	<form method="post" action="/api/administration/tenants">
-		<label for="tenant-name">Name</label>
-		<input id="tenant-name" name="name" type="text"/>
-
-		<label for="tenant-student-code">Student Code</label>
-		<input id="tenant-student-code" name="student_code" type="text"/>
-
-		<label for="tenant-email">Email</label>
-		<input id="tenant-email" name="email" type="email"/>
-
-		<label for="tenant-nationality">Nationality</label>
-		<select id="tenant-nationality" name="nationality">
-			<option value="hungarian">Hungarian</option>
-			<option value="international">International</option>
-		</select>
-
-		<button type="submit">Register Tenant</button>
-	</form>
+templ TenantAssignmentsTable(assignments []models.RoomAssignment) {
+	if len(assignments) == 0 {
+		<p class={ partials.Cls.Empty }>No room assignments recorded.</p>
+	} else {
+		<table class={ partials.Cls.Table }>
+			<thead class={ partials.Cls.TableHead }>
+				<tr class={ partials.Cls.TableTr }>
+					<th class={ partials.Cls.TableTh }>Room</th>
+					<th class={ partials.Cls.TableTh }>Flat</th>
+					<th class={ partials.Cls.TableTh }>Effective</th>
+					<th class={ partials.Cls.TableTh }>Ended</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, assignment := range assignments {
+					<tr class={ partials.Cls.TableTr }>
+						<td class={ partials.Cls.TableTd }>{ assignment.Room.Number }</td>
+						<td class={ partials.Cls.TableTd }>
+							if assignment.Room.Flat.Name != "" {
+								{ assignment.Room.Flat.Name }
+							}
+						</td>
+						<td class={ partials.Cls.TableTd }>{ assignment.EffectiveAt.Format("2006-01-02") }</td>
+						<td class={ partials.Cls.TableTd }>
+							if assignment.EndedAt != nil {
+								{ assignment.EndedAt.Format("2006-01-02") }
+							} else {
+								<span class="text-dm-success">current</span>
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	}
 }

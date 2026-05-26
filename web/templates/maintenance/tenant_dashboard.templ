@@ -1,0 +1,21 @@
+package maintenanceviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ TenantDashboardPage(tickets []models.Ticket) {
+	@Layout("My Maintenance Tickets") {
+		@TenantNavigation()
+		<div class={ partials.Cls.Page }>
+			@partials.PageHeader("My Maintenance Tickets", "Report issues and track your maintenance requests.")
+			@partials.Card("Report an Issue") {
+				@TicketCreateForm()
+			}
+			@partials.Card("Your Tickets") {
+				@TicketTable(tickets, "/tenant/tickets/")
+			}
+		</div>
+	}
+}

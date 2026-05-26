@@ -1,0 +1,63 @@
+package maintenanceviews
+
+import (
+	"dorm-man/web/templates/common/partials"
+)
+
+templ TicketCreateForm() {
+	<form
+		hx-post="/tenant/tickets"
+		hx-target="#tickets-panel"
+		hx-swap="outerHTML"
+		hx-on::after-request="if(event.detail.successful) { this.reset(); if(typeof closeTicketCreateModal === 'function') closeTicketCreateModal(); }"
+		class={ partials.Cls.Form }
+	>
+		<label for="severity" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Severity</span>
+			<select
+				id="severity"
+				name="severity"
+				class={ partials.Cls.Select }
+				required
+			>
+				<option value="">Select severity</option>
+				<option value="high">High</option>
+				<option value="medium">Medium</option>
+				<option value="low">Low</option>
+			</select>
+		</label>
+		<label for="impact" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Impact</span>
+			<select
+				id="impact"
+				name="impact"
+				class={ partials.Cls.Select }
+				required
+			>
+				<option value="">Select impact</option>
+				<option value="life_threatening">Life threatening</option>
+				<option value="affects_daily_life">Affects daily life</option>
+				<option value="inconvenience">Inconvenience</option>
+				<option value="beauty_flaw">Beauty flaw</option>
+			</select>
+		</label>
+		<label for="description" class={ partials.Cls.Field }>
+			<span class={ partials.Cls.Label }>Description</span>
+			<textarea
+				id="description"
+				name="description"
+				class={ partials.Cls.Textarea }
+				rows="4"
+				required
+			></textarea>
+		</label>
+		<div class={ partials.Cls.FormActions }>
+			<button
+				type="submit"
+				class={ partials.Cls.Button }
+			>
+				Submit Ticket
+			</button>
+		</div>
+	</form>
+}

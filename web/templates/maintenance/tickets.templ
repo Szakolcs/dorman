@@ -1,0 +1,25 @@
+package maintenanceviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+)
+
+templ TicketsPage(tickets []models.Ticket, filter TicketListFilter) {
+	@Layout("Maintenance Tickets") {
+		@StaffNavigation()
+		<div class={ partials.Cls.Page }>
+			@partials.PageHeader("Maintenance Tickets", "Review and update all reported tickets.")
+			@TicketsPanel(tickets, filter)
+		</div>
+	}
+}
+
+templ TicketsPanel(tickets []models.Ticket, filter TicketListFilter) {
+	<div id={ maintenanceTicketsPanelID }>
+		@StaffTicketFilters(filter)
+		<div class={ partials.Cls.Card }>
+			@TicketTable(tickets, "/maintenance/tickets/")
+		</div>
+	</div>
+}

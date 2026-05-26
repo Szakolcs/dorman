@@ -1,0 +1,10 @@
+package partials
+
+templ PageHeader(title string, subtitle string) {
+	<header class={ Cls.PageHdr }>
+		<h1 class={ Cls.PageTitle }>{ title }</h1>
+		if subtitle != "" {
+			<p class={ Cls.PageSub }>{ subtitle }</p>
+		}
+	</header>
+}

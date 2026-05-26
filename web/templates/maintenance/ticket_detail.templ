@@ -1,0 +1,22 @@
+package maintenanceviews
+
+import (
+	"dorm-man/internal/models"
+	"dorm-man/web/templates/common/partials"
+	"fmt"
+)
+
+templ TicketDetailPage(ticket models.Ticket) {
+	@Layout("Ticket Detail") {
+		@StaffNavigation()
+		<div class={ partials.Cls.Page }>
+			@partials.PageHeader("Ticket Detail", fmt.Sprintf("Reported %s", ticket.CreatedAt.Format("2006-01-02 15:04")))
+			@partials.Card("Update Ticket") {
+				@TicketUpdateForm(ticket)
+			}
+			@partials.Card("Status History") {
+				@TicketStatusHistory(ticket.StatusTransitions)
+			}
+		</div>
+	}
+}

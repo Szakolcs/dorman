@@ -1,0 +1,9 @@
+package tenantviews
+
+import "dorm-man/web/templates/common/components"
+
+templ Layout(title string) {
+	@components.Document(title) {
+		{ children... }
+	}
+}
